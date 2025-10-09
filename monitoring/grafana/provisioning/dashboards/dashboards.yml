@@ -1,0 +1,15 @@
+# Grafana Dashboard Provisioning Configuration
+# Automatically loads dashboards from the dashboards directory
+
+apiVersion: 1
+
+providers:
+  - name: 'Technical Service Assistant Dashboards'
+    orgId: 1
+    folder: 'Technical Service Assistant'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

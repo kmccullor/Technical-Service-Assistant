@@ -1,0 +1,55 @@
+{
+  "test_suite": "Phase 2C Simplified Integration Test",
+  "timestamp": "2025-10-01T09:37:16.398670",
+  "total_execution_time": 1.3419744968414307,
+  "tests_run": 3,
+  "successful_tests": 1,
+  "success_rate": 0.3333333333333333,
+  "individual_test_results": {
+    "confidence_scoring": {
+      "test_name": "confidence_scoring_basic",
+      "status": "success",
+      "scenarios_tested": 3,
+      "successful_scenarios": 3,
+      "avg_confidence": 0.27886092360041603,
+      "results": {
+        "scenario_1": {
+          "query": "specific technical parameter",
+          "expected": "high_confidence",
+          "confidence": 0.43885703473381543,
+          "uncertainty_penalty": 0.0,
+          "status": "success"
+        },
+        "scenario_2": {
+          "query": "general approach",
+          "expected": "medium_confidence",
+          "confidence": 0.16000000000000003,
+          "uncertainty_penalty": 1.0,
+          "status": "success"
+        },
+        "scenario_3": {
+          "query": "uncertain details",
+          "expected": "low_confidence",
+          "confidence": 0.23772573606743264,
+          "uncertainty_penalty": 1.0,
+          "status": "success"
+        }
+      }
+    },
+    "semantic_chunking": {
+      "test_name": "semantic_chunking_basic",
+      "status": "failed",
+      "error": "No module named 'spacy'"
+    },
+    "system_basic": {
+      "test_name": "phase2c_system_basic",
+      "status": "failed",
+      "error": "'Settings' object has no attribute 'ollama_host'"
+    }
+  },
+  "overall_status": "failed",
+  "recommendations": [
+    "Phase 2C implementation has significant issues",
+    "Advanced confidence scoring is operational"
+  ]
+}

@@ -1,0 +1,35 @@
+# Example Crontab Configuration for Technical Service Assistant
+# Copy these lines to your crontab (run 'crontab -e' to edit)
+
+# Set environment variables for notifications (optional)
+# MAILTO=""
+# EOD_EMAIL=admin@company.com
+# EOD_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+
+# Set PATH to include standard directories
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+
+# Technical Service Assistant End of Day Automation
+# Runs Monday through Friday at 5:00 PM
+0 17 * * 1-5 /home/kmccullor/Projects/Technical-Service-Assistant/scripts/end_of_day.sh
+
+# Alternative schedules (uncomment one):
+
+# Daily at 6:00 PM (every day including weekends)
+# 0 18 * * * /home/kmccullor/Projects/Technical-Service-Assistant/scripts/end_of_day.sh
+
+# Twice daily - lunch check and end of day
+# 0 12 * * 1-5 /home/kmccullor/Projects/Technical-Service-Assistant/scripts/end_of_day.sh
+# 0 17 * * 1-5 /home/kmccullor/Projects/Technical-Service-Assistant/scripts/end_of_day.sh
+
+# Weekend monitoring (reduced frequency)
+# 0 20 * * 6,0 /home/kmccullor/Projects/Technical-Service-Assistant/scripts/end_of_day.sh
+
+# To install this crontab:
+# 1. Copy the desired lines above
+# 2. Run: crontab -e
+# 3. Paste the configuration
+# 4. Save and exit
+#
+# To view current crontab: crontab -l
+# To remove crontab: crontab -r

@@ -1,0 +1,1067 @@
+{
+  "timestamp": "2025-09-23T16:15:25.821738",
+  "test_summary": {
+    "total_tests": 71,
+    "passed_tests": 58,
+    "failed_tests": 13,
+    "success_rate": 81.69014084507043,
+    "avg_response_time": 17.780488588440587,
+    "min_response_time": 0.005364418029785156,
+    "max_response_time": 39.260507345199585,
+    "median_response_time": 17.14442014694214,
+    "response_times": [
+      0.024302005767822266,
+      17.180761337280273,
+      18.411420822143555,
+      17.14442014694214,
+      14.83240795135498,
+      0.04485964775085449,
+      20.938081979751587,
+      0.01183176040649414,
+      0.006338834762573242,
+      0.006357908248901367,
+      0.005364418029785156,
+      30.380757331848145,
+      30.379985570907593,
+      0.8802359104156494,
+      30.999651432037354,
+      30.99877095222473,
+      30.99869990348816,
+      31.021759033203125,
+      31.021324157714844,
+      31.020832061767578,
+      30.988035678863525,
+      31.27068543434143,
+      30.870606660842896,
+      39.260507345199585,
+      17.28726053237915,
+      9.757903337478638,
+      15.104161024093628,
+      22.856199741363525,
+      18.676092863082886,
+      14.887890577316284,
+      17.771273851394653,
+      14.21170973777771,
+      18.237671852111816,
+      17.643502712249756,
+      15.204435110092163,
+      19.759520053863525,
+      17.661022186279297,
+      15.775651216506958,
+      16.721140146255493,
+      20.152124166488647,
+      20.850125789642334,
+      34.79031729698181,
+      12.810431957244873,
+      13.085816621780396,
+      15.14862847328186,
+      15.335001707077026,
+      14.25416898727417,
+      16.954277276992798,
+      13.354432582855225,
+      12.54929780960083,
+      11.146209716796875,
+      20.24822735786438,
+      21.961259126663208,
+      16.410622358322144,
+      13.978115558624268,
+      18.248306274414062,
+      21.272048234939575,
+      13.418751955032349,
+      17.575218439102173,
+      20.020711183547974,
+      12.834496259689331,
+      13.003024578094482,
+      19.06444501876831,
+      16.998173475265503,
+      21.35955810546875,
+      16.939547538757324,
+      13.162789583206177,
+      15.36695408821106,
+      15.780518054962158,
+      15.702932357788086,
+      18.384724617004395
+    ],
+    "sources_stats": {
+      "tests_with_sources": 54,
+      "avg_sources_per_test": 3.8028169014084505,
+      "max_sources": 5,
+      "total_sources_found": 270
+    },
+    "confidence_stats": {
+      "avg_confidence": 0.005915801571974517,
+      "min_confidence": 0.005558357429705262,
+      "max_confidence": 0.007531095911051153,
+      "confidence_scores": [
+        0.005558357429705262,
+        0.006474441345789178,
+        0.006944474376483973,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.0067691379375605775,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006350809901509139,
+        0.006474441345789178,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006050160708393785,
+        0.006488645891243723,
+        0.006027107429705261,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006782598771916934,
+        0.006503297905895737,
+        0.006350809901509139,
+        0.006474441345789178,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006958312313531114,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006437546483321512,
+        0.005558357429705262,
+        0.007531095911051153,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.005558357429705262,
+        0.006782598771916934,
+        0.006503297905895737,
+        0.005558357429705262,
+        0.006050160708393785,
+        0.006488645891243723,
+        0.006027107429705261,
+        0.005558357429705262
+      ]
+    }
+  },
+  "detailed_results": {
+    "health_check": {
+      "analysis": {
+        "total_tests": 1,
+        "passed_tests": 1,
+        "failed_tests": 0,
+        "success_rate": 100.0,
+        "avg_response_time": 0.024302005767822266,
+        "min_response_time": 0.024302005767822266,
+        "max_response_time": 0.024302005767822266,
+        "median_response_time": 0.024302005767822266,
+        "response_times": [
+          0.024302005767822266
+        ],
+        "sources_stats": {
+          "tests_with_sources": 0,
+          "avg_sources_per_test": 0,
+          "max_sources": 0,
+          "total_sources_found": 0
+        },
+        "confidence_stats": {
+          "avg_confidence": 0,
+          "min_confidence": 0,
+          "max_confidence": 0,
+          "confidence_scores": []
+        }
+      },
+      "individual_results": [
+        {
+          "test_name": "API Health Check",
+          "question": "GET /api/status",
+          "success": true,
+          "response_time": 0.024302005767822266,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": null
+        }
+      ]
+    },
+    "search_functionality": {
+      "analysis": {
+        "total_tests": 6,
+        "passed_tests": 5,
+        "failed_tests": 1,
+        "success_rate": 83.33333333333334,
+        "avg_response_time": 14.758658647537231,
+        "min_response_time": 0.04485964775085449,
+        "max_response_time": 20.938081979751587,
+        "median_response_time": 17.162590742111206,
+        "response_times": [
+          17.180761337280273,
+          18.411420822143555,
+          17.14442014694214,
+          14.83240795135498,
+          0.04485964775085449,
+          20.938081979751587
+        ],
+        "sources_stats": {
+          "tests_with_sources": 5,
+          "avg_sources_per_test": 4.166666666666667,
+          "max_sources": 5,
+          "total_sources_found": 25
+        },
+        "confidence_stats": {
+          "avg_confidence": 0.006018797602277787,
+          "min_confidence": 0.005558357429705262,
+          "max_confidence": 0.006944474376483973,
+          "confidence_scores": [
+            0.005558357429705262,
+            0.006474441345789178,
+            0.006944474376483973,
+            0.005558357429705262,
+            0.005558357429705262
+          ]
+        }
+      },
+      "individual_results": [
+        {
+          "test_name": "Basic RNI Query",
+          "question": "What is RNI?",
+          "success": true,
+          "response_time": 17.180761337280273,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "Installation Query",
+          "question": "How to install RNI?",
+          "success": true,
+          "response_time": 18.411420822143555,
+          "sources_found": 5,
+          "confidence_score": 0.006474441345789178,
+          "error_message": null
+        },
+        {
+          "test_name": "Configuration Query",
+          "question": "RNI configuration parameters",
+          "success": true,
+          "response_time": 17.14442014694214,
+          "sources_found": 5,
+          "confidence_score": 0.006944474376483973,
+          "error_message": null
+        },
+        {
+          "test_name": "Unrelated Query Test",
+          "question": "completely unrelated query about cooking recipes",
+          "success": true,
+          "response_time": 14.83240795135498,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "Empty Query Test",
+          "question": "",
+          "success": false,
+          "response_time": 0.04485964775085449,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": "Failed: 500"
+        },
+        {
+          "test_name": "Very Long Query Test",
+          "question": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "success": true,
+          "response_time": 20.938081979751587,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        }
+      ]
+    },
+    "edge_cases": {
+      "analysis": {
+        "total_tests": 4,
+        "passed_tests": 3,
+        "failed_tests": 1,
+        "success_rate": 75.0,
+        "avg_response_time": 0.0074732303619384766,
+        "min_response_time": 0.005364418029785156,
+        "max_response_time": 0.01183176040649414,
+        "median_response_time": 0.006348371505737305,
+        "response_times": [
+          0.01183176040649414,
+          0.006338834762573242,
+          0.006357908248901367,
+          0.005364418029785156
+        ],
+        "sources_stats": {
+          "tests_with_sources": 0,
+          "avg_sources_per_test": 0,
+          "max_sources": 0,
+          "total_sources_found": 0
+        },
+        "confidence_stats": {
+          "avg_confidence": 0,
+          "min_confidence": 0,
+          "max_confidence": 0,
+          "confidence_scores": []
+        }
+      },
+      "individual_results": [
+        {
+          "test_name": "Malformed JSON Test",
+          "question": "{\"messages\": [{\"role\": \"user\"}",
+          "success": false,
+          "response_time": 0.01183176040649414,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": "Unexpected status: 500"
+        },
+        {
+          "test_name": "Invalid Payload Structure",
+          "question": "{'invalid': 'structure'}",
+          "success": true,
+          "response_time": 0.006338834762573242,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": null
+        },
+        {
+          "test_name": "Missing Messages Field",
+          "question": "{'wrong_field': 'value'}",
+          "success": true,
+          "response_time": 0.006357908248901367,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": null
+        },
+        {
+          "test_name": "Empty Messages Array",
+          "question": "{'messages': []}",
+          "success": true,
+          "response_time": 0.005364418029785156,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": null
+        }
+      ]
+    },
+    "performance": {
+      "analysis": {
+        "total_tests": 10,
+        "passed_tests": 1,
+        "failed_tests": 9,
+        "success_rate": 10.0,
+        "avg_response_time": 27.86900520324707,
+        "min_response_time": 0.8802359104156494,
+        "max_response_time": 31.021759033203125,
+        "median_response_time": 30.998735427856445,
+        "response_times": [
+          30.380757331848145,
+          30.379985570907593,
+          0.8802359104156494,
+          30.999651432037354,
+          30.99877095222473,
+          30.99869990348816,
+          31.021759033203125,
+          31.021324157714844,
+          31.020832061767578,
+          30.988035678863525
+        ],
+        "sources_stats": {
+          "tests_with_sources": 1,
+          "avg_sources_per_test": 0.5,
+          "max_sources": 5,
+          "total_sources_found": 5
+        },
+        "confidence_stats": {
+          "avg_confidence": 0.005558357429705262,
+          "min_confidence": 0.005558357429705262,
+          "max_confidence": 0.005558357429705262,
+          "confidence_scores": [
+            0.005558357429705262
+          ]
+        }
+      },
+      "individual_results": [
+        {
+          "test_name": "Load Test 1",
+          "question": "What is RNI?",
+          "success": false,
+          "response_time": 30.380757331848145,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 2",
+          "question": "How to configure RNI?",
+          "success": false,
+          "response_time": 30.379985570907593,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 3",
+          "question": "RNI installation guide",
+          "success": true,
+          "response_time": 0.8802359104156494,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "Load Test 4",
+          "question": "RNI troubleshooting",
+          "success": false,
+          "response_time": 30.999651432037354,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 5",
+          "question": "RNI system requirements",
+          "success": false,
+          "response_time": 30.99877095222473,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 6",
+          "question": "What is RNI?",
+          "success": false,
+          "response_time": 30.99869990348816,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 7",
+          "question": "How to configure RNI?",
+          "success": false,
+          "response_time": 31.021759033203125,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 8",
+          "question": "RNI installation guide",
+          "success": false,
+          "response_time": 31.021324157714844,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 9",
+          "question": "RNI troubleshooting",
+          "success": false,
+          "response_time": 31.020832061767578,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        },
+        {
+          "test_name": "Load Test 10",
+          "question": "RNI system requirements",
+          "success": false,
+          "response_time": 30.988035678863525,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": ""
+        }
+      ]
+    },
+    "database_questions": {
+      "analysis": {
+        "total_tests": 50,
+        "passed_tests": 48,
+        "failed_tests": 2,
+        "success_rate": 96.0,
+        "avg_response_time": 17.90236981868744,
+        "min_response_time": 9.757903337478638,
+        "max_response_time": 39.260507345199585,
+        "median_response_time": 16.94691240787506,
+        "response_times": [
+          31.27068543434143,
+          30.870606660842896,
+          39.260507345199585,
+          17.28726053237915,
+          9.757903337478638,
+          15.104161024093628,
+          22.856199741363525,
+          18.676092863082886,
+          14.887890577316284,
+          17.771273851394653,
+          14.21170973777771,
+          18.237671852111816,
+          17.643502712249756,
+          15.204435110092163,
+          19.759520053863525,
+          17.661022186279297,
+          15.775651216506958,
+          16.721140146255493,
+          20.152124166488647,
+          20.850125789642334,
+          34.79031729698181,
+          12.810431957244873,
+          13.085816621780396,
+          15.14862847328186,
+          15.335001707077026,
+          14.25416898727417,
+          16.954277276992798,
+          13.354432582855225,
+          12.54929780960083,
+          11.146209716796875,
+          20.24822735786438,
+          21.961259126663208,
+          16.410622358322144,
+          13.978115558624268,
+          18.248306274414062,
+          21.272048234939575,
+          13.418751955032349,
+          17.575218439102173,
+          20.020711183547974,
+          12.834496259689331,
+          13.003024578094482,
+          19.06444501876831,
+          16.998173475265503,
+          21.35955810546875,
+          16.939547538757324,
+          13.162789583206177,
+          15.36695408821106,
+          15.780518054962158,
+          15.702932357788086,
+          18.384724617004395
+        ],
+        "sources_stats": {
+          "tests_with_sources": 48,
+          "avg_sources_per_test": 4.8,
+          "max_sources": 5,
+          "total_sources_found": 240
+        },
+        "confidence_stats": {
+          "avg_confidence": 0.005912519571781869,
+          "min_confidence": 0.005558357429705262,
+          "max_confidence": 0.007531095911051153,
+          "confidence_scores": [
+            0.0067691379375605775,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006350809901509139,
+            0.006474441345789178,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006050160708393785,
+            0.006488645891243723,
+            0.006027107429705261,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006782598771916934,
+            0.006503297905895737,
+            0.006350809901509139,
+            0.006474441345789178,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006958312313531114,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006437546483321512,
+            0.005558357429705262,
+            0.007531095911051153,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.005558357429705262,
+            0.006782598771916934,
+            0.006503297905895737,
+            0.005558357429705262,
+            0.006050160708393785,
+            0.006488645891243723,
+            0.006027107429705261,
+            0.005558357429705262
+          ]
+        }
+      },
+      "individual_results": [
+        {
+          "test_name": "DB Question 1",
+          "question": "What is RNI?",
+          "success": false,
+          "response_time": 31.27068543434143,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out."
+        },
+        {
+          "test_name": "DB Question 2",
+          "question": "What are the main features?",
+          "success": false,
+          "response_time": 30.870606660842896,
+          "sources_found": 0,
+          "confidence_score": null,
+          "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out."
+        },
+        {
+          "test_name": "DB Question 3",
+          "question": "How do I get started?",
+          "success": true,
+          "response_time": 39.260507345199585,
+          "sources_found": 5,
+          "confidence_score": 0.0067691379375605775,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 4",
+          "question": "What are the system requirements?",
+          "success": true,
+          "response_time": 17.28726053237915,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 5",
+          "question": "Where can I find documentation?",
+          "success": true,
+          "response_time": 9.757903337478638,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 6",
+          "question": "What versions are available?",
+          "success": true,
+          "response_time": 15.104161024093628,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 7",
+          "question": "How do I troubleshoot issues?",
+          "success": true,
+          "response_time": 22.856199741363525,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 8",
+          "question": "What support options are available?",
+          "success": true,
+          "response_time": 18.676092863082886,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 9",
+          "question": "How do I contact support?",
+          "success": true,
+          "response_time": 14.887890577316284,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 10",
+          "question": "What are the licensing requirements?",
+          "success": true,
+          "response_time": 17.771273851394653,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 11",
+          "question": "What are the system requirements for installation?",
+          "success": true,
+          "response_time": 14.21170973777771,
+          "sources_found": 5,
+          "confidence_score": 0.006350809901509139,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 12",
+          "question": "How do I install RNI?",
+          "success": true,
+          "response_time": 18.237671852111816,
+          "sources_found": 5,
+          "confidence_score": 0.006474441345789178,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 13",
+          "question": "What are the pre-installation steps?",
+          "success": true,
+          "response_time": 17.643502712249756,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 14",
+          "question": "How do I verify the installation was successful?",
+          "success": true,
+          "response_time": 15.204435110092163,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 15",
+          "question": "What are common installation issues?",
+          "success": true,
+          "response_time": 19.759520053863525,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 16",
+          "question": "How do I integrate RNI with other systems?",
+          "success": true,
+          "response_time": 17.661022186279297,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 17",
+          "question": "What APIs are available for integration?",
+          "success": true,
+          "response_time": 15.775651216506958,
+          "sources_found": 5,
+          "confidence_score": 0.006050160708393785,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 18",
+          "question": "What are the authentication requirements?",
+          "success": true,
+          "response_time": 16.721140146255493,
+          "sources_found": 5,
+          "confidence_score": 0.006488645891243723,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 19",
+          "question": "How do I configure RNI for integration?",
+          "success": true,
+          "response_time": 20.152124166488647,
+          "sources_found": 5,
+          "confidence_score": 0.006027107429705261,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 20",
+          "question": "What are the integration best practices?",
+          "success": true,
+          "response_time": 20.850125789642334,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 21",
+          "question": "What are the technical specifications of FlexNet?",
+          "success": true,
+          "response_time": 34.79031729698181,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 22",
+          "question": "What are all the available commands?",
+          "success": true,
+          "response_time": 12.810431957244873,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 23",
+          "question": "How do I configure advanced settings?",
+          "success": true,
+          "response_time": 13.085816621780396,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 24",
+          "question": "What are the API endpoints?",
+          "success": true,
+          "response_time": 15.14862847328186,
+          "sources_found": 5,
+          "confidence_score": 0.006782598771916934,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 25",
+          "question": "What are the configuration parameters?",
+          "success": true,
+          "response_time": 15.335001707077026,
+          "sources_found": 5,
+          "confidence_score": 0.006503297905895737,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 26",
+          "question": "What are the system requirements for installation?",
+          "success": true,
+          "response_time": 14.25416898727417,
+          "sources_found": 5,
+          "confidence_score": 0.006350809901509139,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 27",
+          "question": "How do I install RNI?",
+          "success": true,
+          "response_time": 16.954277276992798,
+          "sources_found": 5,
+          "confidence_score": 0.006474441345789178,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 28",
+          "question": "What are the pre-installation steps?",
+          "success": true,
+          "response_time": 13.354432582855225,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 29",
+          "question": "How do I verify the installation was successful?",
+          "success": true,
+          "response_time": 12.54929780960083,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 30",
+          "question": "What are common installation issues?",
+          "success": true,
+          "response_time": 11.146209716796875,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 31",
+          "question": "What's new in version 4.15.1?",
+          "success": true,
+          "response_time": 20.24822735786438,
+          "sources_found": 5,
+          "confidence_score": 0.006958312313531114,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 32",
+          "question": "What bugs were fixed in 4.15.1?",
+          "success": true,
+          "response_time": 21.961259126663208,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 33",
+          "question": "What are the breaking changes?",
+          "success": true,
+          "response_time": 16.410622358322144,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 34",
+          "question": "What features were added?",
+          "success": true,
+          "response_time": 13.978115558624268,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 35",
+          "question": "What are the upgrade instructions?",
+          "success": true,
+          "response_time": 18.248306274414062,
+          "sources_found": 5,
+          "confidence_score": 0.006437546483321512,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 36",
+          "question": "How do I configure RNI?",
+          "success": true,
+          "response_time": 21.272048234939575,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 37",
+          "question": "What are the installation requirements for RNI?",
+          "success": true,
+          "response_time": 13.418751955032349,
+          "sources_found": 5,
+          "confidence_score": 0.007531095911051153,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 38",
+          "question": "What troubleshooting steps are available for RNI?",
+          "success": true,
+          "response_time": 17.575218439102173,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 39",
+          "question": "How do I update RNI?",
+          "success": true,
+          "response_time": 20.020711183547974,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 40",
+          "question": "What are the security settings for RNI?",
+          "success": true,
+          "response_time": 12.834496259689331,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 41",
+          "question": "What are the technical specifications of RNI?",
+          "success": true,
+          "response_time": 13.003024578094482,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 42",
+          "question": "What are all the available commands?",
+          "success": true,
+          "response_time": 19.06444501876831,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 43",
+          "question": "How do I configure advanced settings?",
+          "success": true,
+          "response_time": 16.998173475265503,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 44",
+          "question": "What are the API endpoints?",
+          "success": true,
+          "response_time": 21.35955810546875,
+          "sources_found": 5,
+          "confidence_score": 0.006782598771916934,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 45",
+          "question": "What are the configuration parameters?",
+          "success": true,
+          "response_time": 16.939547538757324,
+          "sources_found": 5,
+          "confidence_score": 0.006503297905895737,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 46",
+          "question": "How do I integrate RNI with other systems?",
+          "success": true,
+          "response_time": 13.162789583206177,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 47",
+          "question": "What APIs are available for integration?",
+          "success": true,
+          "response_time": 15.36695408821106,
+          "sources_found": 5,
+          "confidence_score": 0.006050160708393785,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 48",
+          "question": "What are the authentication requirements?",
+          "success": true,
+          "response_time": 15.780518054962158,
+          "sources_found": 5,
+          "confidence_score": 0.006488645891243723,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 49",
+          "question": "How do I configure RNI for integration?",
+          "success": true,
+          "response_time": 15.702932357788086,
+          "sources_found": 5,
+          "confidence_score": 0.006027107429705261,
+          "error_message": null
+        },
+        {
+          "test_name": "DB Question 50",
+          "question": "What are the integration best practices?",
+          "success": true,
+          "response_time": 18.384724617004395,
+          "sources_found": 5,
+          "confidence_score": 0.005558357429705262,
+          "error_message": null
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    "\u26a0\ufe0f Success rate below 90% - investigate failing tests",
+    "\u26a0\ufe0f Average response time above 5 seconds - consider performance optimization",
+    "\u26a0\ufe0f Low confidence scores - review confidence threshold settings"
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "title": "Docling & Ingestion Performance Overview",
+  "uid": "docling-perf-overview",
+  "timezone": "",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Docs Processed (24h)",
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [
+        {"expr": "increase(docling_documents_processed_total[24h])", "refId": "A"}
+      ],
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto"}
+    },
+    {
+      "type": "stat",
+      "title": "Failure Ratio (10m)",
+      "id": 2,
+      "datasource": "Prometheus",
+      "targets": [
+        {"expr": "(rate(docling_documents_failed_total[10m]) / (rate(docling_documents_processed_total[10m]) + 1))", "refId": "A"}
+      ],
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 0.2}, {"color": "red", "value": 0.4}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "colorMode": "value"}
+    },
+    {
+      "type": "stat",
+      "title": "Staleness (min)",
+      "id": 3,
+      "datasource": "Prometheus",
+      "targets": [{"expr": "(time() - docling_last_success_timestamp) / 60", "refId": "A"}],
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "m", "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 15}, {"color": "red", "value": 60}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}
+    },
+    {
+      "type": "stat",
+      "title": "Chunks Created (24h)",
+      "id": 4,
+      "datasource": "Prometheus",
+      "targets": [{"expr": "increase(docling_chunks_created_total[24h])", "refId": "A"}],
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Processing Duration P95 (15m)",
+      "id": 5,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(docling_processing_duration_seconds_bucket[15m])))", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Cycle Duration Avg (5m)",
+      "id": 6,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "rate(docling_cycle_duration_seconds_sum[5m]) / rate(docling_cycle_duration_seconds_count[5m])", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Documents vs Failures (rate 5m)",
+      "id": 7,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {"expr": "rate(docling_documents_processed_total[5m])", "refId": "A", "legendFormat": "processed"},
+        {"expr": "rate(docling_documents_failed_total[5m])", "refId": "B", "legendFormat": "failed"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Performance Monitor Docs vs Chunks (total)",
+      "id": 8,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {"expr": "tsa_documents_total", "refId": "A", "legendFormat": "documents"},
+        {"expr": "tsa_document_chunks_total", "refId": "B", "legendFormat": "chunks"}
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Service Status (perf monitor)",
+      "id": 9,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 20},
+      "targets": [{"expr": "avg by (service) (tsa_service_status)", "refId": "A"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Processing Time Avg Today (perf monitor)",
+      "id": 10,
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 20},
+      "targets": [{"expr": "tsa_avg_processing_time_seconds", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ]
+}

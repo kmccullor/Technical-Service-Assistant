@@ -1,0 +1,20 @@
+{
+  "multimodal_monitoring_config": {
+    "version": "1.0",
+    "enabled": true,
+    "prometheus_integration": true,
+    "grafana_dashboard": "multimodal-analytics",
+    "instrumented_components": [
+      "vision_model_manager",
+      "embedding_generator",
+      "search_engine"
+    ],
+    "metrics_retention": "7d",
+    "alert_thresholds": {
+      "vision_model_latency_p95": 5.0,
+      "embedding_generation_latency_p95": 2.0,
+      "search_accuracy_min": 0.5,
+      "cross_modal_similarity_min": 0.3
+    }
+  }
+}

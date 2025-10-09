@@ -1,0 +1,172 @@
+{
+  "timestamp": "2025-09-24T15:24:52.260223",
+  "summary": {
+    "total_tests": 20,
+    "successful_tests": 16,
+    "success_rate": 0.8,
+    "average_confidence": 92.0,
+    "high_confidence_tests": 16
+  },
+  "results": [
+    {
+      "question": "What are the system requirements for installing RNI 4.14?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1785,
+      "success": true,
+      "response_time": 18.636030673980713
+    },
+    {
+      "question": "What ports need to be configured for RNI 4.14?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2697,
+      "success": true,
+      "response_time": 29.971423149108887
+    },
+    {
+      "question": "How do you verify the RNI 4.14 installation was successful?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2775,
+      "success": true,
+      "response_time": 28.074064254760742
+    },
+    {
+      "question": "What are the prerequisites for RNI 4.14 installation?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2256,
+      "success": true,
+      "response_time": 19.631474494934082
+    },
+    {
+      "question": "How do you troubleshoot RNI 4.14 installation issues?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2728,
+      "success": true,
+      "response_time": 27.902719020843506
+    },
+    {
+      "question": "How do you access the Device Manager Electric interface?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2168,
+      "success": true,
+      "response_time": 17.786872386932373
+    },
+    {
+      "question": "What are the main features of Device Manager Electric?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1596,
+      "success": true,
+      "response_time": 14.627336025238037
+    },
+    {
+      "question": "How do you add a new electric device in Device Manager?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1755,
+      "success": true,
+      "response_time": 14.822214365005493
+    },
+    {
+      "question": "How do you configure Device Manager Electric settings?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2095,
+      "success": true,
+      "response_time": 17.998737335205078
+    },
+    {
+      "question": "What reports are available in Device Manager Electric?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1247,
+      "success": true,
+      "response_time": 15.364712476730347
+    },
+    {
+      "question": "What is the purpose of the Hardware Security Module in RNI 4.14?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1179,
+      "success": true,
+      "response_time": 12.550869703292847
+    },
+    {
+      "question": "How do you install the Hardware Security Module?",
+      "confidence": 80.0,
+      "sources": 5,
+      "answer_length": 3267,
+      "success": false,
+      "response_time": 26.975508213043213
+    },
+    {
+      "question": "What are the security requirements for the Hardware Security Module?",
+      "confidence": 80.0,
+      "sources": 5,
+      "answer_length": 1887,
+      "success": false,
+      "response_time": 17.3349666595459
+    },
+    {
+      "question": "How do you configure the Hardware Security Module?",
+      "confidence": 80.0,
+      "sources": 5,
+      "answer_length": 2498,
+      "success": false,
+      "response_time": 24.115110635757446
+    },
+    {
+      "question": "What troubleshooting steps exist for the Hardware Security Module?",
+      "confidence": 80.0,
+      "sources": 5,
+      "answer_length": 1988,
+      "success": false,
+      "response_time": 20.447340726852417
+    },
+    {
+      "question": "What are the new features in RNI 4.16.1?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 990,
+      "success": true,
+      "response_time": 11.362285375595093
+    },
+    {
+      "question": "What bugs were fixed in RNI 4.16.1?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1888,
+      "success": true,
+      "response_time": 19.395294427871704
+    },
+    {
+      "question": "What are the known issues in RNI 4.16.1?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2276,
+      "success": true,
+      "response_time": 20.472577333450317
+    },
+    {
+      "question": "What are the upgrade instructions for RNI 4.16.1?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 2320,
+      "success": true,
+      "response_time": 20.669432878494263
+    },
+    {
+      "question": "What security updates are included in RNI 4.16.1?",
+      "confidence": 95.0,
+      "sources": 5,
+      "answer_length": 1488,
+      "success": true,
+      "response_time": 15.031194925308228
+    }
+  ]
+}

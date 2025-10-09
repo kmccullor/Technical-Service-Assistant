@@ -1,0 +1,187 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Technical Service Assistant - Intelligent Routing Analytics",
+    "tags": [
+      "technical-service-assistant",
+      "routing",
+      "ai"
+    ],
+    "style": "dark",
+    "timezone": "",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Model Selection Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": [
+              "value",
+              "percent"
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Instance Utilization",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": [
+              "value",
+              "percent"
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Routing Accuracy Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "reranker_routing_accuracy",
+            "legendFormat": "Routing Accuracy"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "accuracy",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 0.8,
+            "colorMode": "critical",
+            "op": "lt"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 9
+        }
+      },
+      {
+        "id": 4,
+        "title": "Ollama Instance Health",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "reranker_ollama_health",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "options": {
+          "yAxis": {
+            "unit": "short"
+          },
+          "tooltip": {
+            "show": true
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        }
+      },
+      {
+        "id": 5,
+        "title": "Model Requests per Hour",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "legendFormat": "{{model}} on {{instance}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "requests/hour"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 17
+        }
+      },
+      {
+        "id": 6,
+        "title": "Question Classification Breakdown",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "legendFormat": "",
+            "format": "table"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "indexByName": {},
+              "renameByName": {
+                "model": "Model",
+                "instance": "Instance",
+                "Value": "Requests (1h)"
+              }
+            }
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 25
+        }
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  },
+  "title": "Technical Service Assistant - Routing Analytics"
+}

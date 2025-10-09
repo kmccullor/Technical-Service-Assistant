@@ -1,0 +1,11 @@
+PyMuPDF
+camelot-py[cv]
+pandas
+nltk
+tiktoken
+psycopg2-binary
+pydantic
+psutil
+requests
+pytesseract
+Pillow

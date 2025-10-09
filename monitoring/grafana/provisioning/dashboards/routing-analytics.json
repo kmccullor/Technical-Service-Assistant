@@ -1,0 +1,196 @@
+{
+  "dashboard": {
+    "id": null,
+    "panels": [
+      {
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": [
+              "value",
+              "percent"
+            ]
+          }
+        },
+        "targets": [
+          {
+            "expr": "ollama_instance_up",
+            "legendFormat": "{{exported_instance}}"
+          }
+        ],
+        "title": "Model Selection Distribution",
+        "type": "piechart"
+      },
+      {
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": [
+              "value",
+              "percent"
+            ]
+          }
+        },
+        "targets": [
+          {
+            "expr": "ollama_instance_response_time_seconds",
+            "legendFormat": "{{exported_instance}} Response Time"
+          }
+        ],
+        "title": "Instance Utilization",
+        "type": "piechart"
+      },
+      {
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 9
+        },
+        "id": 3,
+        "targets": [
+          {
+            "expr": "response_quality_score",
+            "legendFormat": "Response Quality Score"
+          },
+          {
+            "expr": "rag_confidence_scores",
+            "legendFormat": "RAG Confidence"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "op": "lt",
+            "value": 0.8
+          }
+        ],
+        "title": "Routing Accuracy Over Time",
+        "type": "graph",
+        "yAxes": [
+          {
+            "label": "accuracy",
+            "max": 1,
+            "min": 0
+          }
+        ]
+      },
+      {
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        },
+        "id": 4,
+        "options": {
+          "tooltip": {
+            "show": true
+          },
+          "yAxis": {
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "reranker_ollama_health",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "title": "Ollama Instance Health",
+        "type": "heatmap"
+      },
+      {
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 17
+        },
+        "id": 5,
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "legendFormat": "{{model}} on {{instance}}"
+          }
+        ],
+        "title": "Model Requests per Hour",
+        "type": "graph",
+        "yAxes": [
+          {
+            "label": "requests/hour"
+          }
+        ]
+      },
+      {
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 25
+        },
+        "id": 6,
+        "targets": [
+          {
+            "expr": "increase(reranker_model_selection_total[1h])",
+            "format": "table",
+            "legendFormat": ""
+          }
+        ],
+        "title": "Question Classification Breakdown",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "indexByName": {},
+              "renameByName": {
+                "Value": "Requests (1h)",
+                "instance": "Instance",
+                "model": "Model"
+              }
+            }
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "refresh": "30s",
+    "style": "dark",
+    "tags": [
+      "technical-service-assistant",
+      "routing",
+      "ai"
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timezone": "",
+    "title": "Technical Service Assistant - Intelligent Routing Analytics"
+  },
+  "editable": true,
+  "panels": [],
+  "schemaVersion": 38,
+  "title": "Technical Service Assistant - Routing Analytics",
+  "uid": "technical-service-assistant-routing-anal",
+  "version": 1
+}

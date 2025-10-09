@@ -1,0 +1,228 @@
+groups:
+  - name: technical_service_assistant
+    rules:
+      # Reranker Service Alerts (Enhanced Hybrid Search)
+      - alert: RerankerHighResponseTime
+        expr: reranker_request_duration_seconds > 5.0
+        for: 2m
+        labels:
+          severity: warning
+          service: reranker
+        annotations:
+          summary: "Reranker service response time is high"
+          description: "Reranker service response time has been above 5 seconds for more than 2 minutes"
+
+      - alert: RerankerErrorRate
+        expr: rate(reranker_requests_total{status=~"4..|5.."}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: reranker
+        annotations:
+          summary: "High error rate in reranker service"
+          description: "Error rate is {{ $value }} errors per second over the last 5 minutes"
+
+      - alert: RerankerDown
+        expr: up{job="reranker"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: reranker
+        annotations:
+          summary: "Reranker service is down"
+          description: "Reranker service has been down for more than 30 seconds"
+
+      # Docling Processor Alerts
+      - alert: DoclingProcessorDown
+        expr: up{job="docling-processor"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: docling_processor
+        annotations:
+          summary: "Docling processor is down"
+          description: "Docling metrics endpoint has been unreachable for > 1 minute."
+
+      - alert: DoclingIngestionStalled
+        expr: time() - docling_last_success_timestamp > 900
+        for: 5m
+        labels:
+          severity: warning
+          service: docling_processor
+        annotations:
+          summary: "Docling ingestion stalled (>15m)"
+          description: "No successful document processed in > 15 minutes. Check logs for extraction/DB issues."
+
+      - alert: DoclingHighFailureRate
+        expr: (rate(docling_documents_failed_total[10m]) / (rate(docling_documents_processed_total[10m]) + 1)) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          service: docling_processor
+        annotations:
+          summary: "Docling failure ratio > 20%"
+          description: "More than 20% of Docling document attempts failed over the last 10 minutes."
+
+      - alert: DoclingNoNewDocuments24h
+        expr: increase(docling_documents_processed_total[24h]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: docling_processor
+        annotations:
+          summary: "No Docling documents in 24h"
+          description: "No documents have been successfully processed in the past 24 hours."
+
+      # Performance Monitor Exporter Alerts
+      - alert: PerformanceMonitorRefreshLag
+        expr: ingestion:last_refresh_age_seconds > 600
+        for: 5m
+        labels:
+          severity: warning
+          service: performance_monitor
+        annotations:
+          summary: "Performance monitor refresh lag > 10m"
+          description: "The performance monitor exporter has not refreshed metrics for over 10 minutes (age={{ $value }}s)."
+      - alert: PerformanceMonitorHighRefreshDuration
+        expr: performance_monitor:refresh_duration_seconds:p95_15m > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: performance_monitor
+        annotations:
+          summary: "Performance monitor refresh p95 > 2s"
+          description: "Exporter refresh cycle p95 duration has exceeded 2s over the last 15m (value={{ $value }}s)."
+      - alert: PerformanceMonitorRefreshErrors
+        expr: performance_monitor:refresh_errors_rate:5m > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: performance_monitor
+        annotations:
+          summary: "Performance monitor refresh errors > 0"
+          description: "Refresh errors are occurring (rate={{ $value }} over 5m). Inspect exporter logs."
+      - alert: PerformanceMonitorDown
+        expr: up{job="performance-monitor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: performance_monitor
+        annotations:
+          summary: "Performance monitor exporter is down"
+          description: "The performance-monitor scrape target has been down for >2m."
+
+      # Ollama Instance Alerts
+      - alert: OllamaInstanceDown
+        expr: up{job=~"ollama-server-.*"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Ollama instance {{ $labels.job }} is down"
+          description: "Ollama instance {{ $labels.job }} has been unreachable for more than 1 minute"
+
+      - alert: OllamaHighMemoryUsage
+        expr: ollama_memory_usage_bytes / ollama_memory_total_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.instance }}"
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # Note: Frontend and reasoning engine alerts will be added when services expose metrics
+
+      # Database Alerts (Enhanced for Vector Operations)
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL with pgvector has been down for more than 30 seconds"
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "High number of PostgreSQL connections"
+          description: "PostgreSQL connection usage is {{ $value | humanizePercentage }}"
+
+      - alert: VectorIndexPerformanceDegraded
+        expr: pg_stat_user_indexes_idx_scan{schemaname="public",indexname=~".*embedding.*"} < 100
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "Vector index performance appears degraded"
+          description: "Vector embedding index scans are below expected threshold"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been down for more than 30 seconds"
+
+      # Routing Intelligence Alerts
+      - alert: RoutingAccuracyDrop
+        expr: reranker_routing_accuracy < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: intelligent_routing
+        annotations:
+          summary: "Routing accuracy has dropped"
+          description: "Intelligent routing accuracy is {{ $value | humanizePercentage }}, below 80% threshold"
+
+      - alert: ModelSelectionImbalance
+        expr: max(reranker_model_selection_total) / min(reranker_model_selection_total) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: intelligent_routing
+        annotations:
+          summary: "Model selection is highly imbalanced"
+          description: "Significant imbalance in model selection distribution detected"
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"

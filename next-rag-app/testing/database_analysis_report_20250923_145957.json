@@ -1,0 +1,4561 @@
+{
+  "timestamp": "2025-09-23T14:59:57.881300",
+  "database_info": {},
+  "documents": {
+    "statistics": {
+      "total_documents": 53,
+      "unique_types": 7,
+      "unique_categories": 5,
+      "unique_products": 4,
+      "avg_file_size": "1483072.018867924528",
+      "max_file_size": 9369362,
+      "min_file_size": 291995
+    },
+    "type_distribution": [
+      {
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "count": 16
+      },
+      {
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "count": 10
+      },
+      {
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "count": 7
+      },
+      {
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "count": 5
+      },
+      {
+        "document_type": "reference_manual",
+        "document_category": "reference",
+        "count": 4
+      },
+      {
+        "document_type": "user_guide",
+        "document_category": "guide",
+        "count": 4
+      },
+      {
+        "document_type": "security_guide",
+        "document_category": "user_guide",
+        "count": 3
+      },
+      {
+        "document_type": "release_notes",
+        "document_category": "manual",
+        "count": 2
+      },
+      {
+        "document_type": "technical_specification",
+        "document_category": "notes",
+        "count": 1
+      },
+      {
+        "document_type": "release_notes",
+        "document_category": "notes",
+        "count": 1
+      }
+    ],
+    "documents": [
+      {
+        "id": 1,
+        "title": null,
+        "file_name": "RNI 4.15 Hardware Security Module Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:29:52.778454",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 2,
+        "title": null,
+        "file_name": "RNI 4.15 Key Management Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:30:58.348019",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 3,
+        "title": "REFERENCE MANUAL",
+        "file_name": "RNI 4.15 NA2W FWDL Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "RNI 4.15",
+        "doc_number": "ARM-10041-04",
+        "metadata": {
+          "title": "REFERENCE MANUAL",
+          "ga_date": null,
+          "version": null,
+          "audiences": [
+            "Utility operations",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "ARM-10041-04",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1004,
+          "product_family": [
+            "RNI",
+            "FlexNet"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:31:15.987087"
+        }
+      },
+      {
+        "id": 4,
+        "title": null,
+        "file_name": "RNI 4.15 Server Port Settings Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:32:18.726750",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 5,
+        "title": null,
+        "file_name": "RNI 4.15 System Security User Guide.pdf",
+        "document_type": "security_guide",
+        "document_category": "user_guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:32:49.193719"
+        }
+      },
+      {
+        "id": 6,
+        "title": null,
+        "file_name": "RNI 4.15.1 Release Notes.pdf",
+        "document_type": "release_notes",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.15.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:33:10.726686"
+        }
+      },
+      {
+        "id": 7,
+        "title": null,
+        "file_name": "RNI 4.16 ESM User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:34:13.542765",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 8,
+        "title": null,
+        "file_name": "RNI 4.16 Extended CMEP Specs Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "reference",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:35:17.370209",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 9,
+        "title": null,
+        "file_name": "RNI 4.16 Key Management Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:36:25.743415",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 10,
+        "title": null,
+        "file_name": "PPA.4.14.TechNote.pdf",
+        "document_type": "technical_specification",
+        "document_category": "notes",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:36:39.698963"
+        }
+      },
+      {
+        "id": 11,
+        "title": null,
+        "file_name": "RNI 4.14 Base Station Security User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:37:43.608435",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 12,
+        "title": "AUG-10021-27",
+        "file_name": "RNI 4.14 Device Manager Electric User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "unknown",
+        "doc_number": "AUG-10021-27",
+        "metadata": {
+          "title": "AUG-10021-27",
+          "ga_date": null,
+          "version": "4.1",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10021-27",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1002,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM",
+            "MultiSpeak"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:38:05.909184"
+        }
+      },
+      {
+        "id": 13,
+        "title": "AUG-10039-22",
+        "file_name": "RNI 4.14 Device Manager Gas User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.17",
+        "doc_number": "AUG-10039-22",
+        "metadata": {
+          "title": "AUG-10039-22",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10039-22",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1003,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:39:00.423191"
+        }
+      },
+      {
+        "id": 14,
+        "title": "AUG-10040-22",
+        "file_name": "RNI 4.14 Device Manager Water User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.17",
+        "doc_number": "AUG-10040-22",
+        "metadata": {
+          "title": "AUG-10040-22",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10040-22",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1004,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:39:52.806333"
+        }
+      },
+      {
+        "id": 15,
+        "title": null,
+        "file_name": "RNI 4.14 Electric Firmware Download Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "reference",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:41:14.570429",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 16,
+        "title": "AUG-10082-03",
+        "file_name": "RNI 4.14 Encryption Management User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": "AUG-10082-03",
+        "metadata": {
+          "title": "AUG-10082-03",
+          "ga_date": null,
+          "version": null,
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "AUG-10082-03",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1008,
+          "product_family": [
+            "RNI",
+            "FlexNet"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:41:31.497227"
+        }
+      },
+      {
+        "id": 17,
+        "title": null,
+        "file_name": "RNI 4.14 Extended CMEP Specs Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "reference",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:42:38.238468",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 18,
+        "title": null,
+        "file_name": "RNI 4.14 FlexNet ESM User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:43:47.944571",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 19,
+        "title": null,
+        "file_name": "RNI 4.14 Hardware Security Module Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:44:52.332372",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 20,
+        "title": null,
+        "file_name": "RNI 4.14 Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:45:56.039263",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 21,
+        "title": null,
+        "file_name": "RNI 4.14 Key Management Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T19:47:05.936949",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 22,
+        "title": null,
+        "file_name": "RNI 4.14 Microsoft Active Directory Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.3.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:47:23.693656"
+        }
+      },
+      {
+        "id": 23,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section1_Overview.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v3.0",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:47:38.131012"
+        }
+      },
+      {
+        "id": 24,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section2_MeterReading.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v3.0",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:47:56.972271"
+        }
+      },
+      {
+        "id": 25,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section3_OutageDetection.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v3.0",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:48:24.233162"
+        }
+      },
+      {
+        "id": 26,
+        "title": null,
+        "file_name": "RNI 4.14 MultiSpeakv3_0_Integration_Guide_Section4_ConnectDisconnect.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v3.0",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:48:40.458144"
+        }
+      },
+      {
+        "id": 27,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section1_Overview.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:48:56.829517"
+        }
+      },
+      {
+        "id": 28,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section2_MeterReading.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:49:19.461526"
+        }
+      },
+      {
+        "id": 29,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section3_OutageDetection.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:50:29.546721"
+        }
+      },
+      {
+        "id": 30,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section4_ConnectDisconnect.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:50:48.681277"
+        }
+      },
+      {
+        "id": 31,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section5_HomeAreaNetwork.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:51:25.381283"
+        }
+      },
+      {
+        "id": 32,
+        "title": null,
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section6_DemandResponse.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "MultiSpeak",
+        "product_version": "v4.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:51:52.466764"
+        }
+      },
+      {
+        "id": 33,
+        "title": "REFERENCE MANUAL",
+        "file_name": "RNI 4.14 NA2W FWDL Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "RNI 4.14",
+        "doc_number": "ARM-10041-03",
+        "metadata": {
+          "title": "REFERENCE MANUAL",
+          "ga_date": null,
+          "version": null,
+          "audiences": [
+            "Utility operations",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "ARM-10041-03",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1004,
+          "product_family": [
+            "RNI",
+            "FlexNet"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:52:17.571307"
+        }
+      },
+      {
+        "id": 34,
+        "title": null,
+        "file_name": "RNI 4.14 Reports Operation Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "RNI 4.5.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:53:05.423181"
+        }
+      },
+      {
+        "id": 35,
+        "title": null,
+        "file_name": "RNI 4.14 Server Port Settings Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:53:56.246825"
+        }
+      },
+      {
+        "id": 36,
+        "title": "AUG-10051-21",
+        "file_name": "RNI 4.14 System Administration User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": "AUG-10051-21",
+        "metadata": {
+          "title": "AUG-10051-21",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "AUG-10051-21",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1005,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM",
+            "MultiSpeak"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:54:42.507269"
+        }
+      },
+      {
+        "id": 37,
+        "title": null,
+        "file_name": "RNI 4.14 System Security User Guide.pdf",
+        "document_type": "security_guide",
+        "document_category": "user_guide",
+        "product_name": "RNI",
+        "product_version": "4.14",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:56:00.063083"
+        }
+      },
+      {
+        "id": 38,
+        "title": null,
+        "file_name": "RNI 4.14.1 Release Notes.pdf",
+        "document_type": "release_notes",
+        "document_category": "notes",
+        "product_name": "RNI",
+        "product_version": "4.14.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:56:20.135464"
+        }
+      },
+      {
+        "id": 39,
+        "title": "AUG-10021-28",
+        "file_name": "RNI 4.15 Device Manager Electric User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": "AUG-10021-28",
+        "metadata": {
+          "title": "AUG-10021-28",
+          "ga_date": null,
+          "version": "4.1",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10021-28",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1002,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM",
+            "MultiSpeak"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:56:53.202208"
+        }
+      },
+      {
+        "id": 40,
+        "title": "AUG-10039-23",
+        "file_name": "RNI 4.15 Device Manager Gas User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": "AUG-10039-23",
+        "metadata": {
+          "title": "AUG-10039-23",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10039-23",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1003,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:57:49.376432"
+        }
+      },
+      {
+        "id": 41,
+        "title": "AUG-10040-23",
+        "file_name": "RNI 4.15 Device Manager Water User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": "AUG-10040-23",
+        "metadata": {
+          "title": "AUG-10040-23",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Aclara Technologies",
+          "doc_number": "AUG-10040-23",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1004,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T19:59:12.347931"
+        }
+      },
+      {
+        "id": 42,
+        "title": null,
+        "file_name": "RNI 4.15 Electric Firmware Download Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "reference",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T20:00:34.750637",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 43,
+        "title": "AUG-10082-04",
+        "file_name": "RNI 4.15 Encryption Management User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "v1",
+        "doc_number": "AUG-10082-04",
+        "metadata": {
+          "title": "AUG-10082-04",
+          "ga_date": null,
+          "version": null,
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "AUG-10082-04",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1008,
+          "product_family": [
+            "RNI",
+            "FlexNet"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:00:51.972426"
+        }
+      },
+      {
+        "id": 44,
+        "title": null,
+        "file_name": "RNI 4.15 FlexNet ESM User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T20:01:58.697488",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 45,
+        "title": null,
+        "file_name": "RNI 4.15 Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T20:03:03.064576",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 46,
+        "title": null,
+        "file_name": "RNI 4.15 Microsoft Active Directory Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.3.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:03:28.286976"
+        }
+      },
+      {
+        "id": 47,
+        "title": null,
+        "file_name": "RNI 4.15 Reports Operation Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "RNI 4.5.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:03:59.699298"
+        }
+      },
+      {
+        "id": 48,
+        "title": "AUG-10051-22",
+        "file_name": "RNI 4.15 System Administrator User Guide.pdf",
+        "document_type": "user_guide",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.15",
+        "doc_number": "AUG-10051-22",
+        "metadata": {
+          "title": "AUG-10051-22",
+          "ga_date": null,
+          "version": "4.1.3",
+          "audiences": [
+            "RNI administrators",
+            "Utility operations",
+            "Technical support",
+            "Developers",
+            "End users"
+          ],
+          "publisher": "Sensus",
+          "doc_number": "AUG-10051-22",
+          "service_lines": [
+            "Electric",
+            "Gas",
+            "Water",
+            "Common"
+          ],
+          "copyright_year": 1005,
+          "product_family": [
+            "RNI",
+            "FlexNet",
+            "ESM",
+            "MultiSpeak"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:04:50.252075"
+        }
+      },
+      {
+        "id": 49,
+        "title": null,
+        "file_name": "RNI 4.16 Hardware Security Module Installation Guide.pdf",
+        "document_type": "installation_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "key_topics": [
+            "security",
+            "installation",
+            "integration",
+            "administration",
+            "networking"
+          ],
+          "embedding_model": "nomic-embed-text:v1.5",
+          "target_audience": "technical",
+          "document_purpose": "technical documentation",
+          "extraction_timestamp": "2025-09-20T20:06:08.174436",
+          "classification_method": "rule_based_fallback"
+        }
+      },
+      {
+        "id": 50,
+        "title": null,
+        "file_name": "RNI 4.16 Microsoft Active Directory Integration Guide.pdf",
+        "document_type": "integration_guide",
+        "document_category": "guide",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:06:41.789269"
+        }
+      },
+      {
+        "id": 51,
+        "title": null,
+        "file_name": "RNI 4.16 Reports Operation Reference Manual.pdf",
+        "document_type": "reference_manual",
+        "document_category": "manual",
+        "product_name": "FlexNet",
+        "product_version": "RNI 4.16",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:07:12.996089"
+        }
+      },
+      {
+        "id": 52,
+        "title": null,
+        "file_name": "RNI 4.16 System Security User Guide.pdf",
+        "document_type": "security_guide",
+        "document_category": "user_guide",
+        "product_name": "RNI",
+        "product_version": "4.16",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:08:03.867197"
+        }
+      },
+      {
+        "id": 53,
+        "title": null,
+        "file_name": "RNI 4.16.1 Release Notes.pdf",
+        "document_type": "release_notes",
+        "document_category": "manual",
+        "product_name": "RNI",
+        "product_version": "4.16.1",
+        "doc_number": null,
+        "metadata": {
+          "embedding_model": "nomic-embed-text:v1.5",
+          "extraction_timestamp": "2025-09-20T20:08:39.528749"
+        }
+      }
+    ]
+  },
+  "chunks": {
+    "statistics": {
+      "total_chunks": 4033,
+      "avg_content_length": "1530.4909496652615919",
+      "max_content_length": 83563,
+      "min_content_length": 87,
+      "avg_tokens": "189.8036201338953633",
+      "unique_chunk_types": 1,
+      "unique_languages": 1
+    },
+    "chunk_types": [
+      {
+        "chunk_type": "text",
+        "count": 4033
+      }
+    ],
+    "chunks_per_document": [
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section2_MeterReading.pdf",
+        "chunk_count": 341,
+        "avg_chunk_length": "1920.9618768328445748",
+        "avg_tokens": "152.4310850439882698"
+      },
+      {
+        "title": "AUG-10021-28",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 Device Manager Electric User Guide.pdf",
+        "chunk_count": 248,
+        "avg_chunk_length": "1198.3588709677419355",
+        "avg_tokens": "188.7056451612903226"
+      },
+      {
+        "title": "AUG-10021-27",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 Device Manager Electric User Guide.pdf",
+        "chunk_count": 245,
+        "avg_chunk_length": "1203.2571428571428571",
+        "avg_tokens": "189.3673469387755102"
+      },
+      {
+        "title": "AUG-10039-23",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 Device Manager Gas User Guide.pdf",
+        "chunk_count": 226,
+        "avg_chunk_length": "1215.3451327433628319",
+        "avg_tokens": "192.6238938053097345"
+      },
+      {
+        "title": "AUG-10039-22",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 Device Manager Gas User Guide.pdf",
+        "chunk_count": 221,
+        "avg_chunk_length": "1213.1719457013574661",
+        "avg_tokens": "192.1040723981900452"
+      },
+      {
+        "title": "AUG-10040-23",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 Device Manager Water User Guide.pdf",
+        "chunk_count": 209,
+        "avg_chunk_length": "1211.4688995215311005",
+        "avg_tokens": "191.0574162679425837"
+      },
+      {
+        "title": "AUG-10040-22",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 Device Manager Water User Guide.pdf",
+        "chunk_count": 205,
+        "avg_chunk_length": "1209.9609756097560976",
+        "avg_tokens": "190.4292682926829268"
+      },
+      {
+        "title": "AUG-10051-21",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 System Administration User Guide.pdf",
+        "chunk_count": 154,
+        "avg_chunk_length": "1206.5519480519480519",
+        "avg_tokens": "162.5779220779220779"
+      },
+      {
+        "title": "AUG-10051-22",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 System Administrator User Guide.pdf",
+        "chunk_count": 152,
+        "avg_chunk_length": "1208.8355263157894737",
+        "avg_tokens": "163.4407894736842105"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.16 Reports Operation Reference Manual.pdf",
+        "chunk_count": 137,
+        "avg_chunk_length": "1603.2408759124087591",
+        "avg_tokens": "168.2627737226277372"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section4_ConnectDisconnect.pdf",
+        "chunk_count": 137,
+        "avg_chunk_length": "1748.7007299270072993",
+        "avg_tokens": "136.4525547445255474"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.14 Reports Operation Reference Manual.pdf",
+        "chunk_count": 136,
+        "avg_chunk_length": "1609.9779411764705882",
+        "avg_tokens": "168.7941176470588235"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.15 Reports Operation Reference Manual.pdf",
+        "chunk_count": 136,
+        "avg_chunk_length": "1609.8308823529411765",
+        "avg_tokens": "168.4926470588235294"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section2_MeterReading.pdf",
+        "chunk_count": 91,
+        "avg_chunk_length": "1574.1538461538461538",
+        "avg_tokens": "142.1428571428571429"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.15 Installation Guide.pdf",
+        "chunk_count": 77,
+        "avg_chunk_length": "1496.2337662337662338",
+        "avg_tokens": "181.1558441558441558"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.14 Installation Guide.pdf",
+        "chunk_count": 76,
+        "avg_chunk_length": "1504.8552631578947368",
+        "avg_tokens": "182.6973684210526316"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section5_HomeAreaNetwork.pdf",
+        "chunk_count": 76,
+        "avg_chunk_length": "1764.5131578947368421",
+        "avg_tokens": "135.9473684210526316"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.14 Extended CMEP Specs Reference Manual.pdf",
+        "chunk_count": 74,
+        "avg_chunk_length": "1593.4054054054054054",
+        "avg_tokens": "233.6756756756756757"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.16 Extended CMEP Specs Reference Manual.pdf",
+        "chunk_count": 72,
+        "avg_chunk_length": "1609.3194444444444444",
+        "avg_tokens": "236.8055555555555556"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section6_DemandResponse.pdf",
+        "chunk_count": 71,
+        "avg_chunk_length": "1605.3239436619718310",
+        "avg_tokens": "127.2394366197183099"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section1_Overview.pdf",
+        "chunk_count": 56,
+        "avg_chunk_length": "1603.7142857142857143",
+        "avg_tokens": "144.6250000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 Base Station Security User Guide.pdf",
+        "chunk_count": 46,
+        "avg_chunk_length": "1453.0217391304347826",
+        "avg_tokens": "189.1521739130434783"
+      },
+      {
+        "title": "AUG-10082-03",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 Encryption Management User Guide.pdf",
+        "chunk_count": 43,
+        "avg_chunk_length": "1373.1162790697674419",
+        "avg_tokens": "204.4186046511627907"
+      },
+      {
+        "title": "AUG-10082-04",
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 Encryption Management User Guide.pdf",
+        "chunk_count": 42,
+        "avg_chunk_length": "1382.7619047619047619",
+        "avg_tokens": "205.9285714285714286"
+      },
+      {
+        "title": null,
+        "document_type": "security_guide",
+        "file_name": "RNI 4.16 System Security User Guide.pdf",
+        "chunk_count": 41,
+        "avg_chunk_length": "4995.8048780487804878",
+        "avg_tokens": "686.0243902439024390"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.14 Electric Firmware Download Reference Manual.pdf",
+        "chunk_count": 39,
+        "avg_chunk_length": "1273.6923076923076923",
+        "avg_tokens": "177.7435897435897436"
+      },
+      {
+        "title": null,
+        "document_type": "security_guide",
+        "file_name": "RNI 4.14 System Security User Guide.pdf",
+        "chunk_count": 39,
+        "avg_chunk_length": "5097.9230769230769231",
+        "avg_tokens": "698.1025641025641026"
+      },
+      {
+        "title": null,
+        "document_type": "security_guide",
+        "file_name": "RNI 4.15 System Security User Guide.pdf",
+        "chunk_count": 38,
+        "avg_chunk_length": "5198.0263157894736842",
+        "avg_tokens": "711.3684210526315789"
+      },
+      {
+        "title": null,
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.15 Electric Firmware Download Reference Manual.pdf",
+        "chunk_count": 38,
+        "avg_chunk_length": "1269.4473684210526316",
+        "avg_tokens": "176.7894736842105263"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv4_1_Integration_Guide_Section3_OutageDetection.pdf",
+        "chunk_count": 36,
+        "avg_chunk_length": "1912.0000000000000000",
+        "avg_tokens": "151.5555555555555556"
+      },
+      {
+        "title": null,
+        "document_type": "user_guide",
+        "file_name": "RNI 4.14 FlexNet ESM User Guide.pdf",
+        "chunk_count": 35,
+        "avg_chunk_length": "1274.4571428571428571",
+        "avg_tokens": "167.8000000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "user_guide",
+        "file_name": "RNI 4.15 FlexNet ESM User Guide.pdf",
+        "chunk_count": 34,
+        "avg_chunk_length": "1276.0588235294117647",
+        "avg_tokens": "168.7058823529411765"
+      },
+      {
+        "title": null,
+        "document_type": "user_guide",
+        "file_name": "RNI 4.16 ESM User Guide.pdf",
+        "chunk_count": 34,
+        "avg_chunk_length": "1276.3823529411764706",
+        "avg_tokens": "168.7352941176470588"
+      },
+      {
+        "title": null,
+        "document_type": "technical_specification",
+        "file_name": "PPA.4.14.TechNote.pdf",
+        "chunk_count": 30,
+        "avg_chunk_length": "1378.9000000000000000",
+        "avg_tokens": "143.0000000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "release_notes",
+        "file_name": "RNI 4.16.1 Release Notes.pdf",
+        "chunk_count": 30,
+        "avg_chunk_length": "1366.5000000000000000",
+        "avg_tokens": "174.0333333333333333"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section1_Overview.pdf",
+        "chunk_count": 28,
+        "avg_chunk_length": "1334.7500000000000000",
+        "avg_tokens": "150.6071428571428571"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.15 Hardware Security Module Installation Guide.pdf",
+        "chunk_count": 28,
+        "avg_chunk_length": "1264.6071428571428571",
+        "avg_tokens": "165.5714285714285714"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.16 Hardware Security Module Installation Guide.pdf",
+        "chunk_count": 28,
+        "avg_chunk_length": "1260.7857142857142857",
+        "avg_tokens": "164.8928571428571429"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.14 Hardware Security Module Installation Guide.pdf",
+        "chunk_count": 26,
+        "avg_chunk_length": "1229.8846153846153846",
+        "avg_tokens": "160.3846153846153846"
+      },
+      {
+        "title": "REFERENCE MANUAL",
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.14 NA2W FWDL Reference Manual.pdf",
+        "chunk_count": 25,
+        "avg_chunk_length": "1093.3200000000000000",
+        "avg_tokens": "162.0800000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "release_notes",
+        "file_name": "RNI 4.15.1 Release Notes.pdf",
+        "chunk_count": 24,
+        "avg_chunk_length": "1398.2500000000000000",
+        "avg_tokens": "180.1250000000000000"
+      },
+      {
+        "title": "REFERENCE MANUAL",
+        "document_type": "reference_manual",
+        "file_name": "RNI 4.15 NA2W FWDL Reference Manual.pdf",
+        "chunk_count": 24,
+        "avg_chunk_length": "1094.7916666666666667",
+        "avg_tokens": "162.3750000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "release_notes",
+        "file_name": "RNI 4.14.1 Release Notes.pdf",
+        "chunk_count": 23,
+        "avg_chunk_length": "1409.0434782608695652",
+        "avg_tokens": "171.5217391304347826"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 MultiSpeakv3_0_Integration_Guide_Section4_ConnectDisconnect.pdf",
+        "chunk_count": 22,
+        "avg_chunk_length": "1436.3181818181818182",
+        "avg_tokens": "135.8181818181818182"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Key Management Integration Guide.pdf",
+        "chunk_count": 22,
+        "avg_chunk_length": "1399.9545454545454545",
+        "avg_tokens": "144.3636363636363636"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Multispeakv3_0_Integration_Guide_Section3_OutageDetection.pdf",
+        "chunk_count": 20,
+        "avg_chunk_length": "1765.2500000000000000",
+        "avg_tokens": "164.8000000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.15 Key Management Integration Guide.pdf",
+        "chunk_count": 20,
+        "avg_chunk_length": "1544.9000000000000000",
+        "avg_tokens": "155.7500000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.16 Key Management Integration Guide.pdf",
+        "chunk_count": 20,
+        "avg_chunk_length": "1582.0000000000000000",
+        "avg_tokens": "162.1000000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.14 Microsoft Active Directory Integration Guide.pdf",
+        "chunk_count": 13,
+        "avg_chunk_length": "1132.8461538461538462",
+        "avg_tokens": "156.7692307692307692"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.16 Microsoft Active Directory Integration Guide.pdf",
+        "chunk_count": 12,
+        "avg_chunk_length": "1097.3333333333333333",
+        "avg_tokens": "151.5000000000000000"
+      },
+      {
+        "title": null,
+        "document_type": "integration_guide",
+        "file_name": "RNI 4.15 Microsoft Active Directory Integration Guide.pdf",
+        "chunk_count": 12,
+        "avg_chunk_length": "1117.9166666666666667",
+        "avg_tokens": "153.8333333333333333"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.14 Server Port Settings Installation Guide.pdf",
+        "chunk_count": 11,
+        "avg_chunk_length": "2003.8181818181818182",
+        "avg_tokens": "250.9090909090909091"
+      },
+      {
+        "title": null,
+        "document_type": "installation_guide",
+        "file_name": "RNI 4.15 Server Port Settings Installation Guide.pdf",
+        "chunk_count": 10,
+        "avg_chunk_length": "2139.7000000000000000",
+        "avg_tokens": "265.1000000000000000"
+      }
+    ]
+  },
+  "embeddings": {
+    "embedding_info": {
+      "total_embeddings": 4033,
+      "non_null_embeddings": 4033,
+      "embedding_dimension": 768
+    },
+    "models_used": [
+      {
+        "embedding_model": "nomic-embed-text:v1.5",
+        "count": 4033
+      }
+    ]
+  },
+  "test_questions": [
+    {
+      "question": "What is RNI?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What are the main features?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "How do I get started?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What are the system requirements?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "Where can I find documentation?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What versions are available?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "How do I troubleshoot issues?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What support options are available?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "How do I contact support?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What are the licensing requirements?",
+      "type": "generic",
+      "expected_topics": [
+        "general",
+        "overview"
+      ],
+      "difficulty": "basic"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 1,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 1,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 1,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 1,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 1,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 2,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 2,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 2,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 2,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 2,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of FlexNet?",
+      "type": "reference_manual",
+      "document_id": 3,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 3,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 3,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 3,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 3,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 4,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 4,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 4,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 4,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 4,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What's new in version 4.15.1?",
+      "type": "release_notes",
+      "document_id": 6,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What bugs were fixed in 4.15.1?",
+      "type": "release_notes",
+      "document_id": 6,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the breaking changes?",
+      "type": "release_notes",
+      "document_id": 6,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What features were added?",
+      "type": "release_notes",
+      "document_id": 6,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the upgrade instructions?",
+      "type": "release_notes",
+      "document_id": 6,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 7,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 7,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 7,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 7,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 7,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of RNI?",
+      "type": "reference_manual",
+      "document_id": 8,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 8,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 8,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 8,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 8,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 9,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 9,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 9,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 9,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 9,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 11,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 11,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 11,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 11,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 11,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 12,
+      "document_title": "AUG-10021-27",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 12,
+      "document_title": "AUG-10021-27",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 12,
+      "document_title": "AUG-10021-27",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 12,
+      "document_title": "AUG-10021-27",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 12,
+      "document_title": "AUG-10021-27",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 13,
+      "document_title": "AUG-10039-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 13,
+      "document_title": "AUG-10039-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 13,
+      "document_title": "AUG-10039-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 13,
+      "document_title": "AUG-10039-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 13,
+      "document_title": "AUG-10039-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 14,
+      "document_title": "AUG-10040-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 14,
+      "document_title": "AUG-10040-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 14,
+      "document_title": "AUG-10040-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 14,
+      "document_title": "AUG-10040-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 14,
+      "document_title": "AUG-10040-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of RNI?",
+      "type": "reference_manual",
+      "document_id": 15,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 15,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 15,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 15,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 15,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 16,
+      "document_title": "AUG-10082-03",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 16,
+      "document_title": "AUG-10082-03",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 16,
+      "document_title": "AUG-10082-03",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 16,
+      "document_title": "AUG-10082-03",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 16,
+      "document_title": "AUG-10082-03",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of RNI?",
+      "type": "reference_manual",
+      "document_id": 17,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 17,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 17,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 17,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 17,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 18,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 18,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 18,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 18,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 18,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 19,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 19,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 19,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 19,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 19,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 20,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 20,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 20,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 20,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 20,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 21,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 21,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 21,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 21,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 21,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 22,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 22,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 22,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 22,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 22,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 23,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 23,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 23,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 23,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 23,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 24,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 24,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 24,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 24,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 24,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 25,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 25,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 25,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 25,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 25,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 26,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 26,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 26,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 26,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 26,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 27,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 27,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 27,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 27,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 27,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 28,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 28,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 28,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 28,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 28,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 29,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 29,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 29,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 29,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 29,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 30,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 30,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 30,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 30,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 30,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 31,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 31,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 31,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 31,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 31,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate MultiSpeak with other systems?",
+      "type": "integration_guide",
+      "document_id": 32,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 32,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 32,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure MultiSpeak for integration?",
+      "type": "integration_guide",
+      "document_id": 32,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 32,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "multispeak"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of FlexNet?",
+      "type": "reference_manual",
+      "document_id": 33,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 33,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 33,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 33,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 33,
+      "document_title": "REFERENCE MANUAL",
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of FlexNet?",
+      "type": "reference_manual",
+      "document_id": 34,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 34,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 34,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 34,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 34,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 35,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 35,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 35,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 35,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 35,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 36,
+      "document_title": "AUG-10051-21",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 36,
+      "document_title": "AUG-10051-21",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 36,
+      "document_title": "AUG-10051-21",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 36,
+      "document_title": "AUG-10051-21",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 36,
+      "document_title": "AUG-10051-21",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What's new in version 4.14.1?",
+      "type": "release_notes",
+      "document_id": 38,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What bugs were fixed in 4.14.1?",
+      "type": "release_notes",
+      "document_id": 38,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the breaking changes?",
+      "type": "release_notes",
+      "document_id": 38,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What features were added?",
+      "type": "release_notes",
+      "document_id": 38,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the upgrade instructions?",
+      "type": "release_notes",
+      "document_id": 38,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 39,
+      "document_title": "AUG-10021-28",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 39,
+      "document_title": "AUG-10021-28",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 39,
+      "document_title": "AUG-10021-28",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 39,
+      "document_title": "AUG-10021-28",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 39,
+      "document_title": "AUG-10021-28",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 40,
+      "document_title": "AUG-10039-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 40,
+      "document_title": "AUG-10039-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 40,
+      "document_title": "AUG-10039-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 40,
+      "document_title": "AUG-10039-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 40,
+      "document_title": "AUG-10039-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 41,
+      "document_title": "AUG-10040-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 41,
+      "document_title": "AUG-10040-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 41,
+      "document_title": "AUG-10040-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 41,
+      "document_title": "AUG-10040-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 41,
+      "document_title": "AUG-10040-23",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of RNI?",
+      "type": "reference_manual",
+      "document_id": 42,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 42,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 42,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 42,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 42,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure FlexNet?",
+      "type": "user_guide",
+      "document_id": 43,
+      "document_title": "AUG-10082-04",
+      "expected_topics": [
+        "user_guide",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for FlexNet?",
+      "type": "user_guide",
+      "document_id": 43,
+      "document_title": "AUG-10082-04",
+      "expected_topics": [
+        "user_guide",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for FlexNet?",
+      "type": "user_guide",
+      "document_id": 43,
+      "document_title": "AUG-10082-04",
+      "expected_topics": [
+        "user_guide",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update FlexNet?",
+      "type": "user_guide",
+      "document_id": 43,
+      "document_title": "AUG-10082-04",
+      "expected_topics": [
+        "user_guide",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for FlexNet?",
+      "type": "user_guide",
+      "document_id": 43,
+      "document_title": "AUG-10082-04",
+      "expected_topics": [
+        "user_guide",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 44,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 44,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 44,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 44,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 44,
+      "document_title": null,
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 45,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 45,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 45,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 45,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 45,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 46,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 46,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 46,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 46,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 46,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of FlexNet?",
+      "type": "reference_manual",
+      "document_id": 47,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 47,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 47,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 47,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 47,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI?",
+      "type": "user_guide",
+      "document_id": 48,
+      "document_title": "AUG-10051-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the installation requirements for RNI?",
+      "type": "user_guide",
+      "document_id": 48,
+      "document_title": "AUG-10051-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What troubleshooting steps are available for RNI?",
+      "type": "user_guide",
+      "document_id": 48,
+      "document_title": "AUG-10051-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I update RNI?",
+      "type": "user_guide",
+      "document_id": 48,
+      "document_title": "AUG-10051-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the security settings for RNI?",
+      "type": "user_guide",
+      "document_id": 48,
+      "document_title": "AUG-10051-22",
+      "expected_topics": [
+        "user_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the system requirements for installation?",
+      "type": "installation_guide",
+      "document_id": 49,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I install RNI?",
+      "type": "installation_guide",
+      "document_id": 49,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the pre-installation steps?",
+      "type": "installation_guide",
+      "document_id": 49,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I verify the installation was successful?",
+      "type": "installation_guide",
+      "document_id": 49,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are common installation issues?",
+      "type": "installation_guide",
+      "document_id": 49,
+      "document_title": null,
+      "expected_topics": [
+        "installation_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I integrate RNI with other systems?",
+      "type": "integration_guide",
+      "document_id": 50,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What APIs are available for integration?",
+      "type": "integration_guide",
+      "document_id": 50,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the authentication requirements?",
+      "type": "integration_guide",
+      "document_id": 50,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure RNI for integration?",
+      "type": "integration_guide",
+      "document_id": 50,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the integration best practices?",
+      "type": "integration_guide",
+      "document_id": 50,
+      "document_title": null,
+      "expected_topics": [
+        "integration_guide",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the technical specifications of FlexNet?",
+      "type": "reference_manual",
+      "document_id": 51,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are all the available commands?",
+      "type": "reference_manual",
+      "document_id": 51,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I configure advanced settings?",
+      "type": "reference_manual",
+      "document_id": 51,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the API endpoints?",
+      "type": "reference_manual",
+      "document_id": 51,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the configuration parameters?",
+      "type": "reference_manual",
+      "document_id": 51,
+      "document_title": null,
+      "expected_topics": [
+        "reference_manual",
+        "flexnet"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What's new in version 4.16.1?",
+      "type": "release_notes",
+      "document_id": 53,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What bugs were fixed in 4.16.1?",
+      "type": "release_notes",
+      "document_id": 53,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the breaking changes?",
+      "type": "release_notes",
+      "document_id": 53,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What features were added?",
+      "type": "release_notes",
+      "document_id": 53,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "What are the upgrade instructions?",
+      "type": "release_notes",
+      "document_id": 53,
+      "document_title": null,
+      "expected_topics": [
+        "release_notes",
+        "rni"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I migrate from version 4.14 to 4.16?",
+      "type": "complex",
+      "expected_topics": [
+        "migration",
+        "upgrade",
+        "version"
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "question": "What are the differences between RNI versions?",
+      "type": "comparison",
+      "expected_topics": [
+        "version",
+        "comparison",
+        "features"
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "question": "How do I integrate RNI with Active Directory?",
+      "type": "integration",
+      "expected_topics": [
+        "integration",
+        "active directory",
+        "authentication"
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "question": "What network ports does RNI use?",
+      "type": "technical",
+      "expected_topics": [
+        "network",
+        "ports",
+        "configuration"
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "question": "How do I backup RNI configuration?",
+      "type": "maintenance",
+      "expected_topics": [
+        "backup",
+        "configuration",
+        "maintenance"
+      ],
+      "difficulty": "intermediate"
+    }
+  ],
+  "summary": {
+    "total_documents": 53,
+    "total_chunks": 4033,
+    "total_test_questions": 260,
+    "document_types": 10,
+    "chunk_types": 1,
+    "embedding_dimension": 768
+  }
+}

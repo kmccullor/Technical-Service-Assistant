@@ -1,0 +1,19 @@
+fastapi
+uvicorn[standard]
+python-multipart
+FlagEmbedding
+psycopg2-binary
+ollama
+httpx
+beautifulsoup4
+prometheus-client
+psutil
+PyMuPDF
+Pillow
+pytesseract
+pyodbc
+# RBAC dependencies
+pyjwt
+bcrypt
+passlib[bcrypt]
+email-validator

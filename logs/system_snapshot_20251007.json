@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-10-07T20:00:05-04:00",
+  "date": "20251007",
+  "system": {
+    "hostname": "RNI-LLM-01.lab.sensus.net",
+    "uptime": "up 1 week, 10 hours, 35 minutes",
+    "load_average": " 28.78, 22.13, 20.73"
+  },
+  "containers": {
+    "total_running": 17,
+    "total_all": 17,
+    "services": [
+
+    ]
+  },
+  "storage": {
+    "databases": [
+      {"name": "/home/kmccullor/Projects/Technical-Service-Assistant/quality_metrics.db", "size": "20480", "modified": "Oct 1 16:04"},
+      {"name": "/home/kmccullor/Projects/Technical-Service-Assistant/rag_validation.db", "size": "40960", "modified": "Oct 1 16:51"},
+      {"name": "/home/kmccullor/Projects/Technical-Service-Assistant/test_optimization.db", "size": "28672", "modified": "Oct 1 16:20"}
+    ]
+  },
+  "logs": {
+    "total_size": "309M",
+    "file_count": 67
+  }
+}

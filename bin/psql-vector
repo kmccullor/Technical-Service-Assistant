@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script: consistent access to pgvector container and vector_db database.
+# Usage examples:
+#   bin/psql-vector                              # open interactive psql
+#   bin/psql-vector -c "SELECT count(*) FROM documents;"
+#   bin/psql-vector < init.sql                   # re-run schema (non-destructive if IF NOT EXISTS guards)
+
+CONTAINER="pgvector"
+USER="postgres"
+DB="vector_db"
+
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+  echo "[ERROR] Container '${CONTAINER}' not running" >&2
+  exit 1
+fi
+
+exec docker exec -it ${CONTAINER} psql -U ${USER} -d ${DB} "$@"

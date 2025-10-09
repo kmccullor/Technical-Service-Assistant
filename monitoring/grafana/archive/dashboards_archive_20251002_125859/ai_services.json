@@ -1,0 +1,250 @@
+{
+  "dashboard": {
+    "id": null,
+    "panels": [
+      {
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "text": "DOWN"
+                  },
+                  "1": {
+                    "color": "green",
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "targets": [
+          {
+            "expr": "up{job=~\"ollama-server-.*\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "title": "Ollama Instances Status",
+        "type": "stat"
+      },
+      {
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 2
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        },
+        "id": 2,
+        "targets": [
+          {
+            "expr": "rate(reranker_requests_total[5m])",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "reranker_request_duration_seconds",
+            "legendFormat": "Response Time (s)",
+            "refId": "B"
+          }
+        ],
+        "title": "Reranker Service Performance",
+        "type": "timeseries"
+      },
+      {
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        },
+        "id": 3,
+        "targets": [
+          {
+            "expr": "reranker_model_selection_total",
+            "legendFormat": "{{model}}",
+            "refId": "A"
+          }
+        ],
+        "title": "AI Model Selection Distribution",
+        "type": "piechart"
+      },
+      {
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 14
+        },
+        "id": 4,
+        "targets": [
+          {
+            "expr": "rate(embedding_generations_total[5m])",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "title": "Embedding Generation Rate",
+        "type": "timeseries"
+      },
+      {
+        "fieldConfig": {
+          "defaults": {
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 80
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 14
+        },
+        "id": 5,
+        "targets": [
+          {
+            "expr": "rate(rag_queries_successful[5m]) / rate(rag_queries_total[5m]) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "title": "RAG Query Success Rate",
+        "type": "gauge"
+      },
+      {
+        "fieldConfig": {
+          "defaults": {
+            "max": 1,
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.8
+                },
+                {
+                  "color": "green",
+                  "value": 0.9
+                }
+              ]
+            },
+            "unit": "percentunit"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 22
+        },
+        "id": 6,
+        "targets": [
+          {
+            "expr": "reranker_routing_accuracy",
+            "legendFormat": "Routing Accuracy",
+            "refId": "A"
+          }
+        ],
+        "title": "Intelligent Routing Accuracy",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "15s",
+    "schemaVersion": 39,
+    "style": "dark",
+    "tags": [
+      "technical-service-assistant",
+      "ai",
+      "ollama",
+      "reranker"
+    ],
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "timezone": "browser",
+    "title": "Technical Service Assistant - AI Services Dashboard",
+    "version": 1
+  },
+  "editable": true,
+  "panels": [],
+  "schemaVersion": 38,
+  "title": "Technical Service Assistant - Ai Services",
+  "uid": "technical-service-assistant-ai-services",
+  "version": 1
+}

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: test-infrastructure
+    environment: production
+  name: test-infrastructure
+  namespace: test-infrastructure-production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test-infrastructure
+  template:
+    metadata:
+      labels:
+        app: test-infrastructure
+        environment: production
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: test-infra-config
+        image: test-infrastructure:production
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/suite-health
+            port: 8090
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        name: test-infrastructure
+        ports:
+        - containerPort: 8080
+          name: dashboard
+        - containerPort: 8090
+          name: maintenance
+        - containerPort: 8008
+          name: api
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/test-execution-status
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /app/database
+          name: database-storage
+        - mountPath: /app/uploads
+          name: uploads-storage
+        - mountPath: /app/logs
+          name: logs-storage
+      volumes:
+      - name: database-storage
+        persistentVolumeClaim:
+          claimName: test-infra-db-pvc
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: test-infra-uploads-pvc
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: test-infra-logs-pvc

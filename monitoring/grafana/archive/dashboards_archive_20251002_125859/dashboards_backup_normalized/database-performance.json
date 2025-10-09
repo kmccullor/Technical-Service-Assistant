@@ -1,0 +1,199 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Technical Service Assistant - Database & Search Performance",
+    "tags": [
+      "technical-service-assistant",
+      "database",
+      "search"
+    ],
+    "style": "dark",
+    "timezone": "",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Database Connection Pool",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "pg_settings_max_connections",
+            "legendFormat": "Max Connections"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "connections"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Database Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(reranker_database_operations_total[1m])",
+            "legendFormat": "{{operation}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "operations/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Search Operations by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(reranker_search_operations_total[1m])",
+            "legendFormat": "{{type}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "searches/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Embeddings Generated",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(reranker_embeddings_generated_total[1m])",
+            "legendFormat": "Embeddings/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "embeddings/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "PostgreSQL Cache Hit Ratio",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "pg_stat_database_blks_hit / (pg_stat_database_blks_hit + pg_stat_database_blks_read) * 100",
+            "legendFormat": "Cache Hit Ratio"
+          }
+        ],
+        "valueName": "current",
+        "format": "percent",
+        "thresholds": "80,90,95",
+        "colorBackground": true,
+        "colors": [
+          "rgba(245, 54, 54, 0.9)",
+          "rgba(237, 129, 40, 0.89)",
+          "rgba(50, 172, 45, 0.97)"
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Redis Cache Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[1m])",
+            "legendFormat": "Commands/sec"
+          },
+          {
+            "expr": "redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) * 100",
+            "legendFormat": "Hit Rate %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "ops/sec"
+          },
+          {
+            "label": "percentage",
+            "side": "right"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 18,
+          "x": 6,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Vector Search Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(reranker_request_duration_seconds_bucket{endpoint=\"/search\"}[5m]))",
+            "legendFormat": "95th percentile search time"
+          },
+          {
+            "expr": "rate(reranker_search_operations_total{type=\"vector\", status=\"success\"}[1m])",
+            "legendFormat": "Successful vector searches/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "seconds"
+          },
+          {
+            "label": "searches/sec",
+            "side": "right"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 24
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s"
+  },
+  "title": "Technical Service Assistant - Database Performance"
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "query": "What is RNI Microsoft Active Directory integration?",
+    "relevant_substrings": ["Microsoft Active Directory", "RNI Microsoft", "Active Directory Integration"]
+  },
+  {
+    "query": "What is the RNI Key Management Gateway?",
+    "relevant_substrings": ["Key Management Gateway", "RNI Key Management", "Key Management Gateway Integration"]
+  },
+  {
+    "query": "What are the RNI 4.16 release notes?",
+    "relevant_substrings": ["RNI 4.16", "release notes", "Release Notes"]
+  },
+  {
+    "query": "How does RNI system security work?",
+    "relevant_substrings": ["system security", "RNI System Security", "Security User Guide"]
+  },
+  {
+    "query": "What is ESM in RNI documentation?",
+    "relevant_substrings": ["ESM", "RNI 4.16 ESM", "ESM User Guide"]
+  },
+  {
+    "query": "How is hardware security module installed?",
+    "relevant_substrings": ["hardware security module", "Hardware Security Module", "Installation Guide"]
+  },
+  {
+    "query": "What are CMEP specifications in RNI?",
+    "relevant_substrings": ["CMEP", "Extended CMEP", "CMEP Specs"]
+  },
+  {
+    "query": "How do RNI reports work?",
+    "relevant_substrings": ["reports", "RNI 4.16 Reports", "Reports Operation"]
+  }
+]

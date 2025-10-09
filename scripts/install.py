@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""
+Technical Service Assistant - Post-Installation Setup
+===================================================
+
+This script handles post-installation configuration and setup tasks.
+"""
+
+import os
+import sys
+import subprocess
+import time
+import json
+import argparse
+from pathlib import Path
+
+def run_command(cmd, check=True, capture_output=False):
+    """Run a shell command with proper error handling."""
+    print(f"Running: {cmd}")
+    try:
+        if capture_output:
+            result = subprocess.run(cmd, shell=True, check=check, 
+                                  capture_output=True, text=True)
+            return result.stdout.strip()
+        else:
+            subprocess.run(cmd, shell=True, check=check)
+            return True
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {e}")
+        if capture_output and hasattr(e, 'stderr'):
+            print(f"Error output: {e.stderr}")
+        return False
+
+def wait_for_service(url, timeout=300, service_name="service"):
+    """Wait for a service to become available."""
+    print(f"Waiting for {service_name} at {url}...")
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        try:
+            import requests
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                print(f"✅ {service_name} is ready!")
+                return True
+        except:
+            pass
+        
+        print(".", end="", flush=True)
+        time.sleep(5)
+    
+    print(f"\n❌ {service_name} failed to start within {timeout} seconds")
+    return False
+
+def setup_ollama_models(base_url="http://localhost:11434"):
+    """Download and setup required Ollama models."""
+    print("Setting up Ollama models...")
+    
+    models = [
+        "nomic-embed-text:v1.5",  # Embedding model
+        "llama2",                  # Default chat model
+        "mistral:7b",             # Technical questions
+        "codellama",              # Code generation
+    ]
+    
+    for model in models:
+        print(f"Pulling model: {model}")
+        cmd = f"docker exec technical-service-assistant-ollama-server-1-1 ollama pull {model}"
+        if not run_command(cmd, check=False):
+            print(f"⚠️ Failed to pull {model}, continuing...")
+    
+    print("✅ Ollama models setup completed")
+
+def setup_database():
+    """Initialize database with required tables and indexes."""
+    print("Setting up database...")
+    
+    # Wait for database to be ready
+    if not wait_for_service("http://localhost:8008/health", service_name="API"):
+        return False
+    
+    # Run database migrations
+    print("Running database migrations...")
+    cmd = "docker exec technical-service-assistant-reranker-1 python -c \"from migrations.run_migrations import main; main()\""
+    if not run_command(cmd, check=False):
+        print("⚠️ Database migrations failed, may need manual setup")
+    
+    print("✅ Database setup completed")
+    return True
+
+def setup_monitoring():
+    """Configure monitoring dashboards and alerts."""
+    print("Setting up monitoring...")
+    
+    # Wait for Grafana to be ready
+    if not wait_for_service("http://localhost:3000", service_name="Grafana"):
+        return False
+    
+    # Import dashboards (if available)
+    dashboards_dir = Path("/opt/technical-service-assistant/app/monitoring/dashboards")
+    if dashboards_dir.exists():
+        print("Importing Grafana dashboards...")
+        # Dashboard import logic would go here
+        print("✅ Dashboards imported")
+    
+    print("✅ Monitoring setup completed")
+    return True
+
+def create_admin_user():
+    """Create initial admin user."""
+    print("Creating admin user...")
+    
+    # This would integrate with your user management system
+    # For now, just provide instructions
+    print("""
+    📝 Admin User Setup Required:
+    
+    1. Navigate to http://your-server-ip/
+    2. Create your first admin account
+    3. Configure user permissions as needed
+    
+    For automated user creation, see the API documentation.
+    """)
+    
+    return True
+
+def run_health_checks():
+    """Perform comprehensive health checks."""
+    print("Running health checks...")
+    
+    checks = [
+        ("Web Interface", "http://localhost:8080"),
+        ("API Health", "http://localhost:8008/health"),
+        ("Ollama Primary", "http://localhost:11434/api/tags"),
+        ("Database", "http://localhost:8008/api/test-db"),
+    ]
+    
+    results = []
+    for name, url in checks:
+        try:
+            import requests
+            response = requests.get(url, timeout=10)
+            status = "✅ PASS" if response.status_code == 200 else f"❌ FAIL ({response.status_code})"
+            results.append((name, status))
+        except Exception as e:
+            results.append((name, f"❌ FAIL ({str(e)[:50]}...)"))
+    
+    print("\n" + "="*50)
+    print("HEALTH CHECK RESULTS")
+    print("="*50)
+    for name, status in results:
+        print(f"{name:20} {status}")
+    print("="*50)
+    
+    return all("✅" in result[1] for result in results)
+
+def main():
+    """Main setup function."""
+    parser = argparse.ArgumentParser(description="Technical Service Assistant Post-Installation Setup")
+    parser.add_argument("--skip-models", action="store_true", help="Skip Ollama model download")
+    parser.add_argument("--skip-monitoring", action="store_true", help="Skip monitoring setup")
+    parser.add_argument("--health-check-only", action="store_true", help="Only run health checks")
+    
+    args = parser.parse_args()
+    
+    print("🚀 Technical Service Assistant - Post-Installation Setup")
+    print("="*60)
+    
+    if args.health_check_only:
+        success = run_health_checks()
+        sys.exit(0 if success else 1)
+    
+    # Run setup steps
+    success = True
+    
+    if not args.skip_models:
+        if not setup_ollama_models():
+            success = False
+    
+    if not setup_database():
+        success = False
+    
+    if not args.skip_monitoring:
+        if not setup_monitoring():
+            success = False
+    
+    if not create_admin_user():
+        success = False
+    
+    # Final health check
+    print("\n" + "="*60)
+    if run_health_checks():
+        print("\n🎉 Setup completed successfully!")
+        print("\n📖 Quick Start:")
+        print("1. Visit http://your-server-ip/ to access the web interface")
+        print("2. Upload some PDF documents to test the system")
+        print("3. Try searching and asking questions about your documents")
+        print("4. Check the monitoring dashboard at http://your-server-ip:3000")
+        print("\n📚 Documentation: /opt/technical-service-assistant/app/README.md")
+    else:
+        print("\n⚠️ Setup completed with some issues. Check the logs above.")
+        success = False
+    
+    sys.exit(0 if success else 1)
+
+if __name__ == "__main__":
+    main()

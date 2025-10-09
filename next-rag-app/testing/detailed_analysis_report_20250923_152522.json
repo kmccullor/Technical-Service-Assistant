@@ -1,0 +1,875 @@
+{
+  "report_metadata": {
+    "analysis_timestamp": "2025-09-23T15:25:22.471612",
+    "original_report_file": "/home/kmccullor/Projects/Technical-Service-Assistant/next-rag-app/testing/comprehensive_test_report_20250923_152353.json",
+    "test_execution_time": "2025-09-23T15:23:53.798977"
+  },
+  "failure_analysis": {
+    "total_failed": 13,
+    "failed_tests": [
+      {
+        "suite": "search_functionality",
+        "test_name": "Empty Query Test",
+        "question": "",
+        "error_message": "Failed: 500",
+        "response_time": 0.04566645622253418,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "edge_cases",
+        "test_name": "Malformed JSON Test",
+        "question": "{\"messages\": [{\"role\": \"user\"}",
+        "error_message": "Unexpected status: 500",
+        "response_time": 0.011883974075317383,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 1",
+        "question": "What is RNI?",
+        "error_message": "",
+        "response_time": 30.662858486175537,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 2",
+        "question": "How to configure RNI?",
+        "error_message": "",
+        "response_time": 30.662194967269897,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 4",
+        "question": "RNI troubleshooting",
+        "error_message": "",
+        "response_time": 30.999785661697388,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 5",
+        "question": "RNI system requirements",
+        "error_message": "",
+        "response_time": 30.998880863189697,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 6",
+        "question": "What is RNI?",
+        "error_message": "",
+        "response_time": 30.998822689056396,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 7",
+        "question": "How to configure RNI?",
+        "error_message": "",
+        "response_time": 31.028491020202637,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 8",
+        "question": "RNI installation guide",
+        "error_message": "",
+        "response_time": 31.02808690071106,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 9",
+        "question": "RNI troubleshooting",
+        "error_message": "",
+        "response_time": 31.027580976486206,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 10",
+        "question": "RNI system requirements",
+        "error_message": "",
+        "response_time": 30.991607666015625,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 1",
+        "question": "What is RNI?",
+        "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out.",
+        "response_time": 31.288638830184937,
+        "sources_found": 0,
+        "confidence_score": null
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 2",
+        "question": "What are the main features?",
+        "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out.",
+        "response_time": 30.86605739593506,
+        "sources_found": 0,
+        "confidence_score": null
+      }
+    ],
+    "failure_categories": {
+      "timeout_errors": [
+        {
+          "suite": "performance",
+          "test_name": "Load Test 1",
+          "question": "What is RNI?",
+          "error_message": "",
+          "response_time": 30.662858486175537,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 2",
+          "question": "How to configure RNI?",
+          "error_message": "",
+          "response_time": 30.662194967269897,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 4",
+          "question": "RNI troubleshooting",
+          "error_message": "",
+          "response_time": 30.999785661697388,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 5",
+          "question": "RNI system requirements",
+          "error_message": "",
+          "response_time": 30.998880863189697,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 6",
+          "question": "What is RNI?",
+          "error_message": "",
+          "response_time": 30.998822689056396,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 7",
+          "question": "How to configure RNI?",
+          "error_message": "",
+          "response_time": 31.028491020202637,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 8",
+          "question": "RNI installation guide",
+          "error_message": "",
+          "response_time": 31.02808690071106,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 9",
+          "question": "RNI troubleshooting",
+          "error_message": "",
+          "response_time": 31.027580976486206,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "performance",
+          "test_name": "Load Test 10",
+          "question": "RNI system requirements",
+          "error_message": "",
+          "response_time": 30.991607666015625,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "database_questions",
+          "test_name": "DB Question 1",
+          "question": "What is RNI?",
+          "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out.",
+          "response_time": 31.288638830184937,
+          "sources_found": 0,
+          "confidence_score": null
+        },
+        {
+          "suite": "database_questions",
+          "test_name": "DB Question 2",
+          "question": "What are the main features?",
+          "error_message": "HTTPConnectionPool(host='localhost', port=3000): Read timed out.",
+          "response_time": 30.86605739593506,
+          "sources_found": 0,
+          "confidence_score": null
+        }
+      ],
+      "no_response_errors": [],
+      "api_errors": [
+        {
+          "suite": "edge_cases",
+          "test_name": "Malformed JSON Test",
+          "question": "{\"messages\": [{\"role\": \"user\"}",
+          "error_message": "Unexpected status: 500",
+          "response_time": 0.011883974075317383,
+          "sources_found": 0,
+          "confidence_score": null
+        }
+      ],
+      "low_confidence": [],
+      "other_errors": [
+        {
+          "suite": "search_functionality",
+          "test_name": "Empty Query Test",
+          "question": "",
+          "error_message": "Failed: 500",
+          "response_time": 0.04566645622253418,
+          "sources_found": 0,
+          "confidence_score": null
+        }
+      ]
+    },
+    "failure_patterns": {
+      "common_error_messages": {
+        "Failed: 500": 1,
+        "Unexpected status: 500": 1,
+        "": 9,
+        "HTTPConnectionPool(host='localhost', port=3000): Read timed out.": 2
+      },
+      "question_types_failing": {
+        "Other questions": 6,
+        "What questions": 4,
+        "How questions": 2,
+        "Installation questions": 1
+      },
+      "response_time_distribution": [
+        0.04566645622253418,
+        0.011883974075317383,
+        30.662858486175537,
+        30.662194967269897,
+        30.999785661697388,
+        30.998880863189697,
+        30.998822689056396,
+        31.028491020202637,
+        31.02808690071106,
+        31.027580976486206,
+        30.991607666015625,
+        31.288638830184937,
+        30.86605739593506
+      ],
+      "suites_with_most_failures": {
+        "search_functionality": 1,
+        "edge_cases": 1,
+        "performance": 9,
+        "database_questions": 2
+      }
+    }
+  },
+  "performance_analysis": {
+    "avg_response_time": 19.04508624278324,
+    "median_response_time": 18.79640293121338,
+    "max_response_time": 36.710052728652954,
+    "min_response_time": 0.005451202392578125,
+    "tests_over_5s": 64,
+    "tests_over_10s": 64,
+    "tests_over_20s": 27,
+    "slow_tests": [
+      {
+        "suite": "search_functionality",
+        "test_name": "Basic RNI Query",
+        "question": "What is RNI?",
+        "response_time": 25.59721612930298,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "search_functionality",
+        "test_name": "Installation Query",
+        "question": "How to install RNI?",
+        "response_time": 20.958950757980347,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "search_functionality",
+        "test_name": "Configuration Query",
+        "question": "RNI configuration parameters",
+        "response_time": 19.556928157806396,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "search_functionality",
+        "test_name": "Unrelated Query Test",
+        "question": "completely unrelated query about cooking recipes",
+        "response_time": 12.504575490951538,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "search_functionality",
+        "test_name": "Very Long Query Test",
+        "question": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "response_time": 19.178945064544678,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 1",
+        "question": "What is RNI?",
+        "response_time": 30.662858486175537,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 2",
+        "question": "How to configure RNI?",
+        "response_time": 30.662194967269897,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 4",
+        "question": "RNI troubleshooting",
+        "response_time": 30.999785661697388,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 5",
+        "question": "RNI system requirements",
+        "response_time": 30.998880863189697,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 6",
+        "question": "What is RNI?",
+        "response_time": 30.998822689056396,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 7",
+        "question": "How to configure RNI?",
+        "response_time": 31.028491020202637,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 8",
+        "question": "RNI installation guide",
+        "response_time": 31.02808690071106,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 9",
+        "question": "RNI troubleshooting",
+        "response_time": 31.027580976486206,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "performance",
+        "test_name": "Load Test 10",
+        "question": "RNI system requirements",
+        "response_time": 30.991607666015625,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 1",
+        "question": "What is RNI?",
+        "response_time": 31.288638830184937,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 2",
+        "question": "What are the main features?",
+        "response_time": 30.86605739593506,
+        "sources_found": 0,
+        "success": false
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 3",
+        "question": "How do I get started?",
+        "response_time": 35.5270631313324,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 4",
+        "question": "What are the system requirements?",
+        "response_time": 16.090054750442505,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 5",
+        "question": "Where can I find documentation?",
+        "response_time": 15.477501630783081,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 6",
+        "question": "What versions are available?",
+        "response_time": 18.362945079803467,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 7",
+        "question": "How do I troubleshoot issues?",
+        "response_time": 12.41662073135376,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 8",
+        "question": "What support options are available?",
+        "response_time": 14.331234693527222,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 9",
+        "question": "How do I contact support?",
+        "response_time": 17.77706813812256,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 10",
+        "question": "What are the licensing requirements?",
+        "response_time": 19.506166696548462,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 11",
+        "question": "What are the system requirements for installation?",
+        "response_time": 15.71812891960144,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 12",
+        "question": "How do I install RNI?",
+        "response_time": 14.42597222328186,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 13",
+        "question": "What are the pre-installation steps?",
+        "response_time": 22.89821147918701,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 14",
+        "question": "How do I verify the installation was successful?",
+        "response_time": 25.61747646331787,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 15",
+        "question": "What are common installation issues?",
+        "response_time": 11.454640865325928,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 16",
+        "question": "How do I integrate RNI with other systems?",
+        "response_time": 19.557867527008057,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 17",
+        "question": "What APIs are available for integration?",
+        "response_time": 14.662160158157349,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 18",
+        "question": "What are the authentication requirements?",
+        "response_time": 17.53292679786682,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 19",
+        "question": "How do I configure RNI for integration?",
+        "response_time": 18.704903841018677,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 20",
+        "question": "What are the integration best practices?",
+        "response_time": 20.23661494255066,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 21",
+        "question": "What are the technical specifications of FlexNet?",
+        "response_time": 18.79640293121338,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 22",
+        "question": "What are all the available commands?",
+        "response_time": 17.25973916053772,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 23",
+        "question": "How do I configure advanced settings?",
+        "response_time": 17.639404773712158,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 24",
+        "question": "What are the API endpoints?",
+        "response_time": 18.8256413936615,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 25",
+        "question": "What are the configuration parameters?",
+        "response_time": 27.74856400489807,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 26",
+        "question": "What are the system requirements for installation?",
+        "response_time": 16.783454418182373,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 27",
+        "question": "How do I install RNI?",
+        "response_time": 13.39671802520752,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 28",
+        "question": "What are the pre-installation steps?",
+        "response_time": 16.992669820785522,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 29",
+        "question": "How do I verify the installation was successful?",
+        "response_time": 14.63181185722351,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 30",
+        "question": "What are common installation issues?",
+        "response_time": 36.710052728652954,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 31",
+        "question": "What's new in version 4.15.1?",
+        "response_time": 20.245251893997192,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 32",
+        "question": "What bugs were fixed in 4.15.1?",
+        "response_time": 24.18679165840149,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 33",
+        "question": "What are the breaking changes?",
+        "response_time": 25.069999933242798,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 34",
+        "question": "What features were added?",
+        "response_time": 19.34987211227417,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 35",
+        "question": "What are the upgrade instructions?",
+        "response_time": 13.598226070404053,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 36",
+        "question": "How do I configure RNI?",
+        "response_time": 21.297569513320923,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 37",
+        "question": "What are the installation requirements for RNI?",
+        "response_time": 17.403252601623535,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 38",
+        "question": "What troubleshooting steps are available for RNI?",
+        "response_time": 24.85758066177368,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 39",
+        "question": "How do I update RNI?",
+        "response_time": 21.31159257888794,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 40",
+        "question": "What are the security settings for RNI?",
+        "response_time": 18.556458950042725,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 41",
+        "question": "What are the technical specifications of RNI?",
+        "response_time": 15.292843103408813,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 42",
+        "question": "What are all the available commands?",
+        "response_time": 11.24061918258667,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 43",
+        "question": "How do I configure advanced settings?",
+        "response_time": 17.022040843963623,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 44",
+        "question": "What are the API endpoints?",
+        "response_time": 19.519586086273193,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 45",
+        "question": "What are the configuration parameters?",
+        "response_time": 20.093584537506104,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 46",
+        "question": "How do I integrate RNI with other systems?",
+        "response_time": 18.289650678634644,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 47",
+        "question": "What APIs are available for integration?",
+        "response_time": 17.307016134262085,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 48",
+        "question": "What are the authentication requirements?",
+        "response_time": 18.51661467552185,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 49",
+        "question": "How do I configure RNI for integration?",
+        "response_time": 21.1060950756073,
+        "sources_found": 10,
+        "success": true
+      },
+      {
+        "suite": "database_questions",
+        "test_name": "DB Question 50",
+        "question": "What are the integration best practices?",
+        "response_time": 19.472440481185913,
+        "sources_found": 10,
+        "success": true
+      }
+    ],
+    "response_time_percentiles": {
+      "p50": 18.79640293121338,
+      "p75": 24.85758066177368,
+      "p90": 30.998880863189697,
+      "p95": 31.028491020202637,
+      "p99": 36.710052728652954
+    }
+  },
+  "confidence_analysis": {
+    "avg_confidence": 0.011656704167274521,
+    "median_confidence": 0.01118459875196175,
+    "min_confidence": 0.010707644128043377,
+    "max_confidence": 0.014658490988683576,
+    "tests_with_very_low_confidence": 0,
+    "low_confidence_tests": [],
+    "confidence_distribution": {
+      "p50": 0.011199447406731901,
+      "p75": 0.012397277943844112,
+      "p90": 0.01336499830870476,
+      "p95": 0.014633772540409757,
+      "p99": 0.014658490988683576
+    }
+  },
+  "source_retrieval_analysis": {
+    "tests_with_sources": 54,
+    "tests_without_sources": 17,
+    "source_retrieval_rate": 76.05633802816901,
+    "avg_sources_per_test": 7.605633802816901,
+    "max_sources_found": 10
+  },
+  "recommendations": [
+    "\ud83d\udea8 CRITICAL: Average response time (19s+) is too high. Consider:",
+    "   \u2022 Optimize Ollama model configuration for faster inference",
+    "   \u2022 Implement response caching for common queries",
+    "   \u2022 Add request queuing and load balancing",
+    "   \u2022 Profile and optimize database query performance",
+    "\ud83d\udcca CONFIDENCE: Very low confidence scores indicate:",
+    "   \u2022 Possible embedding model mismatch with search queries",
+    "   \u2022 Need to retune confidence threshold (currently 0.01)",
+    "   \u2022 Consider hybrid search improvements",
+    "   \u2022 Evaluate document chunking strategy",
+    "\u26a1 PERFORMANCE: Many slow tests detected:",
+    "   \u2022 Implement async processing for heavy operations",
+    "   \u2022 Add request timeouts and circuit breakers",
+    "   \u2022 Consider horizontal scaling for Ollama instances"
+  ],
+  "executive_summary": {
+    "overall_health": "NEEDS_IMPROVEMENT",
+    "total_tests_executed": 71,
+    "success_rate_percentage": 81.69014084507043,
+    "avg_response_time_seconds": 19.04508624278324,
+    "primary_issues": [
+      "13 failed tests",
+      "Slow response times (19.0s avg)",
+      "Low confidence scores (0.012 avg)"
+    ],
+    "key_strengths": [
+      "54 tests successfully retrieved sources",
+      "System handled 71 comprehensive tests",
+      "Multiple test categories passed (API health, search, edge cases)"
+    ]
+  }
+}

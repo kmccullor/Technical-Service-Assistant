@@ -1,0 +1,35 @@
+# Testing
+pytest==8.3.2
+pytest-cov==5.0.0
+pytest-asyncio==0.21.1
+pytest-mock==3.11.1
+factory-boy==3.3.0
+httpx==0.24.1
+
+# Type checking
+mypy==1.5.1
+types-requests==2.32.0.20240907
+types-psycopg2==2.9.21.14
+types-redis==4.6.0.5
+
+# Security scanning
+safety==2.3.4
+bandit==1.7.5
+pip-audit==2.6.1
+
+# Documentation
+pydocstyle==6.3.0
+darglint==1.8.1
+sphinx==7.1.2
+
+# Performance monitoring
+memory-profiler==0.61.0
+py-spy==0.3.14
+line-profiler==4.1.1
+
+# Monitoring & observability
+prometheus-client==0.17.1
+structlog==23.1.0
+
+# Optional tools
+markdown-it-py==3.0.0  # optional rich text parsing tools

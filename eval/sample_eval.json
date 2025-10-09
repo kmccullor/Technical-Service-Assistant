@@ -1,0 +1,14 @@
+[
+  {
+    "query": "What does the document say about warranty period?",
+    "relevant_substrings": ["warranty period", "12 months"]
+  },
+  {
+    "query": "How are tables processed?",
+    "relevant_substrings": ["table extraction", "camelot"]
+  },
+  {
+    "query": "Which model generates embeddings?",
+    "relevant_substrings": ["nomic-embed-text", "embedding model"]
+  }
+]

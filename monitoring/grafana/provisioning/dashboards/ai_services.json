@@ -1,0 +1,250 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Technical Service Assistant - AI Services Dashboard",
+    "tags": [
+      "technical-service-assistant",
+      "ai",
+      "ollama",
+      "reranker"
+    ],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "15s",
+    "schemaVersion": 39,
+    "version": 1,
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Ollama Instances Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ollama_instance_up",
+            "legendFormat": "{{exported_instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "UP",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Reranker Service Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(model_requests_total[5m])",
+            "legendFormat": "Model Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(model_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile Response Time",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(search_request_duration_seconds_count[5m])",
+            "legendFormat": "Search Requests/sec",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 2
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        }
+      },
+      {
+        "id": 3,
+        "title": "AI Model Selection Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "reranker_model_selection_total",
+            "legendFormat": "{{model}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        }
+      },
+      {
+        "id": 4,
+        "title": "Embedding Generation Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(embedding_generations_total[5m])",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 14
+        }
+      },
+      {
+        "id": 5,
+        "title": "RAG Query Success Rate",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "rate(rag_queries_successful[5m]) / rate(rag_queries_total[5m]) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 80
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 14
+        }
+      },
+      {
+        "id": 6,
+        "title": "Intelligent Routing Accuracy",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "reranker_routing_accuracy",
+            "legendFormat": "Routing Accuracy",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.8
+                },
+                {
+                  "color": "green",
+                  "value": 0.9
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 22
+        }
+      }
+    ]
+  },
+  "title": "Technical Service Assistant - Ai Services"
+}

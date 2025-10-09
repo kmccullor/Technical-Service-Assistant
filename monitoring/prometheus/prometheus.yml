@@ -1,0 +1,85 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+  - "recording_rules.yml"
+
+# Alerting temporarily disabled (no Alertmanager deployed). To re-enable:
+# 1. Add alertmanager service to docker-compose
+# 2. Provide alertmanager.yml
+# 3. Uncomment below block
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # Reranker service metrics (enhanced hybrid search and intelligent routing)
+  - job_name: 'reranker'
+    static_configs:
+      - targets: ['reranker:8008']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 4s
+
+  # PostgreSQL monitoring with postgres_exporter (enhanced for vector operations)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+          instance: 'pgvector'
+
+  # Redis monitoring with redis_exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 10s
+
+  # Node metrics for container host monitoring (restricted to localhost access)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 60s
+    scrape_timeout: 15s
+    honor_labels: true
+
+  # SearXNG search engine monitoring (disabled - stats endpoint not metrics format)
+  # - job_name: 'searxng'
+  #   static_configs:
+  #     - targets: ['searxng:8888']
+  #   metrics_path: '/stats'
+
+  # Docker container metrics via cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+  # Ollama exporter (custom availability metrics)
+  - job_name: 'ollama-exporter'
+    static_configs:
+      - targets: ['ollama-exporter:9105']
+    scrape_interval: 15s
+
+  # Performance monitor exporter (aggregated service health + DB/ad hoc app stats)
+  - job_name: 'performance-monitor'
+    static_configs:
+      - targets: ['performance-monitor:9109']
+    scrape_interval: 30s
+
+  # Docling processor metrics
+  - job_name: 'docling-processor'
+    static_configs:
+      - targets: ['docling_processor:9110']
+    scrape_interval: 30s
+
+  # Note: Custom application metrics will be added when services expose endpoints
+  # Currently monitoring infrastructure services only

@@ -1,0 +1,146 @@
+# AI PDF Vector Stack - .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+# Logs
+logs/*.log
+logs/*.html
+*.log
+
+# Data and results
+data/*.json
+data/*.csv
+data/*.txt
+retrieval_test_results.json
+embedding_test_results.json
+*.results
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Backup files
+backup/
+*.tar.gz
+*.zip
+*.bak
+*.bak.*
+*~
+*.orig
+
+# Environment files
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker volumes (if any local mounts)
+docker-data/
+
+# Model files (large files)
+*.bin
+*.safetensors
+models/
+
+# Uploads (exclude actual uploaded files but keep directory structure)
+uploads/*.pdf
+uploads/archive/*.pdf
+uploads/extracted_images/*
+uploads/images/*
+!uploads/.gitkeep
+!uploads/archive/.gitkeep
+
+# Generated documentation
+docs/generated/
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Node.js (if any frontend tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local configuration overrides
+local_config.py
+local_settings.py
+# Large files and backups
+backup/
+*.tar.gz
+*.log
+logs/*.log
+next-rag-app/node_modules/
+.venv/
+__pycache__/

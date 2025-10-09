@@ -1,0 +1,76 @@
+{
+  "timestamp": "20250923_163953",
+  "results": [
+    {
+      "model_name": "llama3.2:1b",
+      "avg_response_time": 6.35335636138916,
+      "success_rate": 1.0,
+      "quality_score": 0.4600000000000001,
+      "token_efficiency": 0.07240267566219458,
+      "overall_score": 0.4621991159681278
+    },
+    {
+      "model_name": "llama3.2:3b",
+      "avg_response_time": 15.864976024627685,
+      "success_rate": 1.0,
+      "quality_score": 0.43999999999999995,
+      "token_efficiency": 0.02773404758487971,
+      "overall_score": 0.41598617529019677
+    },
+    {
+      "model_name": "phi3:mini",
+      "avg_response_time": 5.582000176111857,
+      "success_rate": 0.6,
+      "quality_score": 0.4666666666666666,
+      "token_efficiency": 0.08360205158426263,
+      "overall_score": 0.353352439849699
+    },
+    {
+      "model_name": "gemma2:2b",
+      "avg_response_time": 11.607434670130411,
+      "success_rate": 0.6,
+      "quality_score": 0.4000000000000001,
+      "token_efficiency": 0.03446067209228635,
+      "overall_score": 0.29790673930151496
+    },
+    {
+      "model_name": "mistral:7b",
+      "avg_response_time": 18.747841119766235,
+      "success_rate": 0.4,
+      "quality_score": 0.55,
+      "token_efficiency": 0.029336711170446377,
+      "overall_score": 0.25426946105918746
+    },
+    {
+      "model_name": "llama3.1:8b",
+      "avg_response_time": 10.360661745071411,
+      "success_rate": 0.4,
+      "quality_score": 0.6,
+      "token_efficiency": 0.05791135882661368,
+      "overall_score": 0.2843987084337372
+    }
+  ],
+  "recommendations": {
+    "best_overall": {
+      "model": "llama3.2:1b",
+      "score": 0.4621991159681278,
+      "reason": "Highest overall score balancing speed, reliability, and quality"
+    },
+    "fastest": {
+      "model": "phi3:mini",
+      "time": 5.582000176111857,
+      "reason": "Fastest average response time (5.58s)"
+    },
+    "most_reliable": {
+      "model": "llama3.2:1b",
+      "rate": 1.0,
+      "reason": "Highest success rate (100.0%)"
+    },
+    "highest_quality": {
+      "model": "llama3.1:8b",
+      "score": 0.6,
+      "reason": "Best response quality (0.60)"
+    },
+    "production_recommendation": null
+  }
+}

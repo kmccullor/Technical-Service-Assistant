@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-infrastructure-service
+  namespace: test-infrastructure-production
+spec:
+  ports:
+  - name: dashboard
+    port: 8080
+    targetPort: 8080
+  - name: maintenance
+    port: 8090
+    targetPort: 8090
+  - name: api
+    port: 8008
+    targetPort: 8008
+  selector:
+    app: test-infrastructure
+  type: LoadBalancer

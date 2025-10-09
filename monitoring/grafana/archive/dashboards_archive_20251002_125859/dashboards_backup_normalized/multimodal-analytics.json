@@ -1,0 +1,270 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Phase 3A Multimodal System Analytics",
+    "tags": [
+      "multimodal",
+      "phase3a",
+      "technical-service-assistant"
+    ],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Multimodal Content Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "multimodal_content_type_count",
+            "legendFormat": "{{content_type}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "right"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Vision Model Performance",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(multimodal_vision_model_latency_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile latency"
+          },
+          {
+            "expr": "rate(multimodal_vision_model_latency_seconds_count[5m])",
+            "legendFormat": "Operations per second"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "horizontal"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Cross-Modal Similarity Scores",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "multimodal_cross_modal_similarity_score",
+            "legendFormat": "{{content_type_1}} \u2192 {{content_type_2}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Embedding Generation Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(multimodal_embedding_generation_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(multimodal_embedding_generation_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(multimodal_embedding_generation_seconds_bucket[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Embedding Cache Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(multimodal_embedding_cache_hits_total[5m])",
+            "legendFormat": "Cache hits/sec"
+          },
+          {
+            "expr": "rate(multimodal_embedding_cache_misses_total[5m])",
+            "legendFormat": "Cache misses/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Search Accuracy Metrics",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(multimodal_search_accuracy_score_bucket[5m]))",
+            "legendFormat": "Median accuracy"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(multimodal_search_accuracy_score_bucket[5m]))",
+            "legendFormat": "95th percentile accuracy"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "yAxes": [
+          {
+            "label": "Accuracy Score",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Search Diversity Scores",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(multimodal_search_diversity_score_bucket[5m]))",
+            "legendFormat": "Median diversity"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(multimodal_search_diversity_score_bucket[5m]))",
+            "legendFormat": "95th percentile diversity"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "yAxes": [
+          {
+            "label": "Diversity Score",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Content Processing Pipeline Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(multimodal_content_processing_seconds_bucket[5m])) by (content_type)",
+            "legendFormat": "{{content_type}} - 95th percentile"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 9,
+        "title": "Memory Usage by Component",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "multimodal_memory_usage_bytes",
+            "legendFormat": "{{component}} - {{operation}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        },
+        "yAxes": [
+          {
+            "label": "Bytes",
+            "logBase": 2
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Processing Queue Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "multimodal_processing_queue_size",
+            "legendFormat": "{{queue_type}} queue"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 40
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center"
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1
+  },
+  "title": "Technical Service Assistant - Multimodal Analytics"
+}
