@@ -96,13 +96,9 @@ docker-data/
 *.safetensors
 models/
 
-# Uploads (exclude actual uploaded files but keep directory structure)
-uploads/*.pdf
-uploads/archive/*.pdf
-uploads/extracted_images/*
-uploads/images/*
+# Uploads (ignore entire directory contents except placeholder)
+uploads/**
 !uploads/.gitkeep
-!uploads/archive/.gitkeep
 
 # Generated documentation
 docs/generated/
