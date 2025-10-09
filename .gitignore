@@ -52,8 +52,7 @@ Thumbs.db
 
 # Project specific
 # Logs
-logs/*.log
-logs/*.html
+logs/
 *.log
 
 # Data and results
@@ -72,6 +71,7 @@ temp/
 
 # Backup files
 backup/
+archive/
 *.tar.gz
 *.zip
 *.bak
