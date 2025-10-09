@@ -124,8 +124,7 @@ docker build -t rag-app .
 # Run with production database
 docker run -p 3000:3000 \
   -e DATABASE_URL="your-production-db-url" \
-  -e OPENAI_API_KEY="sk-your-openai-api-key-here
-  " \
+  -e OPENAI_API_KEY="sk-your-openai-api-key-here" \
   rag-app
 ```
 

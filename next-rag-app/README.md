@@ -127,8 +127,7 @@ Required variables for `.env.local`:
 DATABASE_URL="postgresql://user:password@localhost:5432/rag_db"
 
 # OpenAI
-OPENAI_API_KEY="sk-your-openai-api-key-here
-"
+OPENAI_API_KEY="sk-your-openai-api-key-here"
 
 # Cohere (optional - for reranking)
 COHERE_API_KEY="..."
