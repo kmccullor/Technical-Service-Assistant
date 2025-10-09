@@ -1,0 +1,261 @@
+name: Comprehensive Quality Assurance Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Daily quality monitoring at 6 AM UTC
+    - cron: '0 6 * * *'
+
+env:
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  quality-gate-validation:
+    name: 🔒 Quality Gate Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2  # Need previous commit for regression detection
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: 🔒 Ring 1 Validation (BLOCKING)
+        id: ring1_validation
+        run: |
+          echo "::group::Ring 1 - Enforced Coverage Tests"
+          python test_runner.py --ring 1 --verbose
+          echo "::endgroup::"
+        continue-on-error: false
+      
+      - name: 📄 Ring 2 Validation (OPTIONAL)
+        id: ring2_validation
+        run: |
+          echo "::group::Ring 2 - PDF Processing Pipeline"
+          python test_runner.py --ring 2 --verbose || echo "Ring 2 optional validation"
+          echo "::endgroup::"
+        continue-on-error: true
+      
+      - name: ⚡ Ring 3 Validation (FLEXIBLE)
+        id: ring3_validation
+        run: |
+          echo "::group::Ring 3 - Advanced Functionality"
+          python test_runner.py --ring 3 --verbose || echo "Ring 3 flexible validation"
+          echo "::endgroup::"
+        continue-on-error: true
+      
+      - name: 📊 Quality Metrics Collection
+        run: |
+          echo "::group::Quality Metrics Tracking"
+          python quality_monitor.py --track
+          echo "::endgroup::"
+      
+      - name: ⚠️ Regression Detection
+        id: regression_check
+        run: |
+          echo "::group::Quality Regression Analysis"
+          python quality_monitor.py --regressions || echo "::warning::Quality regressions detected"
+          echo "::endgroup::"
+        continue-on-error: true
+      
+      - name: 📋 Generate Quality Report
+        run: |
+          python quality_monitor.py --report quality_report_${{ github.sha }}.html --days 7
+          python test_runner.py --all --performance --report comprehensive_report_${{ github.sha }}.json
+      
+      - name: 📁 Upload Quality Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: quality-reports-${{ github.sha }}
+          path: |
+            quality_report_*.html
+            comprehensive_report_*.json
+            quality_metrics.db
+          retention-days: 30
+      
+      - name: 💬 Quality Summary Comment (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const reportFile = `comprehensive_report_${{ github.sha }}.json`;
+              const report = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+              
+              const summary = report.summary;
+              const passRate = summary.pass_rate.toFixed(1);
+              const totalTests = summary.total_tests;
+              const duration = summary.total_duration.toFixed(2);
+              
+              const body = `## 🧪 Quality Assurance Report
+              
+              **Overall Status:** ${summary.overall_success ? '✅ PASS' : '❌ FAIL'}
+              
+              ### 📊 Test Execution Summary
+              - **Pass Rate:** ${passRate}% (${summary.total_passed}/${totalTests} tests)
+              - **Execution Time:** ${duration}s
+              - **Rings Validated:** ${summary.successful_rings}/${summary.total_rings}
+              
+              ### 🔍 Ring Breakdown
+              ${Object.entries(report.rings).map(([ringId, ringData]) => 
+                `- **Ring ${ringId}**: ${ringData.tests_passed}/${ringData.tests_collected} tests (${ringData.success ? '✅' : '❌'})`
+              ).join('\\n')}
+              
+              ### ⚡ Performance Metrics
+              - **Speed:** ${report.performance?.overall_tests_per_second?.toFixed(1) || 'N/A'} tests/sec
+              - **Average Ring Duration:** ${report.performance?.avg_ring_duration?.toFixed(2) || 'N/A'}s
+              
+              [📁 Download detailed reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              console.log('Could not generate quality comment:', error.message);
+            }
+
+  daily-quality-monitoring:
+    name: 📈 Daily Quality Monitoring
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    timeout-minutes: 20
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: 📊 Comprehensive Quality Analysis
+        run: |
+          echo "::group::Daily Quality Tracking"
+          python quality_monitor.py --track
+          echo "::endgroup::"
+          
+          echo "::group::30-Day Trend Analysis"
+          python quality_monitor.py --analyze --days 30
+          echo "::endgroup::"
+          
+          echo "::group::Quality Dashboard Generation"
+          python quality_monitor.py --report daily_quality_dashboard.html --days 30
+          echo "::endgroup::"
+      
+      - name: 🔍 Long-term Regression Detection
+        run: |
+          echo "::group::14-Day Regression Analysis"
+          python quality_monitor.py --regressions || echo "::warning::Long-term regressions detected"
+          echo "::endgroup::"
+      
+      - name: 📁 Archive Daily Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily-quality-report-${{ github.run_id }}
+          path: |
+            daily_quality_dashboard.html
+            quality_metrics.db
+          retention-days: 90
+      
+      - name: 🚨 Quality Alert Notification
+        if: failure()
+        run: |
+          echo "::error::Daily quality monitoring detected critical issues"
+          # Add notification logic here (Slack, email, etc.)
+
+  performance-benchmarking:
+    name: ⚡ Performance Benchmarking
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 25
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: ⚡ Performance Benchmarking
+        run: |
+          echo "::group::Performance Baseline Execution"
+          for i in {1..3}; do
+            echo "Run $i/3:"
+            python test_runner.py --all --performance --report perf_run_$i.json
+          done
+          echo "::endgroup::"
+      
+      - name: 📊 Performance Analysis
+        run: |
+          echo "::group::Performance Trend Analysis"
+          python quality_monitor.py --track
+          python quality_monitor.py --analyze --days 7
+          echo "::endgroup::"
+      
+      - name: 📁 Upload Performance Data
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-benchmarks-${{ github.sha }}
+          path: |
+            perf_run_*.json
+            quality_metrics.db
+          retention-days: 60
+
+  quality-gate-summary:
+    name: 🏆 Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [quality-gate-validation]
+    if: always()
+    
+    steps:
+      - name: 📊 Quality Gate Results
+        run: |
+          echo "## 🎯 Quality Gate Summary"
+          echo "- Ring 1 (Enforced): ${{ needs.quality-gate-validation.outputs.ring1_status || 'Unknown' }}"
+          echo "- Ring 2 (Optional): ${{ needs.quality-gate-validation.outputs.ring2_status || 'Unknown' }}"
+          echo "- Ring 3 (Flexible): ${{ needs.quality-gate-validation.outputs.ring3_status || 'Unknown' }}"
+          
+          if [ "${{ needs.quality-gate-validation.result }}" = "success" ]; then
+            echo "✅ Overall Quality Gate: PASSED"
+            echo "🚀 Deployment approved based on quality metrics"
+          else
+            echo "❌ Overall Quality Gate: FAILED"
+            echo "🚫 Deployment blocked - review quality issues"
+          fi

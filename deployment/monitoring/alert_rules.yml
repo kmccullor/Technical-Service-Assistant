@@ -1,0 +1,27 @@
+groups:
+- name: test-infrastructure-alerts
+  rules:
+  - alert: TestSuiteHealthDegraded
+    annotations:
+      description: Test suite health score is {{ $value }}, below the 0.8 threshold
+      summary: Test suite health has degraded
+    expr: test_suite_health_score < 0.8
+    for: 5m
+    labels:
+      severity: warning
+  - alert: FlakyTestsDetected
+    annotations:
+      description: '{{ $value }} flaky tests detected, requiring attention'
+      summary: High number of flaky tests detected
+    expr: flaky_tests_count > 5
+    for: 1m
+    labels:
+      severity: warning
+  - alert: TestExecutionTimeHigh
+    annotations:
+      description: Average test execution time is {{ $value }} seconds
+      summary: Test execution time is high
+    expr: test_execution_time_avg > 300
+    for: 10m
+    labels:
+      severity: warning

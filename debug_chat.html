@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Chat Function</title>
+    <style>
+        .message { padding: 8px; margin: 4px 0; border: 1px solid #ccc; }
+        .user { background: #e3f2fd; }
+        .assistant { background: #f3e5f5; }
+        #chat-messages { height: 200px; overflow-y: auto; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <div id="chat-messages"></div>
+    <button onclick="testAddMsg()">Test Add Message</button>
+    <button onclick="testAPICall()">Test API Call</button>
+    <div id="status"></div>
+
+    <script>
+        function q(sel) { return document.querySelector(sel); }
+        
+        function addMsg(text, role='assistant') {
+            console.log('addMsg called with:', text, role);
+            const list = q('#chat-messages');
+            console.log('chat-messages element:', list);
+            if (!list) {
+                console.error('chat-messages element not found!');
+                return;
+            }
+            const div = document.createElement('div');
+            div.className = 'message ' + role;
+            div.innerHTML = '<div class="message-content">' + text.replace(/</g, '&lt;') + '</div>';
+            list.appendChild(div);
+            list.scrollTop = list.scrollHeight;
+            console.log('Message added successfully');
+        }
+        
+        function testAddMsg() {
+            addMsg('Test user message', 'user');
+            addMsg('Test assistant response', 'assistant');
+        }
+        
+        async function testAPICall() {
+            document.getElementById('status').textContent = 'Calling API...';
+            try {
+                const response = await fetch('http://localhost:8008/api/hybrid-search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        query: 'hello test',
+                        confidence_threshold: 0.35,
+                        enable_web_search: true,
+                        max_context_chunks: 6,
+                        model: 'mistral',
+                        temperature: 0.7,
+                        max_tokens: 256
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Response:', data);
+                    addMsg(data.response || '[No response]', 'assistant');
+                    document.getElementById('status').textContent = 'API call successful';
+                } else {
+                    document.getElementById('status').textContent = 'API error: ' + response.status;
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                document.getElementById('status').textContent = 'Network error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

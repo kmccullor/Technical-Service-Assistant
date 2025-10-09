@@ -1,0 +1,105 @@
+[tool.bandit]
+# Bandit security linting configuration
+exclude_dirs = [
+    ".venv",
+    "venv",
+    "tests",
+    "__pycache__",
+    "logs",
+    "uploads",
+    "backup",
+    "experiments"
+]
+
+# Skip specific tests that may have false positives
+skips = [
+    "B101",  # assert_used - asserts are OK in tests
+    "B601",  # paramiko_calls - if using paramiko for SSH
+]
+
+# Test severity levels
+tests = [
+    "B102", "B103", "B104", "B105", "B106", "B107", "B108", "B110",
+    "B112", "B201", "B301", "B302", "B303", "B304", "B305", "B306",
+    "B307", "B308", "B309", "B310", "B311", "B312", "B313", "B314",
+    "B315", "B316", "B317", "B318", "B319", "B320", "B321", "B322",
+    "B323", "B324", "B401", "B402", "B403", "B404", "B405", "B406",
+    "B407", "B408", "B409", "B410", "B411", "B412", "B413", "B501",
+    "B502", "B503", "B504", "B505", "B506", "B507", "B601", "B602",
+    "B603", "B604", "B605", "B606", "B607", "B608", "B609", "B610",
+    "B611", "B701", "B702", "B703"
+]
+
+[tool.pydocstyle]
+# Docstring style configuration
+convention = "google"
+add-ignore = [
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D107",  # Missing docstring in __init__
+]
+
+[tool.pytest.ini_options]
+# Pytest configuration
+minversion = "6.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    # Focus coverage collection on the new Phase 4A modules for an initial stable baseline
+    "--cov=phase4a_document_classification",
+    "--cov=phase4a_knowledge_extraction",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    # Limit executed tests to Phase4A focused suites (including coverage target helpers)
+    "-k", "document_classification or knowledge_extraction or phase4a_coverage_targets",
+    "--cov-fail-under=95",
+]
+testpaths = ["tests"]
+norecursedirs = [
+    ".venv",
+    "venv",
+    "backup",
+    "tests/legacy",
+    "logs",
+    "uploads",
+    "htmlcov",
+    "__pycache__",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "e2e: marks tests as end-to-end tests",
+    "legacy: marks legacy tests excluded from the current focused coverage ring",
+]
+
+[tool.coverage.run]
+source = [
+    "phase4a_document_classification.py",
+    "phase4a_knowledge_extraction.py",
+]
+omit = [
+    ".venv/*",
+    "venv/*",
+    "*/site-packages/*",
+    "__pycache__/*",
+    "tests/*",
+    "backup/*",
+    "experiments/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

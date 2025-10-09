@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quality Monitoring Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
+        .metric { display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .ring { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+        .trend-up { color: green; }
+        .trend-down { color: red; }
+        .trend-stable { color: blue; }
+        .regression { background: #ffe6e6; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .recommendation { background: #e6f3ff; padding: 10px; margin: 5px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Quality Monitoring Report</h1>
+        <p>Generated: 2025-10-01 16:04:56</p>
+        <p>Analysis Period: 30 days</p>
+        <h2>Overall Quality Score: 69.6/100</h2>
+    </div>
+    
+    <h2>📊 Ring Performance Summary</h2>
+
+    <div class="ring">
+        <h3>Ring 1: Ring 1</h3>
+        <div class="metric">
+            <strong>Current Pass Rate:</strong> 100.0%
+        </div>
+        <div class="metric">
+            <strong>Average Pass Rate:</strong> 100.0%
+        </div>
+        <div class="metric trend-stable">
+            <strong>Trend:</strong> Stable
+        </div>
+        <div class="metric">
+            <strong>Stability:</strong> 0.00 (lower is better)
+        </div>
+    </div>
+
+    <div class="ring">
+        <h3>Ring 2: Ring 2</h3>
+        <div class="metric">
+            <strong>Current Pass Rate:</strong> 100.0%
+        </div>
+        <div class="metric">
+            <strong>Average Pass Rate:</strong> 100.0%
+        </div>
+        <div class="metric trend-stable">
+            <strong>Trend:</strong> Stable
+        </div>
+        <div class="metric">
+            <strong>Stability:</strong> 0.00 (lower is better)
+        </div>
+    </div>
+
+    <div class="ring">
+        <h3>Ring 3: Ring 3</h3>
+        <div class="metric">
+            <strong>Current Pass Rate:</strong> 89.2%
+        </div>
+        <div class="metric">
+            <strong>Average Pass Rate:</strong> 89.2%
+        </div>
+        <div class="metric trend-stable">
+            <strong>Trend:</strong> Stable
+        </div>
+        <div class="metric">
+            <strong>Stability:</strong> 0.00 (lower is better)
+        </div>
+    </div>
+
+    <h2>💡 Quality Improvement Recommendations</h2>
+
+    <div class="recommendation">
+        Ring 3: Pass rate (89.2%) below optimal - investigate failing tests
+    </div>
+
+    <div class="recommendation">
+        Overall: Quality score below 80% - prioritize test stability improvements
+    </div>
+
+</body>
+</html>

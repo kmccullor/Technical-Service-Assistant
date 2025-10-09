@@ -3,7 +3,7 @@
 # This script generates comprehensive end-of-day reports and system snapshots
 # Designed to run from crontab at end of business day
 # 
-# Usage: ./scripts/end_of_day.sh [--no-git] [--no-backup]
+# Usage: ./scripts/end_of_day.sh [--no-git] [--no-backup] [--no-push]
 # Crontab example: 0 17 * * 1-5 /path/to/Technical-Service-Assistant/scripts/end_of_day.sh
 
 # Set script directory and project root
@@ -40,10 +40,12 @@ EOD_LOG="$LOG_DIR/end_of_day_automation_$DATE_STAMP.log"
 # Parse command line arguments
 NO_GIT=false
 NO_BACKUP=false
+NO_PUSH=false
 for arg in "$@"; do
     case $arg in
         --no-git) NO_GIT=true ;;
         --no-backup) NO_BACKUP=true ;;
+        --no-push) NO_PUSH=true ;;
     esac
 done
 
@@ -373,25 +375,45 @@ EOF
 
 section "🔄 Git Operations"
 
-# Auto-commit if there are changes
-if [ "$GIT_CHANGES" -gt 0 ]; then
+if [ "$NO_GIT" = true ]; then
+    warning "Git operations skipped via --no-git flag"
+    cat >> "$REPORT_FILE" << EOF
+## 🔄 Git Operations
+
+- **Auto-commit Status:** ⏭️ Skipped (--no-git)
+- **Push Status:** Skipped
+EOF
+elif [ "$GIT_CHANGES" -gt 0 ]; then
     info "Committing changes..."
-    
-    # Add all changes
     git add . 2>/dev/null
-    
-    # Create commit message with summary
     COMMIT_MSG="End of day commit - $(date '+%Y-%m-%d')
 
 - Modified files: $GIT_CHANGES
 - System status: $CONTAINERS_RUNNING containers running
 - Database: $TOTAL_DOCUMENTS documents, $TOTAL_CHUNKS chunks
 - Backup created: $BACKUP_DIR"
-    
     if git commit -m "$COMMIT_MSG" 2>/dev/null; then
         COMMIT_HASH=$(git rev-parse --short HEAD)
         success "Changes committed: $COMMIT_HASH"
-        
+        PUSH_STATUS="Skipped"
+        if [ "$NO_PUSH" = false ]; then
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+            if git remote get-url origin >/dev/null 2>&1; then
+                if git push origin "$CURRENT_BRANCH" >/dev/null 2>&1; then
+                    success "Changes pushed to origin/$CURRENT_BRANCH"
+                    PUSH_STATUS="Pushed"
+                else
+                    warning "Failed to push changes to origin/$CURRENT_BRANCH"
+                    PUSH_STATUS="Push Failed"
+                fi
+            else
+                warning "Remote 'origin' not configured"
+                PUSH_STATUS="No Remote"
+            fi
+        else
+            info "Push disabled via --no-push flag"
+            PUSH_STATUS="Push Skipped"
+        fi
         cat >> "$REPORT_FILE" << EOF
 ## 🔄 Git Operations
 
@@ -399,7 +421,7 @@ if [ "$GIT_CHANGES" -gt 0 ]; then
 - **Commit Hash:** \`$COMMIT_HASH\`
 - **Files Committed:** $GIT_CHANGES files
 - **Commit Message:** End of day automated commit
-
+- **Push Status:** $PUSH_STATUS
 EOF
     else
         error "Failed to commit changes"
@@ -409,17 +431,16 @@ EOF
 - **Auto-commit Status:** ❌ Failed
 - **Files Pending:** $GIT_CHANGES uncommitted files
 - **Action Required:** Manual commit needed
-
 EOF
     fi
 else
     success "No changes to commit"
+    LAST_COMMIT=$(git log -1 --pretty=format:"%h: %s (%cr)" 2>/dev/null || echo "Unable to retrieve")
     cat >> "$REPORT_FILE" << EOF
 ## 🔄 Git Operations
 
 - **Repository Status:** ✅ Clean (no changes to commit)
-- **Last Commit:** $(git log -1 --pretty=format:"%h: %s (%cr)" 2>/dev/null || echo "Unable to retrieve")
-
+- **Last Commit:** $LAST_COMMIT
 EOF
 fi
 
@@ -770,6 +791,9 @@ if [[ -t 1 ]]; then
     success "Daily report generated: $REPORT_FILE"
     if [[ "$NO_BACKUP" == false ]]; then
         success "Backup completed: $BACKUP_DIR"
+    fi
+    if [[ "$NO_GIT" == true ]]; then
+        info "Git commit/push skipped (--no-git)"
     fi
     
     echo -e "\n${GREEN}🎉 End of day routine completed successfully!${NC}"

@@ -1,0 +1,17 @@
+alertmanager:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - alertmanager:9093
+global:
+  evaluation_interval: 15s
+  scrape_interval: 15s
+rule_files:
+- alert_rules.yml
+scrape_configs:
+- job_name: test-infrastructure
+  metrics_path: /metrics
+  scrape_interval: 30s
+  static_configs:
+  - targets:
+    - test-infrastructure:8090

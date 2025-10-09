@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Test</title>
+    <script>
+        async function testChat() {
+            console.log('Testing chat endpoint directly...');
+            
+            try {
+                const response = await fetch('http://localhost:8008/api/hybrid-search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        query: 'hello test',
+                        confidence_threshold: 0.35,
+                        enable_web_search: true,
+                        max_context_chunks: 6,
+                        model: 'mistral',
+                        temperature: 0.7,
+                        max_tokens: 100
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error('Response not OK:', response.status, response.statusText);
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Success! Response:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>✅ Success</h3>
+                    <p><strong>Model:</strong> ${data.model}</p>
+                    <p><strong>Search Method:</strong> ${data.search_method}</p>
+                    <p><strong>Response:</strong> ${data.response.substring(0, 200)}...</p>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        window.onload = () => {
+            testChat();
+        };
+    </script>
+</head>
+<body>
+    <h1>Frontend API Test</h1>
+    <div id="result">Testing...</div>
+</body>
+</html>

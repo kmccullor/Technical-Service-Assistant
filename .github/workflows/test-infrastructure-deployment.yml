@@ -1,0 +1,107 @@
+env:
+  IMAGE_NAME: ${{ github.repository }}/test-infrastructure
+  REGISTRY: ghcr.io
+jobs:
+  build-and-deploy:
+    needs: quality-assurance
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+    - id: meta
+      name: Extract metadata
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags:
+        - type=ref,event=branch
+        - type=ref,event=pr
+        - type=sha,prefix={{branch}}-
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: deployment/Dockerfile
+        labels: ${{ steps.meta.outputs.labels }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+  deploy-production:
+    environment: production
+    if: github.ref == 'refs/heads/main'
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Deploy to production
+      run:
+      - python deploy_test_infrastructure.py --environment production --validate
+      - kubectl apply -f deployment/k8s/production/
+    - name: Run production validation
+      run: python test_runner.py --production-validation --environment production
+    - name: Setup monitoring alerts
+      run: python deploy_test_infrastructure.py --setup-monitoring --environment production
+  deploy-staging:
+    environment: staging
+    if: github.ref == 'refs/heads/develop'
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Deploy to staging
+      run:
+      - python deploy_test_infrastructure.py --environment staging --validate
+      - kubectl apply -f deployment/k8s/staging/
+    - name: Run smoke tests
+      run: python test_runner.py --smoke-tests --environment staging
+  quality-assurance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install dependencies
+      run: pip install -r requirements.txt -r requirements-dev.txt
+    - name: Run quality checks
+      run: pre-commit run --all-files
+    - name: Run comprehensive tests
+      run: python test_runner.py --all --coverage --report results.json
+    - name: Run test optimization analysis
+      run: python test_optimizer.py --analyze
+    - name: Generate AI test scenarios
+      run: python ai_test_generator.py --scenario integration --validate
+name: Test Infrastructure Deployment
+'on':
+  pull_request:
+    branches:
+    - main
+    paths:
+    - test_runner.py
+    - test_optimizer.py
+    - test_dashboard.py
+    - ai_test_generator.py
+    - quality_monitor.py
+    - deployment/**
+    - requirements.txt
+  push:
+    branches:
+    - main
+    - develop
+    paths:
+    - test_runner.py
+    - test_optimizer.py
+    - test_dashboard.py
+    - ai_test_generator.py
+    - quality_monitor.py
+    - deployment/**
+    - requirements.txt
+  workflow_dispatch: {}

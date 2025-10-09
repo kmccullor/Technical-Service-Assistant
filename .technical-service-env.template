@@ -1,0 +1,23 @@
+# Technical Service Assistant Environment Configuration
+# Save this file as ~/.technical-service-env
+# Source it in your cron job for secure password handling
+
+# Gmail App-Specific Password (get from https://myaccount.google.com/apppasswords)
+export GMAIL_APP_PASSWORD="your-16-character-app-password-here"
+
+# Optional: Override other email settings
+# export EOD_SENDER_EMAIL="kmccullor@gmail.com"
+# export EOD_SMTP_SERVER="smtp.gmail.com"
+# export EOD_SMTP_PORT="587"
+# export EOD_SMTP_USE_TLS="true"
+
+# Optional: Database override settings
+# export DB_HOST="localhost"
+# export DB_PORT="5432"
+# export DB_NAME="technical_service_db"
+# export DB_USER="postgres"
+# export DB_PASSWORD="your-db-password"
+
+# Optional: Monitoring settings
+# export PROMETHEUS_URL="http://localhost:9090"
+# export ALERTMANAGER_URL="http://localhost:9093"

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+httpx
+ollama
+psycopg2-binary
+prometheus-client
+python-dotenv
+FlagEmbedding
+requests

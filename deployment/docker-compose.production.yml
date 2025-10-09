@@ -1,0 +1,70 @@
+networks:
+  test-infra-network:
+    driver: bridge
+services:
+  grafana:
+    container_name: grafana-production
+    environment:
+    - GF_SECURITY_ADMIN_PASSWORD=test-infra-admin
+    image: grafana/grafana:latest
+    ports:
+    - 3000:3000
+    volumes:
+    - grafana-data-production:/var/lib/grafana
+    - ./deployment/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    - ./deployment/grafana/datasources:/etc/grafana/provisioning/datasources
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.path=/prometheus
+    - --web.console.libraries=/etc/prometheus/console_libraries
+    - --web.console.templates=/etc/prometheus/consoles
+    - --storage.tsdb.retention.time=200h
+    - --web.enable-lifecycle
+    container_name: prometheus-production
+    image: prom/prometheus:latest
+    ports:
+    - 9090:9090
+    volumes:
+    - ./deployment/prometheus.yml:/etc/prometheus/prometheus.yml
+    - prometheus-data-production:/prometheus
+  test-infrastructure:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile
+    container_name: test-infra-production
+    deploy:
+      resources:
+        limits:
+          cpus: 500m
+          memory: 1Gi
+    environment:
+    - ENVIRONMENT=production
+    - LOG_LEVEL=INFO
+    - ENABLE_MONITORING=true
+    - DATABASE_PATH=/app/database/test_optimization.db
+    healthcheck:
+      interval: 30s
+      retries: 3
+      start_period: 60s
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:8090/api/suite-health
+      timeout: 10s
+    ports:
+    - 8080:8080
+    - 8090:8090
+    - 8008:8008
+    restart: unless-stopped
+    volumes:
+    - ./uploads:/app/uploads
+    - ./logs:/app/logs
+    - ./data:/app/data
+    - test-infra-db-production:/app/database
+version: '3.8'
+volumes:
+  grafana-data-production: {}
+  prometheus-data-production: {}
+  test-infra-db-production: {}
