@@ -487,6 +487,37 @@ class RBACMiddleware(BaseHTTPMiddleware):
                     )
             
             # Process request
+            # Enforce password change requirement for authenticated users
+            # We perform a lightweight token decode using AuthManager dependency if Authorization header present
+            user = None
+            auth_header = request.headers.get('authorization')
+            if auth_header and auth_header.lower().startswith('bearer '):
+                token = auth_header.split(' ', 1)[1]
+                try:
+                    # Lazy import to avoid circulars
+                    from utils.auth_system import get_auth_manager
+                    auth_manager = await get_auth_manager()
+                    payload = auth_manager.decode_token(token)
+                    user_id = payload.get('user_id')
+                    if user_id:
+                        user = await auth_manager.get_user_by_id(user_id)
+                except Exception:
+                    user = None  # ignore token errors; normal auth layer will handle
+            if user and getattr(user, 'password_change_required', False):
+                allowed_paths_pw = {
+                    '/api/auth/login', '/api/auth/refresh', '/api/auth/force-change-password',
+                    '/api/auth/me', '/docs', '/openapi.json', '/redoc', '/metrics'
+                }
+                if not (path in allowed_paths_pw or path.startswith('/static/') or request.method == 'OPTIONS'):
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={
+                            'success': False,
+                            'message': 'Password change required before accessing other resources',
+                            'error_code': 'PASSWORD_CHANGE_REQUIRED'
+                        }
+                    )
+
             response = await call_next(request)
             
             # Log successful request

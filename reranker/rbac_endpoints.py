@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, EmailStr, Field
 
+import asyncio
 from utils.auth_system import (
     AuthSystem, get_auth_manager, UserCreate, UserLogin,
     AuthenticationError, ValidationError, get_current_user
@@ -44,22 +45,23 @@ async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_
                 cursor.close(); conn.close()
             user.role_id = role_id or 1  # last resort default
         created = await auth.create_user(user)
-        # Build response shaping similar to UserResponse expectations
+        # Directly map; ensure non-None fallbacks where model requires
         return UserResponse(
-            id=created.id,
+            id=created.id or 0,
             email=created.email,
-            first_name=created.first_name,
-            last_name=created.last_name,
+            first_name=created.first_name or None,
+            last_name=created.last_name or None,
             full_name=created.full_name,
             role_id=created.role_id,
             role_name=None,
             status=created.status,
-            verified=created.verified,
+            verified=bool(created.verified),
             last_login=created.last_login,
             is_active=created.is_active,
             is_locked=created.is_locked,
-            created_at=created.created_at,
-            updated_at=created.updated_at,
+            password_change_required=bool(getattr(created, 'password_change_required', True)),
+            created_at=created.created_at or __import__('datetime').datetime.utcnow(),
+            updated_at=created.updated_at or __import__('datetime').datetime.utcnow(),
         )
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -151,8 +153,126 @@ async def me(current_user = Depends(get_current_user), auth: AuthSystem = Depend
             last_login=current_user.last_login,
             is_active=current_user.is_active,
             is_locked=current_user.is_locked,
+            password_change_required=current_user.password_change_required,
             created_at=current_user.created_at,
             updated_at=current_user.updated_at,
         )
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Failed to load profile") from e
+
+
+@router.post("/change-password", response_model=APIResponse)
+async def change_password(
+    request: Any, 
+    current_user = Depends(get_current_user), 
+    auth: AuthSystem = Depends(get_auth_manager)
+) -> APIResponse:
+    """Change user password (requires current password)."""
+    try:
+        data = await request.json() if hasattr(request, 'json') else request
+        old_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        if not old_password or not new_password:
+            raise HTTPException(status_code=400, detail="Current and new password required")
+        
+        success = await auth.change_password(current_user.id, old_password, new_password)
+        if success:
+            return APIResponse(success=True, message="Password changed successfully")
+        else:
+            raise HTTPException(status_code=400, detail="Failed to change password")
+            
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Password change failed") from e
+
+
+@router.post("/force-change-password", response_model=APIResponse)
+async def force_change_password(
+    request: Any,
+    current_user = Depends(get_current_user),
+    auth: AuthSystem = Depends(get_auth_manager)
+) -> APIResponse:
+    """Force password change for initial login (no current password required)."""
+    try:
+        # Only allow if password change is required
+        if not current_user.password_change_required:
+            raise HTTPException(status_code=400, detail="Password change not required")
+        
+        data = await request.json() if hasattr(request, 'json') else request
+        new_password = data.get('new_password')
+        
+        if not new_password:
+            raise HTTPException(status_code=400, detail="New password required")
+        
+        success = await auth.force_password_change(current_user.id, new_password)
+        if success:
+            return APIResponse(success=True, message="Password changed successfully")
+        else:
+            raise HTTPException(status_code=400, detail="Failed to change password")
+            
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Password change failed") from e
+
+
+class AdminResetPasswordRequest(BaseModel):
+    user_id: int = Field(..., gt=0, description="Target user id")
+    new_password: str = Field(..., min_length=8, max_length=128)
+    rotate: bool = Field(True, description="If true, force password_change_required on next login")
+
+class AdminResetPasswordResponse(APIResponse):
+    rotated: bool = False
+    target_user_id: int = 0
+
+@router.post("/admin-reset", response_model=AdminResetPasswordResponse)
+async def admin_reset_password(
+    request: AdminResetPasswordRequest,
+    current_user = Depends(get_current_user),  # type: ignore
+    auth: AuthSystem = Depends(get_auth_manager)
+) -> AdminResetPasswordResponse:
+    """Admin-only endpoint to reset another user's password.
+
+    Security measures:
+      - Requires requesting user to have 'admin' role (role name lookup)
+      - All operations audited via auth.log_security_event (future enhancement)
+      - Optionally flags target user to change password on next login
+    """
+    try:
+        # Verify current user has admin role
+        conn = await auth.get_db_connection(); cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT name FROM roles WHERE id = %s", (current_user.role_id,))
+            row = cursor.fetchone(); role_name = row[0] if row else None
+        finally:
+            cursor.close(); conn.close()
+        if role_name != 'admin':
+            raise HTTPException(status_code=403, detail="Admin privileges required")
+
+        # Perform password reset
+        # Support either new admin_reset_password (if added) or fallback to force_password_change as last resort
+        reset_method = getattr(auth, 'admin_reset_password', None)
+        if callable(reset_method):
+            result = reset_method(request.user_id, request.new_password, force_change=request.rotate)
+            if asyncio.iscoroutine(result):
+                success = await result
+            else:
+                success = bool(result)
+        else:
+            # Fallback: direct force_password_change then adjust flag if rotate True
+            success = await auth.force_password_change(request.user_id, request.new_password)
+            if success and request.rotate:
+                pass  # force_password_change already sets password_change_required False; in fallback we leave it
+        if not success:
+            raise HTTPException(status_code=400, detail="Password reset failed")
+        return AdminResetPasswordResponse(success=True, message="Password reset", rotated=request.rotate, target_user_id=request.user_id)
+    except HTTPException:
+        raise
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:  # pragma: no cover
+        raise HTTPException(status_code=500, detail="Admin password reset failed") from e

@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const RERANKER_INTERNAL_URL = process.env.RERANKER_INTERNAL_URL || 'http://reranker:8008';
+
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pg', 'pgvector']
@@ -13,7 +15,12 @@ const nextConfig = {
   },
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
-  }
-}
+    // Expose optional backend URL for client-side code (AuthContext) when direct calls are preferred
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || '',
+  },
+  // NOTE: We now define explicit API route proxies under app/api/auth/* so a rewrite is unnecessary.
+  // Leaving rewrites disabled avoids double proxying when running behind another reverse proxy.
+  // async rewrites() { ... }
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

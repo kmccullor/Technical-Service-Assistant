@@ -94,15 +94,15 @@ const DialogContent = ({ className = "", children }: DialogContentProps) => {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50" 
+        className="fixed inset-0 bg-black/60" 
+        style={{ zIndex: 9998 }}
         onClick={() => onOpenChange(false)}
       />
-      
       {/* Content */}
-      <div className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md mx-4 ${className}`}>
+      <div className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-xl mx-4`} style={{ zIndex: 9999 }}>
         <Button
           variant="ghost"
           size="sm"

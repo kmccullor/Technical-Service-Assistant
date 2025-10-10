@@ -171,6 +171,8 @@ class User(TimestampedModel):
     last_login: Optional[datetime] = None
     login_attempts: int = Field(default=0)
     locked_until: Optional[datetime] = None
+    password_change_required: bool = True  # Force password change on first login
+    password_changed_at: Optional[datetime] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
     
     @validator('email')
@@ -244,6 +246,34 @@ class ChangePasswordRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ForcePasswordChangeRequest(BaseModel):
+    """Request model for forced initial password changes."""
+    new_password: str = Field(..., min_length=8, max_length=128)
+    confirm_password: str = Field(..., min_length=8, max_length=128)
+    
+    @model_validator(mode='after')
+    def validate_password_match(self):  # type: ignore[override]
+        """Validate password confirmation using Pydantic v2 style validator."""
+        if self.new_password != self.confirm_password:
+            raise ValueError('New password and confirmation do not match')
+        return self
+    
+    @validator('new_password')
+    def validate_forced_password_strength(cls, v):
+        """Validate new password strength for forced changes."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('Password must contain at least one special character')
+        return v
     
     @model_validator(mode='after')
     def validate_password_match(self):  # type: ignore[override]
@@ -282,6 +312,7 @@ class UserResponse(BaseModel):
     last_login: Optional[datetime]
     is_active: bool
     is_locked: bool
+    password_change_required: bool
     created_at: datetime
     updated_at: datetime
 

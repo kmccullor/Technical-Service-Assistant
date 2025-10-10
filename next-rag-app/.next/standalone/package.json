@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --setupFilesAfterEnv=./jest.setup.ts",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate:pg",
@@ -62,6 +62,9 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
     "@playwright/test": "^1.48.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
@@ -81,6 +84,7 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "whatwg-fetch": "^3.6.20"
   }
 }

@@ -42,7 +42,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser.
+Open [http://rni-llm-01.lab.sensus.net:3000](http://rni-llm-01.lab.sensus.net:3000) with your browser.
 
 ## Architecture
 
@@ -238,6 +238,28 @@ Configure in `lib/chunking.ts`:
 - Chunk size: 512 tokens (default)
 - Overlap: 50 tokens (default)
 - Strategy: Recursive character splitting
+
+# Docker-Only Execution & Auth Proxy Routes
+
+**IMPORTANT:** This application is designed to run *exclusively* inside Docker containers. All backend services (auth, reranker, database, Ollama) are networked via Docker Compose and use container hostnames (e.g., `reranker`, `pgvector`).
+
+- Do **not** run locally outside Docker; network hostnames will not resolve and login/auth will fail.
+- All `/api/auth/*` routes are explicitly proxied via Next.js API routes (see `app/api/auth/*/route.ts`).
+- No rewrites are used; each route forwards requests to the backend using Docker network hostnames.
+- Health check and login flows are hardened for Docker-only execution.
+- If you encounter a white screen or login failure, ensure you are running via `docker compose up -d` and all containers are healthy.
+
+## Auth Proxy Route Coverage
+- `/api/auth/health` → backend health check
+- `/api/auth/login` → backend login
+- `/api/auth/register` → backend registration
+- `/api/auth/me` → backend user info
+- `/api/auth/refresh` → backend token refresh
+- `/api/auth/verify-email` → backend email verification
+
+All proxy routes are implemented in `app/api/auth/*/route.ts` and forward requests to the backend using Docker network hostnames.
+
+---
 
 ## Acceptance Criteria ✅
 

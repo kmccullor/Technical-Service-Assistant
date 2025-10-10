@@ -5,6 +5,13 @@ All notable changes to the Technical Service Assistant project will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔐 Security Enhancements
+- **Password Change Enforcement**: Enhanced RBAC middleware to block users requiring password changes from accessing protected endpoints
+- **Forced Password Change Flow**: Added comprehensive unit tests for forced password change workflow with authentication flag validation
+- **Compatibility Improvements**: Replaced root `rbac_endpoints.py` with compatibility shim to eliminate code duplication
+
 ## [4.2.0] - 2025-09-24 - RAG Validation & 95% Confidence Achievement
 
 ### 🎯 RAG Performance Validation

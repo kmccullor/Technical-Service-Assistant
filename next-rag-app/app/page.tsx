@@ -5,10 +5,19 @@ import { ChatInterface } from '@/components/chat/chat-interface'
 import { useAuth } from '@/src/context/AuthContext'
 import Link from 'next/link'
 import { Sidebar } from '@/components/layout/sidebar'
+import { UserMenu } from '@/components/layout/user-menu'
 
 export default function HomePage() {
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>()
   const { user, logout } = useAuth()
+
+  // Redirect to password change if required
+  if (user?.password_change_required) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/change-password'
+    }
+    return null
+  }
 
   const handleNewChat = () => {
     setCurrentConversationId(undefined)
@@ -35,10 +44,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             {user ? (
-              <>
-                <span className="text-sm text-muted-foreground">{user.full_name} <span className="ml-2 px-2 py-0.5 rounded bg-secondary text-xs uppercase">{user.role_name || 'role ' + user.role_id}</span></span>
-                <button onClick={logout} className="text-sm underline">Logout</button>
-              </>
+              <UserMenu />
             ) : (
               <div className="flex gap-3 text-sm">
                 <Link href="/login" className="underline">Login</Link>

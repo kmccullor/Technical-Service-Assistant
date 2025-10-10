@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 interface UserInfo {
   id: number;
@@ -11,6 +11,7 @@ interface UserInfo {
   role_name?: string | null;
   status: string;
   verified: boolean;
+  password_change_required?: boolean;
 }
 
 interface AuthState {
@@ -61,47 +62,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyState = (patch: Partial<AuthState>) => setState(prev => ({ ...prev, ...patch }));
 
-  // Load persisted tokens on mount
+  // Helper to build backend URL (supports optional NEXT_PUBLIC_BACKEND_URL or falls back to relative path + rewrites)
+  const backendUrl = (path: string) => {
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (base && /^https?:\/\//.test(base)) {
+      return base.replace(/\/$/, '') + path;
+    }
+    return path; // rely on Next.js rewrite proxy
+  };
+
+  // Load persisted tokens on mount with backend health + guarded profile fetch
   useEffect(() => {
-    const persisted = loadPersisted();
-    if (persisted?.accessToken) {
+    let cancelled = false;
+    const init = async () => {
+      const persisted = loadPersisted();
+      if (!persisted?.accessToken) {
+        if (!cancelled) applyState({ loading: false });
+        return;
+      }
       applyState({ ...persisted, loading: true });
-      // Fetch profile
-      fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${persisted.accessToken}` },
-      })
-        .then(r => (r.ok ? r.json() : null))
-        .then(profile => {
-          if (profile) {
-            applyState({ user: profile, loading: false });
-          } else {
+      // Health check first to avoid white screen if backend not ready
+      try {
+        const health = await fetch(backendUrl('/api/auth/health')).catch(() => null);
+        // If health endpoint absent (404) or backend down, we degrade gracefully instead of blocking UI
+        if (!health || (!health.ok && health.status !== 404)) {
+          if (!cancelled) applyState({ loading: false, error: 'Auth service unavailable' });
+          return;
+        }
+      } catch (_) {
+        if (!cancelled) applyState({ loading: false, error: 'Auth service unavailable' });
+        return;
+      }
+      try {
+        const r = await fetch(backendUrl('/api/auth/me'), { headers: { Authorization: `Bearer ${persisted.accessToken}` } });
+        if (r.ok) {
+          const profile = await r.json();
+          if (!cancelled) applyState({ user: profile, loading: false });
+        } else {
+          if (!cancelled) {
             applyState({ loading: false, accessToken: null, refreshToken: null, user: null });
             persist({});
           }
-        })
-        .catch(() => {
-          applyState({ loading: false });
-        });
-    } else {
-      applyState({ loading: false });
-    }
+        }
+      } catch (_) {
+        if (!cancelled) applyState({ loading: false });
+      }
+    };
+    init();
+    return () => { cancelled = true; };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     applyState({ loading: true, error: null });
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(backendUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).detail || 'Login failed';
+        let msg = 'Login failed';
+        try {
+          const errJson = await res.json();
+          if (errJson && typeof errJson.detail === 'string') msg = errJson.detail;
+        } catch (_) { /* swallow */ }
         applyState({ loading: false, error: msg });
         return false;
       }
-      const data = await res.json();
-      const expiresAt = Date.now() + data.expires_in * 1000 - 5000; // small buffer
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (_) {
+        applyState({ loading: false, error: 'Malformed server response' });
+        return false;
+      }
+      // Guard required fields
+      if (!data || typeof data !== 'object' || !data.access_token || !data.refresh_token || typeof data.expires_in !== 'number' || !data.user) {
+        applyState({ loading: false, error: 'Unexpected auth response' });
+        return false;
+      }
+      const safeExpires = Number.isFinite(data.expires_in) ? data.expires_in : 0;
+      const expiresAt = Date.now() + Math.max(0, safeExpires * 1000 - 5000);
       const newState: Partial<AuthState> = {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
@@ -120,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = useCallback(async (payload: { email: string; password: string; first_name?: string; last_name?: string; role_id?: number }) => {
     applyState({ loading: true, error: null });
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(backendUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, role_id: payload.role_id || 2 }), // default employee role id=2
@@ -172,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if ((refresh as any)._inFlight) return;
     (refresh as any)._inFlight = true;
     try {
-      const res = await fetch('/api/auth/refresh', {
+      const res = await fetch(backendUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: state.refreshToken }),

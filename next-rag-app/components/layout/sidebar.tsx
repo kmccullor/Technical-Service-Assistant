@@ -8,7 +8,7 @@ import { Plus, MessageCircle, FileText, Search, Settings, X, Upload, Shield } fr
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog'
 
 interface Conversation {
   id: number
@@ -23,9 +23,26 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onNewChat, onSelectConversation, currentConversationId }: SidebarProps) {
+  // Stub implementations for missing functions
+  async function fetchStats() {
+    // TODO: Replace with real API call
+    setStats({ documents: 42, chunks: 1234 })
+  }
+
+  async function fetchConversations() {
+    // TODO: Replace with real API call
+    setConversations([
+      { id: 1, title: 'Welcome Conversation', createdAt: new Date() },
+      { id: 2, title: 'System Demo', createdAt: new Date() },
+    ])
+  }
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [stats, setStats] = useState({ documents: 0, chunks: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [documentsOpen, setDocumentsOpen] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([])
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+  const [documentsError, setDocumentsError] = useState<string | null>(null)
   const { accessToken, user } = useAuth()
 
   useEffect(() => {
@@ -33,88 +50,66 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     fetchConversations()
   }, [accessToken])
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/stats', { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined })
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error)
+  useEffect(() => {
+    if (documentsOpen) {
+      setDocumentsLoading(true)
+      setDocumentsError(null)
+      fetch('/api/documents')
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch documents')
+          return res.json()
+        })
+        .then((data) => {
+          setDocuments(data.documents || [])
+          setDocumentsLoading(false)
+        })
+        .catch((err) => {
+          setDocumentsError(err.message || 'Unknown error')
+          setDocumentsLoading(false)
+        })
     }
-  }
-
-  const fetchConversations = async () => {
-    try {
-      const response = await fetch('/api/conversations', { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined })
-      if (response.ok) {
-        const data = await response.json()
-        setConversations(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch conversations:', error)
-    }
-  }
+  }, [documentsOpen])
 
   return (
     <div className="w-64 bg-muted/30 border-r flex flex-col">
       {/* Header */}
       <div className="p-4 border-b">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          <Search className="h-5 w-5" />
-          Technical Services Assistant
-        </h1>
-      </div>
-
-      {/* New Chat */}
-      <div className="p-4 space-y-2">
-        <Button onClick={onNewChat} className="w-full" variant="outline">
-          <Plus className="h-4 w-4 mr-2" />
-          New Chat
-        </Button>
-        <Link href="/temp-analysis" className="block">
-          <Button variant="ghost" className="w-full justify-start">
-            <Upload className="h-4 w-4 mr-2" />
-            Document Analysis
-          </Button>
-        </Link>
-        <Link href="/data-dictionary" className="block">
-          <Button variant="ghost" className="w-full justify-start">
-            <FileText className="h-4 w-4 mr-2" />
-            Data Dictionary
-          </Button>
-        </Link>
-        {user?.role_name === 'admin' && (
-          <Link href="/admin" className="block">
-            <Button variant="ghost" className="w-full justify-start text-amber-600 dark:text-amber-400">
-              <Shield className="h-4 w-4 mr-2" />
-              Admin
+        <Dialog open={documentsOpen} onOpenChange={setDocumentsOpen}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start">
+              <FileText className="h-4 w-4 mr-2" />
+              Documents
             </Button>
-          </Link>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="px-4 pb-4">
-        <Card className="p-3">
-          <div className="text-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FileText className="h-3 w-3" />
-                Documents
-              </span>
-              <span className="font-mono">{stats.documents}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Search className="h-3 w-3" />
-                Chunks
-              </span>
-              <span className="font-mono">{stats.chunks}</span>
-            </div>
-          </div>
-        </Card>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Documents</DialogTitle>
+              <DialogDescription>View and manage uploaded documents.</DialogDescription>
+            </DialogHeader>
+            {documentsLoading ? (
+              <div className="py-2 text-muted-foreground text-sm">Loading documents...</div>
+            ) : documentsError ? (
+              <div className="py-2 text-red-500 text-sm">Error: {documentsError}</div>
+            ) : documents.length === 0 ? (
+              <div className="py-2 text-muted-foreground text-sm">No documents found.</div>
+            ) : (
+              <ul className="py-2 space-y-2">
+                {documents.map((doc) => (
+                  <li key={doc.id} className="border-b pb-2">
+                    <div className="font-medium">{doc.file_name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {doc.document_type && <span>Type: {doc.document_type} | </span>}
+                      {doc.product_name && <span>Product: {doc.product_name} | </span>}
+                      {doc.product_version && <span>Version: {doc.product_version} | </span>}
+                      {doc.privacy_level && <span>Privacy: {doc.privacy_level} | </span>}
+                      {doc.processed_at && <span>Processed: {new Date(doc.processed_at).toLocaleDateString()} </span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Conversations */}

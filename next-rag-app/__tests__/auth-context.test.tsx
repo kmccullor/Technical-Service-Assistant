@@ -212,6 +212,33 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('token').textContent).toMatch(/ACCESS(123|456)/);
   });
 
+  it('handles malformed login response gracefully', async () => {
+    // Mock fetch to return malformed JSON (missing access_token and user)
+    (global as any).fetch = jest.fn(async (input: any) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/api/auth/login')) {
+        return new Response(JSON.stringify({ unexpected: 'structure', expires_in: 'not-a-number' }), { status: 200 });
+      }
+      if (url.endsWith('/api/auth/health')) {
+        return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+      }
+      return new Response('{}', { status: 200 });
+    });
+
+    render(
+      <AuthProvider>
+        <AuthStateViewer />
+      </AuthProvider>
+    );
+
+    await act(async () => { screen.getByText('login').click(); });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error').textContent).toMatch(/Unexpected auth response|Malformed server response/);
+      expect(screen.getByTestId('token').textContent).toBe('');
+    });
+  });
+
   it('handles 401 by clearing token (redirect simulated)', async () => {
     // Override fetch to return 401 for a protected call post-login
     (global as any).fetch = jest.fn(async (input: any) => {

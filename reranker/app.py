@@ -57,6 +57,8 @@ from utils.auth_system import AuthSystem, UserCreate, UserLogin, UserResponse, P
 from rbac_models import User, Role, Permission, UserRoleAssignment, RolePermissionAssignment
 from rbac_middleware import RBACMiddleware, require_permission, get_current_user
 
+# Document listing API models
+
 
 # Main FastAPI app instance (must be defined before any usage)
 app = FastAPI(
@@ -64,6 +66,8 @@ app = FastAPI(
     description="API for RAG system with data dictionary management and RBAC",
     version="1.0.0"
 )
+
+# Document listing API models and endpoint
 
 # ...existing code...
 

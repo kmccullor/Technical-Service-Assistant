@@ -182,4 +182,15 @@ recreate-db: ## (Destructive) Remove Postgres volume and restart
 	docker volume rm Technical-Service-Assistant_pgvector_data || true
 	docker compose up -d --build
 
+seed-rbac: ## Seed RBAC roles, permissions, and default admin user inside reranker container
+	@echo "🌱 Seeding RBAC data inside reranker container..."
+	@docker exec reranker python /app/scripts/setup_rbac_data.py || (echo "❌ RBAC seed failed" && exit 1)
+	@echo "✅ RBAC seed complete. Default admin (if newly created): admin@technical-service.local / admin123!"
+	@echo "⚠️  Change the default password after first login."
+
+force-seed-rbac: ## Force re-run of RBAC seeding (permissions upsert, roles & admin ensured)
+	@echo "♻️  Forcing RBAC re-seed..."
+	@docker exec reranker python /app/scripts/setup_rbac_data.py || (echo "❌ RBAC force seed failed" && exit 1)
+	@echo "✅ RBAC force seed finished"
+
 .PHONY: help venv install up down logs eval-sample lint-docs test recreate-db cleanup advanced-health end-of-day quality-track quality-analyze quality-report quality-check-regressions quality-full

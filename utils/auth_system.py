@@ -293,6 +293,7 @@ class AuthManager:
             cursor.execute("""
                 SELECT id, email, password_hash, first_name, last_name, role_id,
                        status, verified, last_login, login_attempts, locked_until,
+                       password_change_required, password_changed_at,
                        preferences, created_at, updated_at
                 FROM users WHERE id = %s
             """, (user_id,))
@@ -315,6 +316,7 @@ class AuthManager:
             cursor.execute("""
                 SELECT id, email, password_hash, first_name, last_name, role_id,
                        status, verified, last_login, login_attempts, locked_until,
+                       password_change_required, password_changed_at,
                        preferences, created_at, updated_at
                 FROM users WHERE email = %s
             """, (email.lower(),))
@@ -444,6 +446,7 @@ class AuthManager:
             last_login=user.last_login,
             is_active=user.is_active,
             is_locked=user.is_locked,
+            password_change_required=user.password_change_required,
             created_at=user.created_at,
             updated_at=user.updated_at
         )
@@ -488,6 +491,7 @@ class AuthManager:
                 last_login=user.last_login,
                 is_active=user.is_active,
                 is_locked=user.is_locked,
+                password_change_required=user.password_change_required,
                 created_at=user.created_at,
                 updated_at=user.updated_at
             )
@@ -592,10 +596,11 @@ class AuthManager:
             cursor.execute(
                 """
                 UPDATE users 
-                SET password_hash = %s, updated_at = %s
+                SET password_hash = %s, password_change_required = %s, 
+                    password_changed_at = %s, updated_at = %s
                 WHERE id = %s
                 """,
-                (new_hash, datetime.utcnow(), user_id)
+                (new_hash, False, datetime.utcnow(), datetime.utcnow(), user_id)
             )
             conn.commit()
 
@@ -611,6 +616,87 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
+
+    async def force_password_change(self, user_id: int, new_password: str) -> bool:
+        """Force password change for initial login (no old password required)."""
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise AuthenticationError("User not found")
+        
+        # Hash new password
+        new_hash = self.hash_password(new_password)
+        
+        # Update password and clear requirement flag
+        conn = await self.get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(
+                """
+                UPDATE users 
+                SET password_hash = %s, password_change_required = %s, 
+                    password_changed_at = %s, updated_at = %s
+                WHERE id = %s
+                """,
+                (new_hash, False, datetime.utcnow(), datetime.utcnow(), user_id)
+            )
+            conn.commit()
+
+            # Log forced password change
+            await self.log_audit_event(
+                user_id=user_id,
+                action="password_force_changed",
+                resource_type="user",
+                resource_id=str(user_id),
+                details={"method": "initial_login"}
+            )
+
+            return True
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Force password change failed: {str(e)}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    async def admin_reset_password(self, user_id: int, new_password: str, force_change: bool = True) -> bool:
+        """Admin-initiated password reset.
+
+        Sets a new password hash and optionally flags user to change it on next login.
+        Records an audit event. Returns True on success.
+        """
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise AuthenticationError("User not found")
+
+        new_hash = self.hash_password(new_password)
+        conn = await self.get_db_connection(); cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                UPDATE users
+                SET password_hash = %s, password_change_required = %s,
+                    password_changed_at = %s, updated_at = %s
+                WHERE id = %s
+                """,
+                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id)
+            )
+            conn.commit()
+            await self.log_audit_event(
+                user_id=user_id,
+                action="password_admin_reset",
+                resource_type="user",
+                resource_id=str(user_id),
+                details={"force_change": force_change}
+            )
+            return True
+        except Exception as e:
+            conn.rollback(); logger.error(f"Admin reset password failed: {e}")
+            return False
+        finally:
+            cursor.close(); conn.close()
     
     # Email Verification
     async def send_verification_email(self, user: User):

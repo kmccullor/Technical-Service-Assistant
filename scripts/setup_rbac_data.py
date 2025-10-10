@@ -114,18 +114,22 @@ def setup_default_permissions():
         ('analytics', 'export', 'Export analytics data'),
     ]
     
+    inserted = 0
     for resource, action, description in permissions:
         permission_name = f"{resource}:{action}"
         cursor.execute("""
             INSERT INTO permissions (name, resource, action, description)
             VALUES (%s, %s, %s, %s)
-            ON CONFLICT (resource, action) DO NOTHING
+            ON CONFLICT (resource, action) DO UPDATE SET description = EXCLUDED.description, updated_at = CURRENT_TIMESTAMP
+            RETURNING id
         """, (permission_name, resource, action, description))
-    
+        if cursor.fetchone():
+            inserted += 1
     conn.commit()
-    cursor.close()
-    conn.close()
-    print("✅ Default permissions created successfully")
+    cursor.execute("SELECT COUNT(*) FROM permissions")
+    total = cursor.fetchone()[0]
+    cursor.close(); conn.close()
+    print(f"✅ Permissions ensured (inserted/updated: {inserted}, total now: {total})")
 
 
 def setup_role_permissions():

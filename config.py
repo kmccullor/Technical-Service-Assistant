@@ -8,6 +8,23 @@ from this module instead of reading os.environ directly to ensure consistency.
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+# Load .env file early if present (local development convenience)
+try:  # pragma: no cover - simple optional side-effect
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent / '.env'
+    # Also allow project root .env if config.py moved
+    if env_path.exists():
+        load_dotenv(env_path)
+    else:
+        # Fallback: look one directory up
+        root_env = Path(__file__).parent.parent / '.env'
+        if root_env.exists():
+            load_dotenv(root_env)
+except Exception:
+    # Silent failure acceptable; config still works with environment variables / docker-compose
+    pass
 from functools import lru_cache
 
 
