@@ -27,8 +27,9 @@ import jwt
 import bcrypt
 import secrets
 import asyncio
+import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Callable, TypeVar
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import psycopg2
@@ -57,6 +58,11 @@ logger = logging.getLogger(__name__)
 # FastAPI security scheme
 security = HTTPBearer()
 
+T = TypeVar("T")
+
+_auth_manager_instance: Optional["AuthManager"] = None
+_auth_manager_lock = asyncio.Lock()
+
 
 class AuthManager:
     """Comprehensive authentication and authorization manager."""
@@ -79,13 +85,32 @@ class AuthManager:
         self.login_attempts = {}
         self.rate_limit_window = timedelta(minutes=5)
         self.max_attempts_per_window = 10
-    
-    async def get_db_connection(self):
-        """Get database connection."""
+
+    def _open_connection(self):
+        """Create a new psycopg2 connection."""
+        override = self.__dict__.get("get_db_connection")
+        if callable(override):
+            result = override()
+            if asyncio.iscoroutine(result):
+                return asyncio.run(result)
+            return result
+
         return psycopg2.connect(
             self.db_connection_string,
             cursor_factory=RealDictCursor
         )
+
+    async def _run_in_thread(self, func: Callable[..., T], *args, **kwargs) -> T:
+        """Execute blocking work in a worker thread."""
+        try:
+            return await asyncio.to_thread(func, *args, **kwargs)
+        except RuntimeError:
+            # asyncio.to_thread requires a running loop; fall back for sync usage (e.g. tests)
+            return func(*args, **kwargs)
+
+    async def get_db_connection(self):
+        """Get database connection (legacy – prefer helper methods that run in thread pools)."""
+        return await self._run_in_thread(self._open_connection)
     
     # Password Management
     def hash_password(self, password: str) -> str:
@@ -159,17 +184,25 @@ class AuthManager:
         Returns dict with status and optional detail.
         Avoids heavy queries; simple connection + role table presence.
         """
+        return await self._run_in_thread(self._health_check_sync)
+
+    def _health_check_sync(self) -> Dict[str, Any]:
+        conn = None
+        cursor = None
         try:
-            conn = await self.get_db_connection()
+            conn = self._open_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT 1 FROM roles LIMIT 1;")
             cursor.fetchone()
-            cursor.close()
-            conn.close()
             return {"status": "healthy"}
         except Exception as e:  # pragma: no cover
             logger.error(f"Auth health check error: {e}")
             return {"status": "unhealthy", "error": str(e)}
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
     # Rate Limiting
     def check_rate_limit(self, identifier: str) -> bool:
@@ -196,89 +229,108 @@ class AuthManager:
     # User Management
     async def create_user(self, user_data: CreateUserRequest, created_by: Optional[int] = None) -> User:
         """Create new user account."""
-        conn = await self.get_db_connection()
-        cursor = conn.cursor()
-        
         try:
-            # Detect minimal schema (legacy) vs extended schema
-            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-            cols = {r['column_name'] if isinstance(r, dict) else r[0] for r in cursor.fetchall()}
-            extended = {'password_hash','role_id','verified','login_attempts','preferences'}.issubset(cols)
-            # Check if user already exists
+            user = await self._run_in_thread(self._create_user_sync, user_data)
+        except Exception as e:
+            logger.error(f"Error creating user: {str(e)}")
+            raise
+
+        await self.log_audit_event(
+            user_id=created_by,
+            action="user_created",
+            resource_type="user",
+            resource_id=str(user.id),
+            details={"created_user_email": user.email}
+        )
+
+        await self.send_verification_email(user)
+        return user
+
+    def _create_user_sync(self, user_data: CreateUserRequest) -> User:
+        conn = self._open_connection()
+        cursor = conn.cursor()
+
+        try:
             cursor.execute(
-                "SELECT id FROM users WHERE email = %s",
-                (user_data.email.lower(),)
+                "SELECT column_name FROM information_schema.columns WHERE table_name='users'"
             )
+            cols = {r['column_name'] if isinstance(r, dict) else r[0] for r in cursor.fetchall()}
+            extended = {'password_hash', 'role_id', 'verified', 'login_attempts', 'preferences'}.issubset(cols)
+
+            cursor.execute("SELECT id FROM users WHERE email = %s", (user_data.email.lower(),))
             if cursor.fetchone():
                 raise ValidationError("User with this email already exists")
-            
-            # Validate role exists
+
             cursor.execute("SELECT id FROM roles WHERE id = %s", (user_data.role_id,))
             if not cursor.fetchone():
                 raise ValidationError("Invalid role ID")
-            
-            # Hash password
+
             password_hash = self.hash_password(user_data.password)
-            
+            display_name = (f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or user_data.email.split('@')[0])
+
             if extended:
-                cursor.execute("""
-                        INSERT INTO users (email, name, password_hash, first_name, last_name, role_id, status)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id, email, name, first_name, last_name, role_id, status, verified, created_at, updated_at
-                """, (
-                    user_data.email.lower(),
-                        f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or user_data.email.split('@')[0],
-                    password_hash,
-                    user_data.first_name,
-                    user_data.last_name,
-                    user_data.role_id,
-                    UserStatus.PENDING_VERIFICATION.value
-                ))
+                cursor.execute(
+                    """
+                    INSERT INTO users (email, name, password_hash, first_name, last_name, role_id, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, email, name, first_name, last_name, role_id, status, verified,
+                              created_at, updated_at, password_change_required
+                    """,
+                    (
+                        user_data.email.lower(),
+                        display_name,
+                        password_hash,
+                        user_data.first_name,
+                        user_data.last_name,
+                        user_data.role_id,
+                        UserStatus.PENDING_VERIFICATION.value,
+                    ),
+                )
             else:
-                # Minimal fallback: only columns email, name, status maybe exist
-                cursor.execute("""
-                        INSERT INTO users (email, name, status)
-                        VALUES (%s, %s, %s)
-                        RETURNING id, email, name, status, created_at, updated_at
-                """, (
-                    user_data.email.lower(),
-                    f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or user_data.email.split('@')[0],
-                    'active'
-                ))
-            
+                cursor.execute(
+                    """
+                    INSERT INTO users (email, name, status)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, email, name, status, created_at, updated_at
+                    """,
+                    (
+                        user_data.email.lower(),
+                        display_name,
+                        'active',
+                    ),
+                )
+
             user_row = cursor.fetchone()
             conn.commit()
-            
-            # Create user object
-            user = User(**dict(user_row)) if extended else User(
-                id=user_row['id'] if isinstance(user_row, dict) else user_row[0],
-                email=user_row['email'] if isinstance(user_row, dict) else user_row[1],
+
+            if not user_row:
+                raise ValidationError("Failed to create user record")
+
+            if isinstance(user_row, dict):
+                base = user_row
+            else:
+                keys = ['id', 'email', 'name', 'status', 'created_at', 'updated_at']
+                base = dict(zip(keys, user_row))
+
+            return User(
+                id=base.get('id'),
+                email=base.get('email'),
                 first_name=user_data.first_name,
                 last_name=user_data.last_name,
                 role_id=user_data.role_id,
-                status=UserStatus.ACTIVE,
-                verified=True,
-                created_at=user_row.get('created_at') if isinstance(user_row, dict) else None,
-                updated_at=user_row.get('updated_at') if isinstance(user_row, dict) else None,
+                status=base.get('status', UserStatus.PENDING_VERIFICATION),
+                verified=base.get('verified', not extended),
+                last_login=base.get('last_login'),
+                login_attempts=base.get('login_attempts', 0),
+                locked_until=base.get('locked_until'),
+                password_change_required=base.get('password_change_required', True),
+                password_changed_at=base.get('password_changed_at'),
+                preferences=base.get('preferences', {}),
+                created_at=base.get('created_at'),
+                updated_at=base.get('updated_at'),
             )
-            
-            # Log user creation
-            await self.log_audit_event(
-                user_id=created_by,
-                action="user_created",
-                resource_type="user",
-                resource_id=str(user.id),
-                details={"created_user_email": user.email}
-            )
-            
-            # TODO: Send verification email
-            await self.send_verification_email(user)
-            
-            return user
-            
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            logger.error(f"Error creating user: {str(e)}")
             raise
         finally:
             cursor.close()
@@ -286,67 +338,91 @@ class AuthManager:
     
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID."""
-        conn = await self.get_db_connection()
+        return await self._run_in_thread(self._get_user_by_id_sync, user_id)
+
+    def _get_user_by_id_sync(self, user_id: int) -> Optional[User]:
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, email, password_hash, first_name, last_name, role_id,
                        status, verified, last_login, login_attempts, locked_until,
                        password_change_required, password_changed_at,
                        preferences, created_at, updated_at
                 FROM users WHERE id = %s
-            """, (user_id,))
-            
+                """,
+                (user_id,),
+            )
             row = cursor.fetchone()
-            if row:
-                return User(**dict(row))
-            return None
-            
+            return User(**dict(row)) if row else None
         finally:
             cursor.close()
             conn.close()
-    
+
     async def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email."""
-        conn = await self.get_db_connection()
+        return await self._run_in_thread(self._get_user_by_email_sync, email.lower())
+
+    def _get_user_by_email_sync(self, email: str) -> Optional[User]:
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, email, password_hash, first_name, last_name, role_id,
                        status, verified, last_login, login_attempts, locked_until,
                        password_change_required, password_changed_at,
                        preferences, created_at, updated_at
                 FROM users WHERE email = %s
-            """, (email.lower(),))
-            
+                """,
+                (email,),
+            )
             row = cursor.fetchone()
-            if row:
-                return User(**dict(row))
-            return None
-            
+            return User(**dict(row)) if row else None
         finally:
             cursor.close()
             conn.close()
-    
+
     async def get_user_permissions(self, user_id: int) -> List[str]:
         """Get all permissions for a user."""
-        conn = await self.get_db_connection()
+        return await self._run_in_thread(self._get_user_permissions_sync, user_id)
+
+    def _get_user_permissions_sync(self, user_id: int) -> List[str]:
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT DISTINCT p.name
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
                 JOIN role_permissions rp ON r.id = rp.role_id
                 JOIN permissions p ON rp.permission_id = p.id
                 WHERE u.id = %s AND u.status = 'active' AND u.verified = true
-            """, (user_id,))
-            
+                """,
+                (user_id,),
+            )
             return [row['name'] for row in cursor.fetchall()]
-            
+        finally:
+            cursor.close()
+            conn.close()
+
+    async def get_role_name(self, role_id: int) -> Optional[str]:
+        """Return role name for the given role id."""
+        return await self._run_in_thread(self._get_role_name_sync, role_id)
+
+    def _get_role_name_sync(self, role_id: int) -> Optional[str]:
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT name FROM roles WHERE id = %s", (role_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            if isinstance(row, dict):
+                return row.get("name")
+            return row[0]
         finally:
             cursor.close()
             conn.close()
@@ -510,11 +586,14 @@ class AuthManager:
     # Account Security
     async def increment_login_attempts(self, user_id: int):
         """Increment failed login attempts and lock if necessary."""
-        conn = await self.get_db_connection()
+        await self._run_in_thread(self._increment_login_attempts_sync, user_id)
+
+    def _increment_login_attempts_sync(self, user_id: int):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE users 
                 SET login_attempts = login_attempts + 1,
                     locked_until = CASE 
@@ -523,47 +602,77 @@ class AuthManager:
                         ELSE locked_until 
                     END
                 WHERE id = %s
-            """, (
-                self.max_login_attempts,
-                datetime.utcnow() + self.lockout_duration,
-                user_id
-            ))
+                """,
+                (
+                    self.max_login_attempts,
+                    datetime.utcnow() + self.lockout_duration,
+                    user_id,
+                ),
+            )
             conn.commit()
-            
         finally:
             cursor.close()
             conn.close()
     
     async def reset_login_attempts(self, user_id: int):
         """Reset login attempts on successful login."""
-        conn = await self.get_db_connection()
+        await self._run_in_thread(self._reset_login_attempts_sync, user_id)
+
+    def _reset_login_attempts_sync(self, user_id: int):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE users 
                 SET login_attempts = 0, locked_until = NULL
                 WHERE id = %s
-            """, (user_id,))
+                """,
+                (user_id,),
+            )
             conn.commit()
-            
         finally:
             cursor.close()
             conn.close()
     
     async def update_last_login(self, user_id: int):
         """Update user's last login timestamp."""
-        conn = await self.get_db_connection()
+        await self._run_in_thread(self._update_last_login_sync, user_id)
+
+    def _update_last_login_sync(self, user_id: int):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE users 
                 SET last_login = %s
                 WHERE id = %s
-            """, (datetime.utcnow(), user_id))
+                """,
+                (datetime.utcnow(), user_id),
+            )
             conn.commit()
-            
+        finally:
+            cursor.close()
+            conn.close()
+
+    async def set_password_change_required(self, user_id: int, required: bool):
+        """Toggle password change requirement flag."""
+        await self._run_in_thread(self._set_password_change_required_sync, user_id, required)
+
+    def _set_password_change_required_sync(self, user_id: int, required: bool):
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                UPDATE users
+                SET password_change_required = %s, updated_at=%s
+                WHERE id = %s
+                """,
+                (required, datetime.utcnow(), user_id),
+            )
+            conn.commit()
         finally:
             cursor.close()
             conn.close()
@@ -588,10 +697,25 @@ class AuthManager:
         # Hash new password
         new_hash = self.hash_password(new_password)
         
-        # Update password
-        conn = await self.get_db_connection()
+        await self._run_in_thread(
+            self._update_password_sync,
+            user_id,
+            new_hash,
+            False,
+        )
+
+        await self.log_audit_event(
+            user_id=user_id,
+            action="password_changed",
+            resource_type="user",
+            resource_id=str(user_id),
+            details={"method": "self_service"}
+        )
+        return True
+
+    def _update_password_sync(self, user_id: int, new_hash: str, force_change: bool):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
             cursor.execute(
                 """
@@ -600,19 +724,9 @@ class AuthManager:
                     password_changed_at = %s, updated_at = %s
                 WHERE id = %s
                 """,
-                (new_hash, False, datetime.utcnow(), datetime.utcnow(), user_id)
+                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id)
             )
             conn.commit()
-
-            # Log password change
-            await self.log_audit_event(
-                user_id=user_id,
-                action="password_changed",
-                resource_type="user",
-                resource_id=str(user_id),
-                details={"method": "self_service"}
-            )
-            return True
         finally:
             cursor.close()
             conn.close()
@@ -626,40 +740,26 @@ class AuthManager:
         # Hash new password
         new_hash = self.hash_password(new_password)
         
-        # Update password and clear requirement flag
-        conn = await self.get_db_connection()
-        cursor = conn.cursor()
-        
         try:
-            cursor.execute(
-                """
-                UPDATE users 
-                SET password_hash = %s, password_change_required = %s, 
-                    password_changed_at = %s, updated_at = %s
-                WHERE id = %s
-                """,
-                (new_hash, False, datetime.utcnow(), datetime.utcnow(), user_id)
+            await self._run_in_thread(
+                self._update_password_sync,
+                user_id,
+                new_hash,
+                False,
             )
-            conn.commit()
-
-            # Log forced password change
-            await self.log_audit_event(
-                user_id=user_id,
-                action="password_force_changed",
-                resource_type="user",
-                resource_id=str(user_id),
-                details={"method": "initial_login"}
-            )
-
-            return True
-
         except Exception as e:
-            conn.rollback()
             logger.error(f"Force password change failed: {str(e)}")
             return False
-        finally:
-            cursor.close()
-            conn.close()
+
+        await self.log_audit_event(
+            user_id=user_id,
+            action="password_force_changed",
+            resource_type="user",
+            resource_id=str(user_id),
+            details={"method": "initial_login"}
+        )
+
+        return True
 
     async def admin_reset_password(self, user_id: int, new_password: str, force_change: bool = True) -> bool:
         """Admin-initiated password reset.
@@ -672,7 +772,29 @@ class AuthManager:
             raise AuthenticationError("User not found")
 
         new_hash = self.hash_password(new_password)
-        conn = await self.get_db_connection(); cursor = conn.cursor()
+        try:
+            await self._run_in_thread(
+                self._admin_reset_password_sync,
+                user_id,
+                new_hash,
+                force_change,
+            )
+        except Exception as e:
+            logger.error(f"Admin reset password failed: {e}")
+            return False
+
+        await self.log_audit_event(
+            user_id=user_id,
+            action="password_admin_reset",
+            resource_type="user",
+            resource_id=str(user_id),
+            details={"force_change": force_change}
+        )
+        return True
+
+    def _admin_reset_password_sync(self, user_id: int, new_hash: str, force_change: bool):
+        conn = self._open_connection()
+        cursor = conn.cursor()
         try:
             cursor.execute(
                 """
@@ -684,45 +806,101 @@ class AuthManager:
                 (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id)
             )
             conn.commit()
-            await self.log_audit_event(
-                user_id=user_id,
-                action="password_admin_reset",
-                resource_type="user",
-                resource_id=str(user_id),
-                details={"force_change": force_change}
-            )
-            return True
-        except Exception as e:
-            conn.rollback(); logger.error(f"Admin reset password failed: {e}")
-            return False
-        finally:
-            cursor.close(); conn.close()
-    
-    # Email Verification
-    async def send_verification_email(self, user: User):
-        """Send email verification (placeholder implementation)."""
-        # TODO: Implement actual email sending
-        verification_token = self.generate_secure_token()
-        logger.info(f"Verification email would be sent to {user.email} with token: {verification_token}")
-        
-        # Store verification token in database
-        conn = await self.get_db_connection()
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute("""
-                INSERT INTO verification_tokens (user_id, token, token_type, expires_at)
-                VALUES (%s, %s, 'email_verification', %s)
-            """, (
-                user.id,
-                verification_token,
-                datetime.utcnow() + timedelta(hours=24)
-            ))
-            conn.commit()
-            
         finally:
             cursor.close()
             conn.close()
+    
+    # Email Verification
+    async def send_verification_email(self, user: User) -> bool:
+        """Send verification email with secure token storage."""
+        verification_token = self.generate_secure_token()
+        token_hash = self._hash_token(verification_token)
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+
+        await self._run_in_thread(
+            self._store_verification_token_sync,
+            user.id,
+            token_hash,
+            expires_at,
+        )
+
+        sent = await self._run_in_thread(
+            self._dispatch_verification_email_sync,
+            user,
+            verification_token,
+            expires_at,
+        )
+        if not sent:
+            logger.warning(
+                "Verification email dispatch failed for %s (token hash prefix=%s)",
+                user.email,
+                token_hash[:8],
+            )
+        else:
+            logger.info(
+                "Verification email sent to %s (token hash prefix=%s)",
+                user.email,
+                token_hash[:8],
+            )
+        return sent
+
+    def _store_verification_token_sync(self, user_id: int, token_hash: str, expires_at: datetime):
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO verification_tokens (user_id, token, token_type, expires_at)
+                VALUES (%s, %s, 'email_verification', %s)
+                """,
+                (user_id, token_hash, expires_at),
+            )
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def _hash_token(self, token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    def _dispatch_verification_email_sync(self, user: User, token: str, expires_at: datetime) -> bool:
+        recipient = user.email
+        if not recipient:
+            logger.warning("Cannot send verification email without recipient address")
+            return False
+
+        sender = self.settings.verification_email_sender
+        subject = self.settings.verification_email_subject
+        verification_url = f"{self.settings.verification_email_link_base}?token={token}"
+
+        msg = MIMEMultipart()
+        msg["From"] = sender
+        msg["To"] = recipient
+        msg["Subject"] = subject
+
+        body = (
+            f"Hello {user.full_name or user.email},\n\n"
+            "Thanks for registering with Technical Service Assistant. "
+            "Please verify your email address by using the token below or visiting the verification link.\n\n"
+            f"Verification token: {token}\n"
+            f"Verification link: {verification_url}\n\n"
+            f"This token expires at {expires_at.isoformat()} UTC.\n\n"
+            "If you did not create this account, you can ignore this email.\n\n"
+            "Regards,\nTechnical Service Assistant"
+        )
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port, timeout=15) as server:
+                if self.settings.smtp_use_tls:
+                    server.starttls()
+                if self.settings.smtp_username and self.settings.smtp_password:
+                    server.login(self.settings.smtp_username, self.settings.smtp_password)
+                server.sendmail(sender, [recipient], msg.as_string())
+            return True
+        except Exception as exc:
+            logger.error("Failed to send verification email to %s: %s", recipient, exc)
+            return False
     
     # Audit Logging
     async def log_audit_event(
@@ -738,11 +916,34 @@ class AuthManager:
         error_message: Optional[str] = None
     ):
         """Log audit event."""
-        conn = await self.get_db_connection()
+        await self._run_in_thread(
+            self._log_audit_event_sync,
+            action,
+            resource_type,
+            user_id,
+            resource_id,
+            ip_address,
+            user_agent,
+            details,
+            success,
+            error_message,
+        )
+
+    def _log_audit_event_sync(
+        self,
+        action: str,
+        resource_type: str,
+        user_id: Optional[int],
+        resource_id: Optional[str],
+        ip_address: Optional[str],
+        user_agent: Optional[str],
+        details: Optional[Dict[str, Any]],
+        success: bool,
+        error_message: Optional[str],
+    ):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
-            # Ensure details is JSON serializable for jsonb column
             json_details = Json(details) if details is not None else None
             cursor.execute(
                 """
@@ -786,9 +987,25 @@ class AuthManager:
         details: Optional[Dict[str, Any]] = None
     ):
         """Log security event."""
-        conn = await self.get_db_connection()
+        await self._run_in_thread(
+            self._log_security_event_sync,
+            event_type,
+            severity,
+            user_id,
+            ip_address,
+            details,
+        )
+
+    def _log_security_event_sync(
+        self,
+        event_type: str,
+        severity: str,
+        user_id: Optional[int],
+        ip_address: Optional[str],
+        details: Optional[Dict[str, Any]],
+    ):
+        conn = self._open_connection()
         cursor = conn.cursor()
-        
         try:
             json_details = Json(details) if details is not None else None
             cursor.execute(
@@ -833,7 +1050,48 @@ class AuthManager:
         Returns True if verification completed, False if already verified.
         Raises ValidationError for invalid/expired token.
         """
-        conn = await self.get_db_connection(); cursor = conn.cursor()
+        token_hash = self._hash_token(token)
+
+        try:
+            status, user_id = await self._run_in_thread(
+                self._consume_verification_token_sync,
+                token_hash,
+                token,
+            )
+        except ValidationError:
+            raise
+        except Exception as e:  # pragma: no cover
+            logger.error(f"Email verification failed: {e}")
+            raise ValidationError("Failed to verify email")
+
+        if status == "expired":
+            await self.log_security_event(
+                event_type="verification_token_expired",
+                severity="low",
+                user_id=user_id,
+                details={"token_hash_prefix": token_hash[:8]},
+            )
+            raise ValidationError("Verification token expired")
+
+        if status == "already_used" or status == "already_verified":
+            return False
+
+        if status == "verified":
+            if user_id is not None:
+                await self.log_audit_event(
+                    user_id=user_id,
+                    action="email_verified",
+                    resource_type="user",
+                    resource_id=str(user_id),
+                    details={"method": "token"},
+                )
+            return True
+
+        raise ValidationError("Invalid verification token")
+
+    def _consume_verification_token_sync(self, token_hash: str, raw_token: str) -> Tuple[str, Optional[int]]:
+        conn = self._open_connection()
+        cursor = conn.cursor()
         try:
             cursor.execute(
                 """
@@ -842,69 +1100,87 @@ class AuthManager:
                 JOIN users u ON vt.user_id = u.id
                 WHERE vt.token = %s
                 """,
-                (token,)
+                (token_hash,),
             )
             row = cursor.fetchone()
             if not row:
+                cursor.execute(
+                    """
+                    SELECT vt.id, vt.user_id, vt.token_type, vt.expires_at, vt.used, u.verified, u.status
+                    FROM verification_tokens vt
+                    JOIN users u ON vt.user_id = u.id
+                    WHERE vt.token = %s
+                    """,
+                    (raw_token,),
+                )
+                row = cursor.fetchone()
+            if not row:
                 raise ValidationError("Invalid verification token")
+
             row_d = dict(row)
-            if row_d.get("token_type") != "email_verification":
+            token_type = row_d.get("token_type")
+            if token_type != "email_verification":
                 raise ValidationError("Token type mismatch")
-            if row_d.get("used"):
-                # Already used: treat idempotently
-                return False
+
+            user_id = row_d.get("user_id")
+            token_id = row_d.get("id")
             expires_at = row_d.get("expires_at")
             if expires_at and expires_at < datetime.utcnow():
-                await self.log_security_event(
-                    event_type="verification_token_expired",
-                    severity="low",
-                    user_id=row_d.get("user_id"),
-                    details={"token": token}
-                )
-                raise ValidationError("Verification token expired")
-            user_id = row_d.get("user_id")
+                return ("expired", user_id)
+
+            if row_d.get("used"):
+                return ("already_used", user_id)
+
             already_verified = bool(row_d.get("verified"))
-            # Mark token used regardless to support one-time consumption semantics
-            cursor.execute("UPDATE verification_tokens SET used=true WHERE id=%s", (row_d.get("id"),))
+
+            cursor.execute("UPDATE verification_tokens SET used=true WHERE id=%s", (token_id,))
+
             if already_verified:
                 conn.commit()
-                return False
-            # Activate + verify user
+                return ("already_verified", user_id)
+
             cursor.execute(
                 """
-                UPDATE users SET verified=true, status = CASE WHEN status = 'pending_verification' THEN 'active' ELSE status END, updated_at=%s
+                UPDATE users
+                SET verified=true,
+                    status = CASE WHEN status = 'pending_verification' THEN 'active' ELSE status END,
+                    updated_at=%s
                 WHERE id=%s
                 """,
-                (datetime.utcnow(), user_id)
+                (datetime.utcnow(), user_id),
             )
             conn.commit()
-            await self.log_audit_event(
-                user_id=user_id,
-                action="email_verified",
-                resource_type="user",
-                resource_id=str(user_id),
-                details={"method": "token"}
-            )
-            return True
+            return ("verified", user_id)
         except ValidationError:
+            conn.rollback()
             raise
-        except Exception as e:  # pragma: no cover
-            logger.error(f"Email verification failed: {e}")
-            raise ValidationError("Failed to verify email")
+        except Exception:
+            conn.rollback()
+            raise
         finally:
-            cursor.close(); conn.close()
+            cursor.close()
+            conn.close()
 
 
 # FastAPI Dependencies
 async def get_auth_manager() -> AuthManager:
     """Get authentication manager instance."""
-    settings = get_settings()
-    db_url = f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
-    
-    # Use a secure JWT secret key
-    jwt_secret = getattr(settings, 'JWT_SECRET_KEY', os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production'))
-    
-    return AuthManager(db_url, jwt_secret)
+    global _auth_manager_instance
+    if _auth_manager_instance is None:
+        async with _auth_manager_lock:
+            if _auth_manager_instance is None:
+                settings = get_settings()
+                db_url = (
+                    f"postgresql://{settings.db_user}:{settings.db_password}"
+                    f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+                )
+                jwt_secret = getattr(
+                    settings,
+                    'JWT_SECRET_KEY',
+                    os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production'),
+                )
+                _auth_manager_instance = AuthManager(db_url, jwt_secret)
+    return _auth_manager_instance
 
 
 async def get_current_user(

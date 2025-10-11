@@ -20,34 +20,34 @@ from pdf_processor.pdf_utils import get_db_connection, get_embedding
 
 def ingest_acronym_index():
     """Ingest the acronym index markdown file into the vector database."""
-    
+
     settings = get_settings()
     acronym_file = os.path.join(project_root, "ACRONYM_INDEX.md")
-    
+
     if not os.path.exists(acronym_file):
         print(f"❌ Acronym index file not found: {acronym_file}")
         return False
-    
+
     print(f"📚 Processing acronym index: {acronym_file}")
-    
+
     # Read the file content
     with open(acronym_file, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     if not content.strip():
         print("❌ Acronym index file is empty")
         return False
-    
+
     # Create chunks for better searchability
     chunks = create_acronym_chunks(content)
     print(f"📝 Created {len(chunks)} searchable chunks from acronym index")
-    
+
     # Connect to database
     conn = get_db_connection()
     if not conn:
         print("❌ Failed to connect to database")
         return False
-    
+
     try:
         with conn.cursor() as cursor:
             # Check if document already exists
@@ -56,7 +56,7 @@ def ingest_acronym_index():
                 ("ACRONYM_INDEX.md",)
             )
             existing_doc = cursor.fetchone()
-            
+
             if existing_doc:
                 doc_id = existing_doc[0]
                 print(f"🔄 Updating existing acronym index (doc_id: {doc_id})")
@@ -80,7 +80,7 @@ def ingest_acronym_index():
                     return False
                 doc_id = result[0]
                 print(f"✅ Created new document entry (doc_id: {doc_id})")
-            
+
             # Insert chunks
             chunk_count = 0
             for i, chunk in enumerate(chunks):
@@ -89,9 +89,9 @@ def ingest_acronym_index():
                 if not embedding:
                     print(f"⚠️ Failed to generate embedding for chunk {i+1}")
                     continue
-                
+
                 content_hash = hashlib.md5(chunk['content'].encode()).hexdigest()
-                
+
                 cursor.execute("""
                     INSERT INTO document_chunks (
                         document_id, chunk_index, page_number, section_title,
@@ -113,11 +113,11 @@ def ingest_acronym_index():
                     datetime.now()
                 ))
                 chunk_count += 1
-            
+
             conn.commit()
             print(f"✅ Successfully ingested {chunk_count} chunks from acronym index")
             return True
-            
+
     except Exception as e:
         print(f"❌ Error ingesting acronym index: {e}")
         conn.rollback()
@@ -128,14 +128,14 @@ def ingest_acronym_index():
 def create_acronym_chunks(content):
     """Create searchable chunks from the acronym index content."""
     chunks = []
-    
+
     # Split by main sections
     sections = content.split('## ')
-    
+
     for i, section in enumerate(sections):
         if not section.strip():
             continue
-            
+
         # First section won't have the ## prefix
         if i == 0:
             section_title = "Introduction"
@@ -144,19 +144,19 @@ def create_acronym_chunks(content):
             lines = section.split('\n', 1)
             section_title = lines[0].replace('*', '').strip()
             section_content = lines[1] if len(lines) > 1 else ""
-        
+
         if not section_content.strip():
             continue
-        
+
         # Further split large sections by individual acronyms
         if section_title not in ["Introduction", "Usage Guidelines", "Updates & Maintenance"]:
             # Split by ### entries (individual acronyms)
             acronym_entries = section_content.split('### ')
-            
+
             for j, entry in enumerate(acronym_entries):
                 if not entry.strip():
                     continue
-                
+
                 if j == 0:
                     # First part might be section introduction
                     if entry.strip():
@@ -175,9 +175,9 @@ def create_acronym_chunks(content):
                     lines = entry.split('\n', 1)
                     acronym_name = lines[0].strip()
                     acronym_content = lines[1] if len(lines) > 1 else ""
-                    
+
                     full_content = f"### {acronym_name}\n{acronym_content}"
-                    
+
                     chunks.append({
                         'content': full_content.strip(),
                         'section_title': f"{section_title} - {acronym_name}",
@@ -201,13 +201,13 @@ def create_acronym_chunks(content):
                     'document_type': 'acronym_index'
                 }
             })
-    
+
     return chunks
 
 if __name__ == "__main__":
     print("🚀 Starting acronym index ingestion...")
     success = ingest_acronym_index()
-    
+
     if success:
         print("✅ Acronym index successfully added to vector database!")
         print("🔍 The acronym definitions are now available for cross-referencing during searches.")

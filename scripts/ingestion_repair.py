@@ -117,12 +117,15 @@ def main():
         zero_chunk = fetch_zero_chunk_docs(conn)
         if zero_chunk:
             for doc_id, fname in zero_chunk:
-                issues.append(IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname))
+                issues.append(
+                    IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname)
+                )
 
         anomalies = fetch_metrics_anomalies(conn, args.min_success_rate)
         if anomalies:
             for fname, rate in anomalies:
-                issues.append(IngestionIssue("low_success_rate", f"Success rate {rate:.3f} < {args.min_success_rate}", fname))
+                message = f"Success rate {rate:.3f} < {args.min_success_rate}"
+                issues.append(IngestionIssue("low_success_rate", message, fname))
 
         repairs_applied = []
         if args.repair:

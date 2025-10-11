@@ -107,16 +107,25 @@ RUNNING_EXPECTED=$((TOTAL_EXPECTED - ${#MISSING_CONTAINERS[@]}))
 HEALTH_PERCENT=$((RUNNING_EXPECTED * 100 / TOTAL_EXPECTED))
 info "Container Health: $HEALTH_PERCENT% ($RUNNING_EXPECTED/$TOTAL_EXPECTED services running)"
 
-# Health check endpoints
+# Health check endpoints (parameterized for remote usage)
 info "Testing service endpoints..."
+
+RERANKER_URL="${RERANKER_URL:-http://localhost:8008}"
+FRONTEND_URL="${FRONTEND_URL:-http://localhost:8080}"
+SEARXNG_URL="${SEARXNG_URL:-http://localhost:8888}"
+OLLAMA1_URL="${OLLAMA1_URL:-http://localhost:11434}"
+OLLAMA2_URL="${OLLAMA2_URL:-http://localhost:11435}"
+OLLAMA3_URL="${OLLAMA3_URL:-http://localhost:11436}"
+OLLAMA4_URL="${OLLAMA4_URL:-http://localhost:11437}"
+
 ENDPOINTS=(
-    "http://localhost:8008/health:Reranker"
-    "http://localhost:11434/api/tags:Ollama-1"
-    "http://localhost:11435/api/tags:Ollama-2" 
-    "http://localhost:11436/api/tags:Ollama-3"
-    "http://localhost:11437/api/tags:Ollama-4"
-    "http://localhost:8888:SearXNG"
-    "http://localhost:8080:Frontend"
+    "${RERANKER_URL%/}/health:Reranker"
+    "${OLLAMA1_URL%/}/api/tags:Ollama-1"
+    "${OLLAMA2_URL%/}/api/tags:Ollama-2" 
+    "${OLLAMA3_URL%/}/api/tags:Ollama-3"
+    "${OLLAMA4_URL%/}/api/tags:Ollama-4"
+    "${SEARXNG_URL%/}:SearXNG"
+    "${FRONTEND_URL%/}:Frontend"
 )
 
 for endpoint_info in "${ENDPOINTS[@]}"; do

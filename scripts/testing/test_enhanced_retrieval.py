@@ -165,20 +165,31 @@ class RetrievalComparison:
         print(f"\n📊 COMPARISON SUMMARY")
         print("=" * 60)
 
-        print(f"{'Metric':<25} {'Baseline':<15} {'Enhanced':<15} {'Improvement':<15}")
+        print(
+            f"{'Metric':<25} {'Baseline':<15} "
+            f"{'Enhanced':<15} {'Improvement':<15}"
+        )
         print("-" * 70)
 
         print(
-            f"{'Recall@1':<25} {baseline['recall_at_1']:<15.1%} {enhanced['recall_at_1']:<15.1%} {improvements['recall_1_improvement']:+.1%}"
+            f"{'Recall@1':<25} {baseline['recall_at_1']:<15.1%} "
+            f"{enhanced['recall_at_1']:<15.1%} "
+            f"{improvements['recall_1_improvement']:+.1%}"
         )
         print(
-            f"{'Recall@5':<25} {baseline['recall_at_5']:<15.1%} {enhanced['recall_at_5']:<15.1%} {improvements['recall_5_improvement']:+.1%}"
+            f"{'Recall@5':<25} {baseline['recall_at_5']:<15.1%} "
+            f"{enhanced['recall_at_5']:<15.1%} "
+            f"{improvements['recall_5_improvement']:+.1%}"
         )
         print(
-            f"{'Recall@10':<25} {baseline['recall_at_10']:<15.1%} {enhanced['recall_at_10']:<15.1%} {improvements['recall_10_improvement']:+.1%}"
+            f"{'Recall@10':<25} {baseline['recall_at_10']:<15.1%} "
+            f"{enhanced['recall_at_10']:<15.1%} "
+            f"{improvements['recall_10_improvement']:+.1%}"
         )
         print(
-            f"{'Avg Response Time':<25} {baseline['avg_response_time']:<15.3f}s {enhanced['avg_response_time']:<15.3f}s {improvements['response_time_change']:+.3f}s"
+            f"{'Avg Response Time':<25} {baseline['avg_response_time']:<15.3f}s "
+            f"{enhanced['avg_response_time']:<15.3f}s "
+            f"{improvements['response_time_change']:+.3f}s"
         )
 
         print(f"\n🎯 KEY INSIGHTS:")

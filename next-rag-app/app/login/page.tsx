@@ -17,19 +17,27 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
 
   if (user) {
+    console.log('[LOGIN] User already logged in, redirecting to home:', user.email)
     replace('/')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('[LOGIN] Form submitted for email:', email)
     setFormError(null)
     if (!email || !password) {
+      console.log('[LOGIN] Missing email or password')
       setFormError('Email and password required')
       return
     }
+    console.log('[LOGIN] Calling login function')
     const ok = await login(email, password)
+    console.log('[LOGIN] Login result:', ok)
     if (ok) {
-  replace('/')
+      console.log('[LOGIN] Login successful, redirecting to home')
+      replace('/')
+    } else {
+      console.log('[LOGIN] Login failed')
     }
   }
 

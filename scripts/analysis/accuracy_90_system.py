@@ -341,7 +341,10 @@ class NinetyPercentAccuracySystem:
             }
 
             print(
-                f"  90% System: {accuracy_result.accuracy_score:.1f}% accuracy in {accuracy_result.processing_time:.3f}s"
+                "  90% System: {score:.1f}% accuracy in {time:.3f}s".format(
+                    score=accuracy_result.accuracy_score,
+                    time=accuracy_result.processing_time,
+                )
             )
             print(f"  Baseline: {baseline_docs} results in {baseline_time:.3f}s")
             print(f"  Improvement: +{accuracy_improvement:.1f}% accuracy")

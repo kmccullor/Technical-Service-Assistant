@@ -1,11 +1,13 @@
 'use client'
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/src/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 export default function ChangePasswordPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, refresh, accessToken } = useAuth()
+  const router = useRouter()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -16,7 +18,12 @@ export default function ChangePasswordPage() {
 
   useEffect(() => {
     // Check if this is a forced password change
+    console.log('[CHANGE_PWD] Password change page loaded for user:', { 
+      email: user?.email, 
+      password_change_required: user?.password_change_required 
+    })
     if (user?.password_change_required) {
+      console.log('[CHANGE_PWD] Setting forced password change mode')
       setIsForced(true)
     }
   }, [user])
@@ -42,6 +49,7 @@ export default function ChangePasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('[CHANGE_PWD] Form submitted, isForced:', isForced)
     setError(null)
     setSuccess(null)
 
@@ -72,32 +80,40 @@ export default function ChangePasswordPage() {
         ? { new_password: newPassword, confirm_password: confirmPassword }
         : { current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword }
 
-      const response = await fetch(`http://localhost:8008${endpoint}`, {
+      console.log('[CHANGE_PWD] Sending password change request to:', endpoint)
+      console.log('[CHANGE_PWD] Payload type:', isForced ? 'force-change' : 'normal-change')
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
         },
         body: JSON.stringify(payload)
       })
+      console.log('[CHANGE_PWD] Password change response status:', response.status)
 
       const data = await response.json()
 
       if (response.ok) {
+        console.log('[CHANGE_PWD] Password change successful')
         setSuccess('Password changed successfully!')
+        // Refresh user profile to update password_change_required status
+        console.log('[CHANGE_PWD] Refreshing user profile to update password_change_required status')
+        await refresh()
+        console.log('[CHANGE_PWD] Profile refreshed, scheduling redirect in 1 second')
         setTimeout(() => {
           if (isForced) {
             // For forced changes, redirect to home
-            if (typeof window !== 'undefined') {
-              window.location.href = '/'
-            }
+            console.log('[CHANGE_PWD] Redirecting to home page after forced password change')
+            router.push('/')
           } else {
             // For voluntary changes, stay on page
+            console.log('[CHANGE_PWD] Clearing form after voluntary password change')
             setCurrentPassword('')
             setNewPassword('')
             setConfirmPassword('')
           }
-        }, 2000)
+        }, 3000)
       } else {
         setError(data.detail || 'Failed to change password')
       }
@@ -110,15 +126,12 @@ export default function ChangePasswordPage() {
 
   const handleLogout = () => {
     logout()
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
+    router.push('/login')
   }
 
   if (!user) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
+    console.log('[CHANGE_PWD] No user found, redirecting to login')
+    router.push('/login')
     return null
   }
 
@@ -216,11 +229,7 @@ export default function ChangePasswordPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.history.back()
-                  }
-                }}
+                onClick={() => router.back()}
                 disabled={loading}
               >
                 Cancel

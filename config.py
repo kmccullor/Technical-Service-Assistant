@@ -85,6 +85,16 @@ class Settings:
     api_port: int
     api_key: str | None
 
+    # Email / SMTP
+    smtp_host: str
+    smtp_port: int
+    smtp_username: str | None
+    smtp_password: str | None
+    smtp_use_tls: bool
+    verification_email_sender: str
+    verification_email_subject: str
+    verification_email_link_base: str
+
     # Feature Flags
     enable_table_extraction: bool
     enable_image_extraction: bool
@@ -178,6 +188,16 @@ def get_settings() -> Settings:
     s.api_host = os.getenv("API_HOST", "0.0.0.0")
     s.api_port = _get_int("API_PORT", 8008)
     s.api_key = os.getenv("API_KEY")
+
+    # Email / SMTP
+    s.smtp_host = os.getenv("SMTP_HOST", "localhost")
+    s.smtp_port = _get_int("SMTP_PORT", 587)
+    s.smtp_username = os.getenv("SMTP_USERNAME")
+    s.smtp_password = os.getenv("SMTP_PASSWORD")
+    s.smtp_use_tls = _get_bool("SMTP_USE_TLS", True)
+    s.verification_email_sender = os.getenv("VERIFICATION_EMAIL_SENDER", "no-reply@technical-service-assistant.local")
+    s.verification_email_subject = os.getenv("VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account")
+    s.verification_email_link_base = os.getenv("VERIFICATION_EMAIL_LINK_BASE", "http://localhost:3000/verify-email")
 
     # Feature Flags
     s.enable_table_extraction = _get_bool("ENABLE_TABLE_EXTRACTION", True)

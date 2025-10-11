@@ -20,6 +20,7 @@ This module implements a two-stage retrieval system:
 Expected improvements: 15-20% better Recall@1 performance
 """
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -71,19 +72,19 @@ class EnhancedRetrieval:
 
     def __init__(
         self,
-        reranker_url: str = "http://localhost:8008",
+        reranker_url: Optional[str] = None,
         ollama_url: Optional[str] = None,
         enable_reranking: bool = True,
     ):
-        """
-        Initialize enhanced retrieval system.
+        """Initialize enhanced retrieval system.
 
         Args:
-            reranker_url: URL for reranker service
+            reranker_url: URL for reranker service (or env override)
             ollama_url: URL for Ollama embedding service
             enable_reranking: Whether to use reranker (fallback to vector-only if False)
         """
-        self.reranker_url = reranker_url
+        # Determine reranker URL from argument or environment
+        self.reranker_url = reranker_url or os.getenv("RERANKER_URL", "http://localhost:8008")
         # Fix Ollama URL for localhost access
         if ollama_url:
             self.ollama_url = ollama_url

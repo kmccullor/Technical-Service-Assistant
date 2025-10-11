@@ -11,7 +11,8 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+import textwrap
 
 import psycopg2
 import requests
@@ -79,17 +80,21 @@ class RetrievalTestSuite:
         # Combine content samples for context
         context = "\n".join(content_samples[:5])  # Use first 5 chunks for context
 
-        prompt = f"""Based on the following content from "{document_name}", generate exactly 20 diverse test questions that can be answered using the document content. Include a mix of:
-- Factual questions (what, when, where)
-- Procedural questions (how to)
-- Conceptual questions (why, explain)
-- Technical questions specific to the content
+        prompt = textwrap.dedent(
+            f"""
+            Based on the following content from "{document_name}", generate exactly 20 diverse
+            test questions that can be answered using the document content. Include a mix of:
+            - Factual questions (what, when, where)
+            - Procedural questions (how to)
+            - Conceptual questions (why, explain)
+            - Technical questions specific to the content
 
-Content:
-{context[:2000]}...
+            Content:
+            {context[:2000]}...
 
-Generate exactly 20 questions, one per line, starting each with "Q: ":
-"""
+            Generate exactly 20 questions, one per line, starting each with "Q: ":
+            """
+        )
 
         try:
             response = requests.post(
@@ -286,7 +291,11 @@ Generate exactly 20 questions, one per line, starting each with "Q: ":
                 if result["status"] == "success":
                     metrics = result["metrics"]
                     print(
-                        f"R@1: {metrics['recall_at_1']}, R@5: {metrics['recall_at_5']}, Sim: {metrics['avg_similarity_score']:.3f}"
+                        "R@1: {r1}, R@5: {r5}, Sim: {sim:.3f}".format(
+                            r1=metrics['recall_at_1'],
+                            r5=metrics['recall_at_5'],
+                            sim=metrics['avg_similarity_score'],
+                        )
                     )
                 else:
                     print(f"❌ {result.get('error', 'Unknown error')}")
@@ -297,12 +306,26 @@ Generate exactly 20 questions, one per line, starting each with "Q: ":
                 doc_metrics = {
                     "total_questions": len(questions),
                     "successful_tests": len(successful_tests),
-                    "recall_at_1": sum(r["metrics"]["recall_at_1"] for r in successful_tests) / len(successful_tests),
-                    "recall_at_3": sum(r["metrics"]["recall_at_3"] for r in successful_tests) / len(successful_tests),
-                    "recall_at_5": sum(r["metrics"]["recall_at_5"] for r in successful_tests) / len(successful_tests),
-                    "recall_at_10": sum(r["metrics"]["recall_at_10"] for r in successful_tests) / len(successful_tests),
-                    "avg_similarity": sum(r["metrics"]["avg_similarity_score"] for r in successful_tests)
-                    / len(successful_tests),
+                    "recall_at_1": (
+                        sum(r["metrics"]["recall_at_1"] for r in successful_tests)
+                        / len(successful_tests)
+                    ),
+                    "recall_at_3": (
+                        sum(r["metrics"]["recall_at_3"] for r in successful_tests)
+                        / len(successful_tests)
+                    ),
+                    "recall_at_5": (
+                        sum(r["metrics"]["recall_at_5"] for r in successful_tests)
+                        / len(successful_tests)
+                    ),
+                    "recall_at_10": (
+                        sum(r["metrics"]["recall_at_10"] for r in successful_tests)
+                        / len(successful_tests)
+                    ),
+                    "avg_similarity": (
+                        sum(r["metrics"]["avg_similarity_score"] for r in successful_tests)
+                        / len(successful_tests)
+                    ),
                     "avg_embedding_time": sum(r["metrics"]["embedding_time"] for r in successful_tests)
                     / len(successful_tests),
                     "avg_search_time": sum(r["metrics"]["search_time"] for r in successful_tests)
@@ -381,30 +404,54 @@ Generate exactly 20 questions, one per line, starting each with "Q: ":
 
         overall = self.results["overall_metrics"]
 
-        report = f"""# 🔍 Technical Service Assistant - Retrieval Test Report
+        def grade(score: float, thresholds: List[Tuple[float, str]]) -> str:
+            for threshold, label in thresholds:
+                if score > threshold:
+                    return label
+            return "❌ Poor"
 
-**Test Date:** {self.results['test_timestamp']}
-**Total Documents:** {overall['total_documents']}
-**Total Questions Tested:** {overall['total_questions']}
+        recall1_grade = grade(
+            overall['overall_recall_at_1'],
+            [(0.8, '🏆 Excellent'), (0.6, '🥈 Good'), (0.4, '🥉 Fair')],
+        )
+        recall5_grade = grade(
+            overall['overall_recall_at_5'],
+            [(0.9, '🏆 Excellent'), (0.8, '🥈 Good'), (0.6, '🥉 Fair')],
+        )
+        recall10_grade = grade(
+            overall['overall_recall_at_10'],
+            [(0.95, '🏆 Excellent'), (0.9, '🥈 Good'), (0.8, '🥉 Fair')],
+        )
+        similarity_grade = grade(
+            overall['overall_avg_similarity'],
+            [(0.8, '🏆 Excellent'), (0.6, '🥈 Good'), (0.4, '🥉 Fair')],
+        )
 
-## 📊 Overall Performance Metrics
-
-| Metric | Score | Grade |
-|--------|-------|-------|
-| **Recall@1** | {overall['overall_recall_at_1']:.3f} | {'🏆 Excellent' if overall['overall_recall_at_1'] > 0.8 else '🥈 Good' if overall['overall_recall_at_1'] > 0.6 else '🥉 Fair' if overall['overall_recall_at_1'] > 0.4 else '❌ Poor'} |
-| **Recall@5** | {overall['overall_recall_at_5']:.3f} | {'🏆 Excellent' if overall['overall_recall_at_5'] > 0.9 else '🥈 Good' if overall['overall_recall_at_5'] > 0.8 else '🥉 Fair' if overall['overall_recall_at_5'] > 0.6 else '❌ Poor'} |
-| **Recall@10** | {overall['overall_recall_at_10']:.3f} | {'🏆 Excellent' if overall['overall_recall_at_10'] > 0.95 else '🥈 Good' if overall['overall_recall_at_10'] > 0.9 else '🥉 Fair' if overall['overall_recall_at_10'] > 0.8 else '❌ Poor'} |
-| **Avg Similarity** | {overall['overall_avg_similarity']:.3f} | {'🏆 Excellent' if overall['overall_avg_similarity'] > 0.8 else '🥈 Good' if overall['overall_avg_similarity'] > 0.6 else '🥉 Fair' if overall['overall_avg_similarity'] > 0.4 else '❌ Poor'} |
-
-## ⚡ Performance Metrics
-
-- **Average Embedding Time:** {overall['overall_avg_embedding_time']:.3f}s
-- **Average Search Time:** {overall['overall_avg_search_time']:.3f}s
-- **Average Total Time:** {overall['overall_avg_total_time']:.3f}s
-
-## 📚 Document-Level Results
-
-"""
+        report_lines = [
+            "# 🔍 Technical Service Assistant - Retrieval Test Report",
+            "",
+            f"**Test Date:** {self.results['test_timestamp']}",
+            f"**Total Documents:** {overall['total_documents']}",
+            f"**Total Questions Tested:** {overall['total_questions']}",
+            "",
+            "## 📊 Overall Performance Metrics",
+            "",
+            "| Metric | Score | Grade |",
+            "|--------|-------|-------|",
+            f"| **Recall@1** | {overall['overall_recall_at_1']:.3f} | {recall1_grade} |",
+            f"| **Recall@5** | {overall['overall_recall_at_5']:.3f} | {recall5_grade} |",
+            f"| **Recall@10** | {overall['overall_recall_at_10']:.3f} | {recall10_grade} |",
+            f"| **Avg Similarity** | {overall['overall_avg_similarity']:.3f} | {similarity_grade} |",
+            "",
+            "## ⚡ Performance Metrics",
+            "",
+            f"- **Average Embedding Time:** {overall['overall_avg_embedding_time']:.3f}s",
+            f"- **Average Search Time:** {overall['overall_avg_search_time']:.3f}s",
+            f"- **Average Total Time:** {overall['overall_avg_total_time']:.3f}s",
+            "",
+            "## 📚 Document-Level Results",
+            "",
+        ]
 
         for doc_name, doc_data in self.results["documents"].items():
             if not doc_data.get("metrics"):
@@ -413,49 +460,90 @@ Generate exactly 20 questions, one per line, starting each with "Q: ":
             metrics = doc_data["metrics"]
             metadata = doc_data["metadata"]
 
-            report += f"""### 📖 {doc_name}
+            report_lines.extend([
+                f"### 📖 {doc_name}",
+                "",
+                f"**Chunks:** {metadata['chunk_count']} | **Questions:** {metrics['total_questions']} | "
+                f"**Successful Tests:** {metrics['successful_tests']}",
+                "",
+                "| Metric | Score |",
+                "|--------|-------|",
+                f"| Recall@1 | {metrics['recall_at_1']:.3f} |",
+                f"| Recall@5 | {metrics['recall_at_5']:.3f} |",
+                f"| Recall@10 | {metrics['recall_at_10']:.3f} |",
+                f"| Avg Similarity | {metrics['avg_similarity']:.3f} |",
+                f"| Avg Response Time | {metrics['avg_total_time']:.3f}s |",
+                "",
+                "#### Sample Questions Tested:",
+            ])
 
-**Chunks:** {metadata['chunk_count']} | **Questions:** {metrics['total_questions']} | **Successful Tests:** {metrics['successful_tests']}
-
-| Metric | Score |
-|--------|-------|
-| Recall@1 | {metrics['recall_at_1']:.3f} |
-| Recall@5 | {metrics['recall_at_5']:.3f} |
-| Recall@10 | {metrics['recall_at_10']:.3f} |
-| Avg Similarity | {metrics['avg_similarity']:.3f} |
-| Avg Response Time | {metrics['avg_total_time']:.3f}s |
-
-#### Sample Questions Tested:
-"""
-
-            # Add first 5 questions as examples
             for i, question in enumerate(doc_data["questions"][:5], 1):
-                report += f"{i}. {question['question']}\n"
+                report_lines.append(f"{i}. {question['question']}")
 
-            report += "\n"
+            report_lines.append("")
 
-        report += f"""
-## 🎯 Key Findings
+        strengths = []
+        if overall['overall_recall_at_1'] > 0.8:
+            strengths.append("High precision with Recall@1 > 0.8")
+        else:
+            strengths.append("Decent recall performance")
+        if overall['overall_avg_similarity'] > 0.7:
+            strengths.append("Excellent semantic similarity scores")
+        else:
+            strengths.append("Good semantic matching")
+        if overall['overall_avg_total_time'] < 1.0:
+            strengths.append("Fast response times < 1s")
+        else:
+            strengths.append("Reasonable response times")
 
-### ✅ Strengths
-- {"High precision with Recall@1 > 0.8" if overall['overall_recall_at_1'] > 0.8 else "Decent recall performance"}
-- {"Excellent semantic similarity scores" if overall['overall_avg_similarity'] > 0.7 else "Good semantic matching"}
-- {"Fast response times < 1s" if overall['overall_avg_total_time'] < 1.0 else "Reasonable response times"}
+        improvements = []
+        if overall['overall_recall_at_1'] < 0.7:
+            improvements.append("Consider improving chunking strategy for better Recall@1")
+        if overall['overall_avg_similarity'] < 0.6:
+            improvements.append("Optimize embedding model or add reranking for better similarity scores")
+        if overall['overall_avg_search_time'] > 0.5:
+            improvements.append("Consider indexing optimizations for faster search")
 
-### 🔄 Areas for Improvement
-{"- Consider improving chunking strategy for better Recall@1" if overall['overall_recall_at_1'] < 0.7 else ""}
-{"- Optimize embedding model or add reranking for better similarity scores" if overall['overall_avg_similarity'] < 0.6 else ""}
-{"- Consider indexing optimizations for faster search" if overall['overall_avg_search_time'] > 0.5 else ""}
+        report_lines.extend([
+            "## 🎯 Key Findings",
+            "",
+            "### ✅ Strengths",
+        ])
+        report_lines.extend(f"- {item}" for item in strengths)
+        report_lines.append("")
 
-## 🛠️ Recommendations
+        if improvements:
+            report_lines.append("### 🔄 Areas for Improvement")
+            report_lines.extend(f"- {item}" for item in improvements)
+            report_lines.append("")
 
-1. **Embedding Quality**: Current nomic-embed-text model performing {'well' if overall['overall_avg_similarity'] > 0.6 else 'adequately'}
-2. **Retrieval Performance**: {'Excellent' if overall['overall_recall_at_5'] > 0.9 else 'Good' if overall['overall_recall_at_5'] > 0.8 else 'Needs improvement'} recall rates
-3. **Performance**: {'Excellent' if overall['overall_avg_total_time'] < 0.5 else 'Good' if overall['overall_avg_total_time'] < 1.0 else 'Consider optimization'} response times
+        retrieval_rating = (
+            "Excellent" if overall['overall_recall_at_5'] > 0.9
+            else "Good" if overall['overall_recall_at_5'] > 0.8
+            else "Needs improvement"
+        )
+        performance_rating = (
+            "Excellent" if overall['overall_avg_total_time'] < 0.5
+            else "Good" if overall['overall_avg_total_time'] < 1.0
+            else "Consider optimization"
+        )
+        embedding_rating = (
+            "well" if overall['overall_avg_similarity'] > 0.6 else "adequately"
+        )
 
----
-*Report generated by Technical Service Assistant Test Suite*
-"""
+        report_lines.extend([
+            "## 🛠️ Recommendations",
+            "",
+            f"1. **Embedding Quality**: Current nomic-embed-text model performing {embedding_rating}",
+            f"2. **Retrieval Performance**: {retrieval_rating} recall rates",
+            f"3. **Performance**: {performance_rating} response times",
+            "",
+            "---",
+            "*Report generated by Technical Service Assistant Test Suite*",
+            "",
+        ])
+
+        report = "\n".join(report_lines)
 
         with open(filename, "w") as f:
             f.write(report)

@@ -8,6 +8,7 @@ retrieval accuracy from 82% to 90%+ target.
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -39,8 +40,9 @@ class MultiStageReranker:
 
     def __init__(self):
         """Initialize multi-stage reranker."""
-        self.domain_glossary = self._load_domain_glossary()
-        self.reranker_url = "http://localhost:8008"
+    self.domain_glossary = self._load_domain_glossary()
+    # Support remote deployments via environment variable
+    self.reranker_url = os.getenv("RERANKER_URL", "http://localhost:8008")
 
     def _load_domain_glossary(self) -> Dict[str, List[str]]:
         """Load domain glossary for scoring."""
@@ -333,7 +335,11 @@ def main():
         for i, result in enumerate(results, 1):
             print(f"  {i}. {result.document_name}")
             print(
-                f"     Vector: {result.vector_score:.3f} | Rerank: {result.rerank_score:.3f} | Domain: {result.domain_score:.3f}"
+                "     Vector: {vector:.3f} | Rerank: {rerank:.3f} | Domain: {domain:.3f}".format(
+                    vector=result.vector_score,
+                    rerank=result.rerank_score,
+                    domain=result.domain_score,
+                )
             )
             print(f"     Final Score: {result.final_score:.3f}")
 

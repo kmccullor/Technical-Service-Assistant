@@ -477,12 +477,19 @@ def main():
 
     # Display key findings
     print(f"\n🎯 Key Findings:")
-    print(
-        f"  Most common technical term: {list(analysis.technical_terms.items())[0] if analysis.technical_terms else 'None'}"
-    )
-    print(
-        f"  Most frequent document type: {max(analysis.document_types.items(), key=lambda x: x[1]) if analysis.document_types else 'None'}"
-    )
+    if analysis.technical_terms:
+        term, count = list(analysis.technical_terms.items())[0]
+        top_term = f"{term} ({count})"
+    else:
+        top_term = "None"
+    print(f"  Most common technical term: {top_term}")
+
+    if analysis.document_types:
+        doc_type, occurrences = max(analysis.document_types.items(), key=lambda x: x[1])
+        most_common_type = f"{doc_type} ({occurrences})"
+    else:
+        most_common_type = "None"
+    print(f"  Most frequent document type: {most_common_type}")
     print(f"  Vocabulary richness: {analysis.vocabulary_stats.get('vocabulary_richness', 0):.3f}")
 
     print(f"\n🚀 Ready for Phase 1 embedding fine-tuning!")

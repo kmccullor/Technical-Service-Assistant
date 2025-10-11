@@ -7,10 +7,13 @@ Test script to validate 15-second performance targets for all reasoning operatio
 import asyncio
 import time
 
+import os
 import requests
 
 # Test configuration
-RERANKER_URL = "http://localhost:8008"
+# Allow overriding the API base URL for remote environments.
+# Export RERANKER_URL or pass in environment; fallback keeps local dev behavior.
+RERANKER_URL = os.getenv("RERANKER_URL", "http://localhost:8008")
 PERFORMANCE_TARGET = 15.0  # 15 seconds
 WARNING_THRESHOLD = 10.0  # 10 seconds
 

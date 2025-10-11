@@ -5,9 +5,15 @@
     <script>
         async function testChat() {
             console.log('Testing chat endpoint directly...');
-            
+
+            // Determine API base URL: prefer global override window.RERANKER_URL, then data attribute, then same host (port 8008 default)
+            const override = window.RERANKER_URL || document.body.getAttribute('data-api-base');
+            const inferred = `${location.protocol}//${location.hostname}:8008`;
+            const apiBase = (override || inferred).replace(/\/$/, '');
+            console.log('Using API base:', apiBase);
+
             try {
-                const response = await fetch('http://localhost:8008/api/hybrid-search', {
+                const response = await fetch(`${apiBase}/api/hybrid-search`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({

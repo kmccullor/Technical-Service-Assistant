@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { useAuth } from '@/src/context/AuthContext'
 import Link from 'next/link'
@@ -9,14 +10,46 @@ import { UserMenu } from '@/components/layout/user-menu'
 
 export default function HomePage() {
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>()
-  const { user, logout } = useAuth()
+  const [redirecting, setRedirecting] = useState(false)
+  const { user, logout, loading } = useAuth()
+  const router = useRouter()
 
-  // Redirect to password change if required
-  if (user?.password_change_required) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/change-password'
+  // Handle password change redirect
+  useEffect(() => {
+    console.log('[HOME] Password change check:', { 
+      userEmail: user?.email, 
+      passwordChangeRequired: user?.password_change_required, 
+      redirecting 
+    })
+    if (user?.password_change_required && !redirecting) {
+      console.log('[HOME] Redirecting to password change page')
+      setRedirecting(true)
+      router.push('/change-password')
     }
-    return null
+  }, [user?.password_change_required, router, redirecting])
+
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show redirecting state
+  if (user?.password_change_required || redirecting) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Redirecting to password change...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleNewChat = () => {

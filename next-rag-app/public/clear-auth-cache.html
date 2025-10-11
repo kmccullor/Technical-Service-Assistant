@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Auth Cache</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+        .success { color: green; font-weight: bold; }
+        .info { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .warning { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Authentication Cache Cleaner</h1>
+        
+        <div class="warning">
+            <strong>⚠️ If you're having login issues:</strong>
+            <p>This tool will clear cached authentication data that might be causing problems.</p>
+        </div>
+        
+        <button onclick="clearAuthCache()">Clear Auth Cache</button>
+        <button onclick="checkCurrentAuth()">Check Current Auth</button>
+        <button onclick="testLogin()">Test Login</button>
+        
+        <div id="output"></div>
+        
+        <div class="info">
+            <h3>📋 Troubleshooting Steps:</h3>
+            <ol>
+                <li>Click "Clear Auth Cache" to remove old authentication data</li>
+                <li>Refresh the page</li>
+                <li>Try logging in again</li>
+                <li>If still having issues, try incognito/private browsing mode</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function log(message, isSuccess = false) {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.innerHTML = message;
+            if (isSuccess) div.className = 'success';
+            div.style.margin = '10px 0';
+            output.appendChild(div);
+        }
+
+        function clearAuthCache() {
+            log('🧹 Clearing authentication cache...');
+            
+            // Clear the specific auth key
+            localStorage.removeItem('tsa_auth_v1');
+            
+            // Clear any other auth-related keys
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('auth') || key.includes('token') || key.includes('user'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`   Removed: ${key}`);
+            });
+            
+            // Clear session storage too
+            sessionStorage.clear();
+            
+            log('✅ Authentication cache cleared successfully!', true);
+            log('Please refresh the page and try logging in again.');
+        }
+
+        function checkCurrentAuth() {
+            log('🔍 Checking current authentication state...');
+            
+            const authData = localStorage.getItem('tsa_auth_v1');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    log(`Found cached auth for: ${parsed.user?.email || 'unknown user'}`);
+                    log(`Access token present: ${parsed.accessToken ? 'Yes' : 'No'}`);
+                    log(`Refresh token present: ${parsed.refreshToken ? 'Yes' : 'No'}`);
+                    log(`Expires at: ${parsed.expiresAt ? new Date(parsed.expiresAt).toLocaleString() : 'Unknown'}`);
+                } catch (e) {
+                    log('❌ Found corrupted auth data');
+                }
+            } else {
+                log('No cached authentication data found');
+            }
+        }
+
+        async function testLogin() {
+            log('🧪 Testing login functionality...');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@example.com',
+                        password: 'admin%2025'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Login test successful for ${data.user.email}`, true);
+                    log(`Role: ${data.user.role_name || 'admin'}`);
+                    log(`Status: ${data.user.status}`);
+                } else {
+                    log(`❌ Login test failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ Login test error: ${error.message}`);
+            }
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            log('🚀 Auth Cache Cleaner loaded');
+            checkCurrentAuth();
+        };
+    </script>
+</body>
+</html>

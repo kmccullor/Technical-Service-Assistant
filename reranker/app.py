@@ -3232,6 +3232,23 @@ async def list_documents(request: DocumentListRequest):
         raise HTTPException(status_code=500, detail="Failed to retrieve document list")
 
 
+@app.get("/api/documents", response_model=DocumentListResponse)
+async def list_documents_get(limit: int = 20, offset: int = 0):
+    """Convenience GET wrapper for listing documents (backward compatibility).
+
+    Frontend originally called GET /api/documents without pagination body. This endpoint
+    adapts to that usage and delegates to the POST implementation.
+    """
+    try:
+        doc_request = DocumentListRequest(limit=limit, offset=offset)
+        return await list_documents(doc_request)  # type: ignore[arg-type]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"GET /api/documents failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve documents")
+
+
 @app.get("/api/documents/{document_id}")
 async def get_document_details(document_id: int):
     """Get detailed information about a specific document."""

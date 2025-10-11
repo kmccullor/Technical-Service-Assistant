@@ -32,7 +32,6 @@ This prints the final values after precedence resolution.
 | Script cannot resolve `pgvector` host | Running script on host instead of inside Docker network | Use `docker exec -it reranker ...` |
 | Login fails for seeded admin | RBAC seed script not executed (or different email) | Run `make seed-rbac` (added target) |
 
----
 
 ## Frontend Auth API Access (Rewrites vs Direct URL)
 
@@ -68,4 +67,5 @@ The `AuthContext` performs a lightweight health probe to `/api/auth/health` on m
 | Temporary direct testing vs remote backend | Export `NEXT_PUBLIC_BACKEND_URL` in shell before build/run |
 
 If you add new auth endpoints on the backend under `/api/auth/*`, they are automatically covered by the existing rewrite mapping.
+- `REMOTE_DEPLOYMENT.md` - Configuring remote (non-localhost) deployments and environment variables
 

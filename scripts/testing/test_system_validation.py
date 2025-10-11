@@ -7,6 +7,7 @@ and initialization time allowances.
 """
 
 import logging
+import os
 import time
 from typing import Any, Dict, List
 
@@ -22,7 +23,8 @@ class SystemValidator:
     """Comprehensive system validation with performance monitoring."""
 
     def __init__(self):
-        self.base_url = "http://localhost:8008"
+        # Support remote deployments via RERANKER_URL environment variable
+        self.base_url = os.getenv("RERANKER_URL", "http://localhost:8008")
         self.results = []
         self.performance_targets = {
             "health": 2,  # 2 seconds

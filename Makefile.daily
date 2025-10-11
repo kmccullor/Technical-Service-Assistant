@@ -8,9 +8,12 @@ health-check:
 	@echo "🏥 Quick Health Check..."
 	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 	@echo "\n=== Testing Core Endpoints ==="
-	@curl -f -s http://localhost:8008/health && echo "✅ Reranker OK" || echo "❌ Reranker FAIL"
-	@curl -f -s http://localhost:11434/api/tags > /dev/null && echo "✅ Ollama-1 OK" || echo "❌ Ollama-1 FAIL"
-	@curl -f -s http://localhost:8080 > /dev/null && echo "✅ Frontend OK" || echo "❌ Frontend FAIL"
+	@RERANKER_URL=$${RERANKER_URL:-http://localhost:8008}; \
+	FRONTEND_URL=$${FRONTEND_URL:-http://localhost:8080}; \
+	OLLAMA1_URL=$${OLLAMA1_URL:-http://localhost:11434}; \
+	curl -f -s "$${RERANKER_URL%/}/health" && echo "✅ Reranker OK" || echo "❌ Reranker FAIL"; \
+	curl -f -s "$${OLLAMA1_URL%/}/api/tags" > /dev/null && echo "✅ Ollama-1 OK" || echo "❌ Ollama-1 FAIL"; \
+	curl -f -s "$${FRONTEND_URL%/}" > /dev/null && echo "✅ Frontend OK" || echo "❌ Frontend FAIL"
 	@echo "\n=== System Resources ==="
 	@df -h . | tail -1
 	@free -h | head -2

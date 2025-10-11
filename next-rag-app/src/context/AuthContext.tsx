@@ -75,11 +75,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let cancelled = false;
     const init = async () => {
+      console.log('[AUTH] Initializing auth context');
       const persisted = loadPersisted();
+      console.log('[AUTH] Persisted state:', persisted ? 'Found tokens' : 'No tokens');
       if (!persisted?.accessToken) {
+        console.log('[AUTH] No access token found, setting loading false');
         if (!cancelled) applyState({ loading: false });
         return;
       }
+      console.log('[AUTH] Found access token, loading user profile');
       applyState({ ...persisted, loading: true });
       // Health check first to avoid white screen if backend not ready
       try {
@@ -94,9 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       try {
+        console.log('[AUTH] Fetching user profile from /api/auth/me');
         const r = await fetch(backendUrl('/api/auth/me'), { headers: { Authorization: `Bearer ${persisted.accessToken}` } });
+        console.log('[AUTH] Profile fetch response status:', r.status);
         if (r.ok) {
           const profile = await r.json();
+          console.log('[AUTH] Profile loaded:', { id: profile.id, email: profile.email, password_change_required: profile.password_change_required });
           if (!cancelled) applyState({ user: profile, loading: false });
         } else {
           if (!cancelled) {
@@ -113,13 +120,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    console.log('[AUTH] Login attempt for:', email);
     applyState({ loading: true, error: null });
     try {
+      console.log('[AUTH] Sending login request to:', backendUrl('/api/auth/login'));
       const res = await fetch(backendUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      console.log('[AUTH] Login response status:', res.status);
       if (!res.ok) {
         let msg = 'Login failed';
         try {
@@ -137,7 +147,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       // Guard required fields
+      console.log('[AUTH] Login response data:', { hasAccessToken: !!data.access_token, hasRefreshToken: !!data.refresh_token, hasUser: !!data.user, userPasswordChangeRequired: data.user?.password_change_required });
       if (!data || typeof data !== 'object' || !data.access_token || !data.refresh_token || typeof data.expires_in !== 'number' || !data.user) {
+        console.log('[AUTH] Invalid login response data');
         applyState({ loading: false, error: 'Unexpected auth response' });
         return false;
       }
@@ -149,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         expiresAt,
         user: data.user,
       };
+      console.log('[AUTH] Login successful, setting user state:', { email: data.user.email, password_change_required: data.user.password_change_required });
       applyState({ ...newState, loading: false });
       persist(newState);
       return true;
@@ -208,9 +221,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout]);
 
   const refresh = useCallback(async () => {
-    if (!state.refreshToken) return;
+    console.log('[AUTH] Refresh called');
+    if (!state.refreshToken) {
+      console.log('[AUTH] No refresh token available');
+      return;
+    }
     // Prevent concurrent / recursive refresh storms
-    if ((refresh as any)._inFlight) return;
+    if ((refresh as any)._inFlight) {
+      console.log('[AUTH] Refresh already in flight');
+      return;
+    }
+    console.log('[AUTH] Starting token refresh');
     (refresh as any)._inFlight = true;
     try {
       const res = await fetch(backendUrl('/api/auth/refresh'), {
@@ -218,8 +239,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: state.refreshToken }),
       });
-      if (!res.ok) return logout();
+      console.log('[AUTH] Refresh response status:', res.status);
+      if (!res.ok) {
+        console.log('[AUTH] Refresh failed, logging out');
+        return logout();
+      }
       const data = await res.json();
+      console.log('[AUTH] Refresh successful, updated user:', { email: data.user?.email, password_change_required: data.user?.password_change_required });
       // If expires_in is very short (< 65s) we still apply a safety buffer but avoid immediate negative scheduling
       const rawMs = data.expires_in * 1000;
       const safetyBuffer = Math.min(5000, Math.max(1000, rawMs * 0.08)); // 8% or between 1s-5s

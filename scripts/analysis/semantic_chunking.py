@@ -399,7 +399,8 @@ RNI 4.16 System Security User Guide
 
 1. Introduction
 
-This document provides comprehensive security configuration guidelines for RNI 4.16 systems. The Radio Network Interface (RNI) requires specific security measures to ensure proper operation.
+This document provides comprehensive security configuration guidelines for RNI 4.16 systems.
+The Radio Network Interface (RNI) requires specific security measures to ensure proper operation.
 
 1.1 System Requirements
 
@@ -413,11 +414,14 @@ The following system requirements must be met:
 
 The RNI security architecture consists of multiple layers:
 
-Authentication Layer: Handles user authentication through Active Directory integration. Users must provide valid credentials to access the system.
+Authentication Layer: Handles user authentication through Active Directory integration.
+Users must provide valid credentials to access the system.
 
-Authorization Layer: Controls access to system resources based on user roles and permissions. Administrative functions require elevated privileges.
+Authorization Layer: Controls access to system resources based on user roles and permissions.
+Administrative functions require elevated privileges.
 
-Encryption Layer: Provides end-to-end encryption using AES-256 algorithms. All data transmission is encrypted using TLS 1.2 protocols.
+Encryption Layer: Provides end-to-end encryption using AES-256 algorithms.
+All data transmission is encrypted using TLS 1.2 protocols.
 
 2. Configuration Procedures
 

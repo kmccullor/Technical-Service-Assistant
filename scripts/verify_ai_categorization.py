@@ -19,7 +19,7 @@ def verify_ai_categorization_schema():
     """Verify that the AI categorization database schema is properly applied."""
     print("Verifying AI Categorization Database Schema")
     print("=" * 60)
-    
+
     try:
         # Get database connection
         settings = get_settings()
@@ -30,70 +30,70 @@ def verify_ai_categorization_schema():
             user="postgres",
             password="postgres"
         )
-        
+
         with conn.cursor() as cur:
             # Check pdf_documents table schema
             print("1. Checking pdf_documents table schema...")
             cur.execute("""
                 SELECT column_name, data_type, column_default
-                FROM information_schema.columns 
-                WHERE table_name = 'pdf_documents' 
-                AND column_name IN ('document_type', 'product_name', 'product_version', 
+                FROM information_schema.columns
+                WHERE table_name = 'pdf_documents'
+                AND column_name IN ('document_type', 'product_name', 'product_version',
                                   'document_category', 'classification_confidence', 'ai_metadata')
                 ORDER BY column_name;
             """)
-            
+
             pdf_docs_columns = cur.fetchall()
             print(f"   Found {len(pdf_docs_columns)} AI categorization columns:")
             for col_name, data_type, default_val in pdf_docs_columns:
                 print(f"     - {col_name}: {data_type} (default: {default_val})")
-            
+
             # Check document_chunks table schema
             print("\n2. Checking document_chunks table schema...")
             cur.execute("""
                 SELECT column_name, data_type, column_default
-                FROM information_schema.columns 
-                WHERE table_name = 'document_chunks' 
+                FROM information_schema.columns
+                WHERE table_name = 'document_chunks'
                 AND column_name IN ('document_type', 'product_name')
                 ORDER BY column_name;
             """)
-            
+
             chunks_columns = cur.fetchall()
             print(f"   Found {len(chunks_columns)} AI categorization columns:")
             for col_name, data_type, default_val in chunks_columns:
                 print(f"     - {col_name}: {data_type} (default: {default_val})")
-            
+
             # Check for new functions
             print("\n3. Checking for AI categorization functions...")
             cur.execute("""
                 SELECT routine_name, routine_type
-                FROM information_schema.routines 
-                WHERE routine_name LIKE '%categorized%' 
+                FROM information_schema.routines
+                WHERE routine_name LIKE '%categorized%'
                 OR routine_name LIKE '%categorization%'
                 ORDER BY routine_name;
             """)
-            
+
             functions = cur.fetchall()
             print(f"   Found {len(functions)} categorization functions:")
             for func_name, func_type in functions:
                 print(f"     - {func_name} ({func_type})")
-            
+
             # Check indexes
             print("\n4. Checking for AI categorization indexes...")
             cur.execute("""
                 SELECT indexname, tablename
-                FROM pg_indexes 
-                WHERE indexname LIKE '%document_type%' 
-                OR indexname LIKE '%product_name%' 
+                FROM pg_indexes
+                WHERE indexname LIKE '%document_type%'
+                OR indexname LIKE '%product_name%'
                 OR indexname LIKE '%ai_metadata%'
                 ORDER BY tablename, indexname;
             """)
-            
+
             indexes = cur.fetchall()
             print(f"   Found {len(indexes)} categorization indexes:")
             for idx_name, table_name in indexes:
                 print(f"     - {idx_name} on {table_name}")
-            
+
             # Sample data check
             print("\n5. Checking for existing categorized documents...")
             cur.execute("""
@@ -103,7 +103,7 @@ def verify_ai_categorization_schema():
                        COUNT(CASE WHEN classification_confidence > 0 THEN 1 END) as with_confidence
                 FROM pdf_documents;
             """)
-            
+
             stats = cur.fetchone()
             if stats:
                 total, categorized, with_product, with_confidence = stats
@@ -114,19 +114,19 @@ def verify_ai_categorization_schema():
             else:
                 categorized = 0
                 print("   No document statistics available")
-            
+
             # Show sample categorized documents
             if categorized > 0:
                 print("\n6. Sample categorized documents:")
                 cur.execute("""
-                    SELECT file_name, document_type, product_name, product_version, 
+                    SELECT file_name, document_type, product_name, product_version,
                            classification_confidence
-                    FROM pdf_documents 
+                    FROM pdf_documents
                     WHERE document_type != 'unknown' OR product_name != 'unknown'
                     ORDER BY classification_confidence DESC
                     LIMIT 5;
                 """)
-                
+
                 samples = cur.fetchall()
                 for sample in samples:
                     file_name, doc_type, product, version, confidence = sample
@@ -134,7 +134,7 @@ def verify_ai_categorization_schema():
                     print(f"       Type: {doc_type}, Product: {product} v{version}")
                     print(f"       Confidence: {confidence:.2f}")
                     print()
-            
+
             # Test the categorization search function
             print("7. Testing categorization search function...")
             try:
@@ -152,12 +152,12 @@ def verify_ai_categorization_schema():
                 print(f"   Categorization search function working: {result[0] if result else 'No results'}")
             except Exception as e:
                 print(f"   Categorization search function error: {e}")
-        
+
         conn.close()
         print("\n" + "=" * 60)
         print("AI Categorization Schema Verification: COMPLETE")
         return True
-        
+
     except Exception as e:
         print(f"Schema verification failed: {e}")
         import traceback

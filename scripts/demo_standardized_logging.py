@@ -5,10 +5,15 @@ Create demonstration of standardized Log4 logging across all key Python scripts
 
 import sys
 from datetime import datetime
+from pathlib import Path
 
 # Setup proper paths
 sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
 from utils.logging_config import setup_logging
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+LOG_DIR = BASE_DIR / "logs"
+DATE_SUFFIX = datetime.now().strftime("%Y%m%d")
 
 # Example usage for each major script category
 
@@ -16,7 +21,7 @@ from utils.logging_config import setup_logging
 service_logger = setup_logging(
     program_name="technical_service_assistant_service",
     log_level="INFO",
-    log_file=f'/home/kmccullor/Projects/Technical-Service-Assistant/logs/service_{datetime.now().strftime("%Y%m%d")}.log',
+    log_file=str(LOG_DIR / f"service_{DATE_SUFFIX}.log"),
     console_output=True,
 )
 
@@ -39,7 +44,7 @@ util_logger.info("Benchmark complete - results saved")
 test_logger = setup_logging(
     program_name="test_runner",
     log_level="DEBUG",
-    log_file=f'/home/kmccullor/Projects/Technical-Service-Assistant/logs/tests_{datetime.now().strftime("%Y%m%d")}.log',
+    log_file=str(LOG_DIR / f"tests_{DATE_SUFFIX}.log"),
     console_output=True,
 )
 
@@ -51,7 +56,7 @@ test_logger.info("All connectivity tests passed")
 analysis_logger = setup_logging(
     program_name="analysis_engine",
     log_level="INFO",
-    log_file=f'/home/kmccullor/Projects/Technical-Service-Assistant/logs/analysis_{datetime.now().strftime("%Y%m%d")}.log',
+    log_file=str(LOG_DIR / f"analysis_{DATE_SUFFIX}.log"),
     console_output=True,
 )
 

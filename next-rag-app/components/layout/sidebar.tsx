@@ -8,7 +8,7 @@ import { Plus, MessageCircle, FileText, Search, Settings, X, Upload, Shield } fr
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog-client'
 
 interface Conversation {
   id: number
@@ -23,6 +23,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onNewChat, onSelectConversation, currentConversationId }: SidebarProps) {
+  const [mounted, setMounted] = useState(false)
+  
   // Stub implementations for missing functions
   async function fetchStats() {
     // TODO: Replace with real API call
@@ -45,6 +47,11 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
   const [documentsError, setDocumentsError] = useState<string | null>(null)
   const { accessToken, user } = useAuth()
 
+  // Ensure component is mounted before rendering dialogs
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     fetchStats()
     fetchConversations()
@@ -54,21 +61,65 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     if (documentsOpen) {
       setDocumentsLoading(true)
       setDocumentsError(null)
-      fetch('/api/documents')
-        .then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch documents')
-          return res.json()
-        })
-        .then((data) => {
+      const controller = new AbortController()
+      const fetchDocuments = async () => {
+        try {
+          const res = await fetch('/api/documents/list', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+            },
+            body: JSON.stringify({ limit: 50, offset: 0 }),
+            signal: controller.signal
+          })
+          if (!res.ok) {
+            let detail = ''
+            try {
+              const errJson = await res.json()
+              detail = errJson.detail || JSON.stringify(errJson)
+            } catch {}
+            throw new Error(`Failed to fetch documents (status ${res.status}) ${detail}`.trim())
+          }
+          const data = await res.json()
           setDocuments(data.documents || [])
+        } catch (err: any) {
+          if (err.name === 'AbortError') return
+          console.error('[Documents] fetch error:', err)
+            setDocumentsError(err.message || 'Unknown error')
+        } finally {
           setDocumentsLoading(false)
-        })
-        .catch((err) => {
-          setDocumentsError(err.message || 'Unknown error')
-          setDocumentsLoading(false)
-        })
+        }
+      }
+      fetchDocuments()
+      return () => controller.abort()
     }
-  }, [documentsOpen])
+  }, [documentsOpen, accessToken])
+
+  // Don't render dialogs until component is mounted (prevents hydration issues)
+  if (!mounted) {
+    return (
+      <div className="w-64 bg-muted/30 border-r flex flex-col">
+        <div className="p-4 border-b">
+          <Button variant="ghost" className="w-full justify-start" disabled>
+            <FileText className="h-4 w-4 mr-2" />
+            Documents
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Recent Conversations</h3>
+          </div>
+        </div>
+        <div className="p-4 border-t">
+          <Button variant="ghost" className="w-full justify-start" disabled>
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-64 bg-muted/30 border-r flex flex-col">

@@ -26,7 +26,8 @@ echo "  Slow queries (>1s, >10 calls): $SLOW_QUERIES"
 
 # Vector search performance
 echo "🔍 Vector Search Performance:"
-VECTOR_SEARCH_TIME=$(timeout 15 curl -X POST http://localhost:8008/search \
+API_URL="${RERANKER_URL:-http://localhost:8008}"
+VECTOR_SEARCH_TIME=$(timeout 15 curl -X POST "${API_URL%/}/search" \
   -H "Content-Type: application/json" \
   -d '{"query": "performance test query", "passages": ["test passage"], "k": 5}' \
   -w "%{time_total}" -s -o /dev/null 2>/dev/null || echo "timeout")

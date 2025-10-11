@@ -265,7 +265,11 @@ def main():
     print("\nPer-query results:")
     for pq in per_query:
         parts = ", ".join([f"R@{k}={pq['recall'][k]:.0f}" for k in args.k])
-        base_line = f"- {pq['query']} :: {parts}, MRR={pq['mrr']:.2f}, nDCG={pq['ndcg']:.2f}, t_total={pq['timing_seconds']['total']:.3f}s"
+        base_line = (
+            f"- {pq['query']} :: {parts}, "
+            f"MRR={pq['mrr']:.2f}, nDCG={pq['ndcg']:.2f}, "
+            f"t_total={pq['timing_seconds']['total']:.3f}s"
+        )
         if pq.get("rerank") and not pq["rerank"].get("error"):
             base_line += f", RR_MRR={pq['rerank']['mrr']:.2f}"
         elif pq.get("rerank") and pq["rerank"].get("error"):

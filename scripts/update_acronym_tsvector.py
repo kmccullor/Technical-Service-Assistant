@@ -17,22 +17,22 @@ def update_tsvector():
             user=os.getenv('DB_USER', 'postgres'),
             password=os.getenv('DB_PASSWORD', 'postgres')
         )
-        
+
         with conn.cursor() as cursor:
             # Update content_tsvector for acronym index chunks
             cursor.execute("""
-                UPDATE document_chunks 
+                UPDATE document_chunks
                 SET content_tsvector = to_tsvector('english', content)
                 WHERE document_id IN (
                     SELECT id FROM documents WHERE file_name = 'ACRONYM_INDEX.md'
                 )
             """)
-            
+
             rows_updated = cursor.rowcount
             print(f"✅ Updated tsvector for {rows_updated} acronym index chunks")
-            
+
             conn.commit()
-            
+
             # Test query to see if we can find GUI
             cursor.execute("""
                 SELECT content
@@ -42,12 +42,12 @@ def update_tsvector():
                 AND content_tsvector @@ to_tsquery('english', 'GUI | Graphical')
                 LIMIT 3
             """)
-            
+
             results = cursor.fetchall()
             print(f"🔍 Found {len(results)} chunks matching 'GUI | Graphical'")
             for i, result in enumerate(results):
                 print(f"  Result {i+1}: {result[0][:100]}...")
-            
+
     except Exception as e:
         print(f"❌ Error: {e}")
     finally:

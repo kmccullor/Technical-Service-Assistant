@@ -88,8 +88,9 @@ run_automated_health_checks() {
     
     echo "=== AUTOMATED HEALTH CHECK - $TIMESTAMP ===" > "$health_log"
     
-    # Test reranker service
-    if curl -sf http://localhost:8008/health > /dev/null 2>&1; then
+    # Resolve URLs from environment for remote operation
+    RERANKER_URL="${RERANKER_URL:-http://localhost:8008}"
+    if curl -sf "${RERANKER_URL%/}/health" > /dev/null 2>&1; then
         success "Reranker service responding"
         echo "✅ Reranker service: HEALTHY" >> "$health_log"
     else
@@ -111,7 +112,8 @@ run_automated_health_checks() {
     # Test Ollama instances
     local ollama_healthy=0
     for port in 11434 11435 11436 11437; do
-        if curl -sf http://localhost:$port/api/tags > /dev/null 2>&1; then
+        OLLAMA_HOST="${OLLAMA_HOST:-http://localhost}"; OLLAMA_BASE="${OLLAMA_HOST%/}:$port"
+        if curl -sf "$OLLAMA_BASE/api/tags" > /dev/null 2>&1; then
             echo "✅ Ollama instance (port $port): HEALTHY" >> "$health_log"
             ((ollama_healthy++))
         else
@@ -151,7 +153,8 @@ run_automated_performance_tests() {
     # Basic API response time
     if command -v curl &> /dev/null; then
         local response_time
-        response_time=$(curl -w "%{time_total}" -s -o /dev/null http://localhost:8008/health 2>/dev/null || echo "failed")
+    local API_URL="${RERANKER_URL:-http://localhost:8008}"
+    response_time=$(curl -w "%{time_total}" -s -o /dev/null "${API_URL%/}/health" 2>/dev/null || echo "failed")
         echo "API Response Time: ${response_time}s" >> "$perf_log"
         info "API response time: ${response_time}s"
     fi

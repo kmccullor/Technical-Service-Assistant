@@ -60,9 +60,22 @@ def append_env_export(path: Path, new_key: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description='Rotate API key utility')
-    parser.add_argument('--length', type=int, default=DEFAULT_LENGTH, help='token_urlsafe length parameter (default: 48)')
-    parser.add_argument('--export', action='store_true', help='Append commented API_KEY line to .env for manual activation')
-    parser.add_argument('--apply', action='store_true', help='Immediately replace API_KEY in .env (backs up previous)')
+    parser.add_argument(
+        '--length',
+        type=int,
+        default=DEFAULT_LENGTH,
+        help='token_urlsafe length parameter (default: 48)',
+    )
+    parser.add_argument(
+        '--export',
+        action='store_true',
+        help='Append commented API_KEY line to .env for manual activation',
+    )
+    parser.add_argument(
+        '--apply',
+        action='store_true',
+        help='Immediately replace API_KEY in .env (backs up previous)',
+    )
     args = parser.parse_args()
 
     new_key = generate_api_key(args.length)
