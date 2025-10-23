@@ -146,6 +146,7 @@ services:
       - PYTORCH_DISABLE_CUDNN_CACHE=1
       - OMP_NUM_THREADS=4
       - TOKENIZERS_PARALLELISM=false
+      - DOCLING_SKIP_DOCKER_CHECK=1
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
