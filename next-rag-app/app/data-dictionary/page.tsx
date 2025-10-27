@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Database, 
   Table2, 
@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/src/context/AuthContext'
 
 interface RNIVersion {
   id: number
@@ -117,6 +118,17 @@ export default function DataDictionaryManager() {
     created_by: ''
   })
   const [showQueryHelp, setShowQueryHelp] = useState(false)
+  const { accessToken } = useAuth()
+  const buildHeaders = useCallback(
+    (extra: Record<string, string> = {}) => {
+      const headers: Record<string, string> = { ...extra }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+      return headers
+    },
+    [accessToken]
+  )
 
   // Version comparison
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false)
@@ -125,11 +137,12 @@ export default function DataDictionaryManager() {
   const [comparisonResults, setComparisonResults] = useState<any>(null)
 
   useEffect(() => {
-    fetchRNIVersions()
-    // Load initial data for the active version
+    if (!accessToken) return
     const loadInitialData = async () => {
       try {
-        const response = await fetch('/api/reranker/data-dictionary/rni-versions')
+        const response = await fetch('/api/reranker/data-dictionary/rni-versions', {
+          headers: buildHeaders(),
+        })
         const versions = await response.json()
         const activeVersion = versions.find((v: RNIVersion) => v.is_active)
         if (activeVersion) {
@@ -139,32 +152,33 @@ export default function DataDictionaryManager() {
         console.error('Failed to set initial version:', error)
       }
     }
+    fetchRNIVersions()
     loadInitialData()
-  }, [])
+  }, [accessToken, buildHeaders])
 
   useEffect(() => {
-    if (selectedVersion) {
-      fetchSchemaOverview()
-      fetchDatabaseInstances()
-    }
-  }, [selectedVersion])
+    if (!accessToken || !selectedVersion) return
+    fetchSchemaOverview()
+    fetchDatabaseInstances()
+  }, [accessToken, selectedVersion])
 
   useEffect(() => {
-    if (selectedVersion) {
-      fetchSchemaOverview()
-    }
-  }, [selectedDatabase, selectedSchema])
+    if (!accessToken || !selectedVersion) return
+    fetchSchemaOverview()
+  }, [accessToken, selectedDatabase, selectedSchema, selectedVersion])
 
   useEffect(() => {
-    if (selectedVersion) {
-      fetchSchemaOverview()
-      fetchDatabaseInstances()
-    }
-  }, [selectedVersion, selectedDatabase, selectedSchema])
+    if (!accessToken || !selectedVersion) return
+    fetchSchemaOverview()
+    fetchDatabaseInstances()
+  }, [accessToken, selectedVersion, selectedDatabase, selectedSchema])
 
   const fetchRNIVersions = async () => {
+    if (!accessToken) return
     try {
-      const response = await fetch('/api/reranker/data-dictionary/rni-versions')
+      const response = await fetch('/api/reranker/data-dictionary/rni-versions', {
+        headers: buildHeaders(),
+      })
       const data = await response.json()
       setRniVersions(data)
       if (data.length > 0 && !selectedVersion) {
@@ -177,6 +191,7 @@ export default function DataDictionaryManager() {
   }
 
   const fetchSchemaOverview = async () => {
+    if (!accessToken) return
     setIsLoading(true)
     try {
       const params = new URLSearchParams()
@@ -184,7 +199,9 @@ export default function DataDictionaryManager() {
       if (selectedDatabase) params.append('database_name', selectedDatabase)
       if (selectedSchema) params.append('schema_name', selectedSchema)
 
-      const response = await fetch(`/api/reranker/data-dictionary/schema-overview?${params}`)
+      const response = await fetch(`/api/reranker/data-dictionary/schema-overview?${params}`, {
+        headers: buildHeaders(),
+      })
       const data = await response.json()
       setSchemaOverview(data)
     } catch (error) {
@@ -195,13 +212,15 @@ export default function DataDictionaryManager() {
   }
 
   const fetchDatabaseInstances = async () => {
-    if (!selectedVersion) return
+    if (!accessToken || !selectedVersion) return
     
     try {
       const selectedVersionObj = rniVersions.find(v => v.version_number === selectedVersion)
       if (!selectedVersionObj) return
 
-      const response = await fetch(`/api/reranker/data-dictionary/database-instances?rni_version_id=${selectedVersionObj.id}`)
+      const response = await fetch(`/api/reranker/data-dictionary/database-instances?rni_version_id=${selectedVersionObj.id}`, {
+        headers: buildHeaders(),
+      })
       const data = await response.json()
       setDatabaseInstances(data)
     } catch (error) {
@@ -210,6 +229,7 @@ export default function DataDictionaryManager() {
   }
 
   const fetchColumnDetails = async (tableName: string) => {
+    if (!accessToken) return
     try {
       const params = new URLSearchParams()
       if (selectedVersion) params.append('version_number', selectedVersion)
@@ -217,7 +237,9 @@ export default function DataDictionaryManager() {
       if (selectedSchema) params.append('schema_name', selectedSchema)
       if (tableName) params.append('table_name', tableName)
 
-      const response = await fetch(`/api/reranker/data-dictionary/column-details?${params}`)
+      const response = await fetch(`/api/reranker/data-dictionary/column-details?${params}`, {
+        headers: buildHeaders(),
+      })
       const data = await response.json()
       setColumnDetails(data)
       setSelectedTable(tableName)
@@ -234,6 +256,10 @@ export default function DataDictionaryManager() {
 
   const handleSchemaUpload = async () => {
     if (!selectedFile) return
+    if (!accessToken) {
+      alert('Please sign in to upload schemas.')
+      return
+    }
     
     setIsLoading(true)
     try {
@@ -246,6 +272,7 @@ export default function DataDictionaryManager() {
 
       const response = await fetch('/api/data-dictionary/upload-schema', {
         method: 'POST',
+        headers: buildHeaders(),
         body: formData
       })
 
@@ -279,7 +306,9 @@ export default function DataDictionaryManager() {
       })
       if (selectedDatabase) params.append('database_name', selectedDatabase)
 
-      const response = await fetch(`/api/reranker/data-dictionary/compare-schemas?${params}`)
+      const response = await fetch(`/api/reranker/data-dictionary/compare-schemas?${params}`, {
+        headers: buildHeaders(),
+      })
       const data = await response.json()
       setComparisonResults(data)
     } catch (error) {
@@ -846,7 +875,7 @@ export default function DataDictionaryManager() {
         </TabsContent>
 
         <TabsContent value="ami-assistant">
-          <TechnicalServicesAssistant />
+          <TechnicalServicesAssistant buildHeaders={buildHeaders} accessToken={accessToken} />
         </TabsContent>
       </Tabs>
     </div>
@@ -931,7 +960,13 @@ ORDER BY n.nspname, c.relname, a.attnum;`
 }
 
 // Technical Services Assistant Component
-function TechnicalServicesAssistant() {
+function TechnicalServicesAssistant({
+  buildHeaders,
+  accessToken,
+}: {
+  buildHeaders: (extra?: Record<string, string>) => Record<string, string>
+  accessToken: string | null
+}) {
   const [rniVersion, setRniVersion] = useState('')
   const [databaseName, setDatabaseName] = useState('')
   const [queryResult, setQueryResult] = useState<any>(null)
@@ -940,15 +975,28 @@ function TechnicalServicesAssistant() {
 
   // Load available RNI versions
   useEffect(() => {
-    fetch('/api/data-dictionary/rni-versions')
-      .then(res => res.json())
-      .then(data => setAvailableVersions(data))
-      .catch(err => console.error('Failed to load RNI versions:', err))
-  }, [])
+    if (!accessToken) return
+    const loadVersions = async () => {
+      try {
+        const res = await fetch('/api/data-dictionary/rni-versions', {
+          headers: buildHeaders(),
+        })
+        const data = await res.json()
+        setAvailableVersions(data)
+      } catch (err) {
+        console.error('Failed to load RNI versions:', err)
+      }
+    }
+    loadVersions()
+  }, [accessToken, buildHeaders])
 
   const handleQueryAssistance = async () => {
     if (!rniVersion || !databaseName) {
       alert('Please select both RNI version and database name')
+      return
+    }
+    if (!accessToken) {
+      alert('Please sign in again to continue.')
       return
     }
 
@@ -956,7 +1004,7 @@ function TechnicalServicesAssistant() {
     try {
       const response = await fetch('/api/data-dictionary/query-assistance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ rni_version: rniVersion, database_name: databaseName })
       })
       const data = await response.json()

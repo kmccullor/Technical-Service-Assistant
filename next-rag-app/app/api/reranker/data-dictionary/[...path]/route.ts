@@ -9,12 +9,14 @@ export async function GET(
   const path = params.path.join('/')
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${RERANKER_BASE_URL}/api/data-dictionary/${path}${searchParams ? `?${searchParams}` : ''}`
+  const auth = request.headers.get('authorization') ?? ''
 
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
       },
     })
 
@@ -36,12 +38,14 @@ export async function POST(
   const path = params.path.join('/')
   const url = `${RERANKER_BASE_URL}/api/data-dictionary/${path}`
   const body = await request.json()
+  const auth = request.headers.get('authorization') ?? ''
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
       },
       body: JSON.stringify(body),
     })
@@ -64,12 +68,14 @@ export async function PUT(
   const path = params.path.join('/')
   const url = `${RERANKER_BASE_URL}/api/data-dictionary/${path}`
   const body = await request.json()
+  const auth = request.headers.get('authorization') ?? ''
 
   try {
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
       },
       body: JSON.stringify(body),
     })

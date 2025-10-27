@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 
+const BASE_URL = process.env.RERANKER_BASE_URL || 'http://reranker:8008'
+
 export async function POST(request: Request) {
+  const auth = request.headers.get('authorization') ?? ''
   try {
     const body = await request.json()
-    const response = await fetch('http://reranker:8008/api/data-dictionary/extract-schema', {
+    const response = await fetch(`${BASE_URL}/api/data-dictionary/extract-schema`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {}),
       },
       body: JSON.stringify(body)
     })
