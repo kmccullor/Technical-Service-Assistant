@@ -70,6 +70,7 @@ Alert suggestions (add to `alerts.yml` when alertmanager is enabled):
 * Ensure `prometheus_client` is installed (added 2025-10-08) – missing dependency causes port 9110 connection refusals
 * Histogram buckets currently default; adjust if latency distribution stabilizes
 * Directories inside `uploads/` are skipped; only files processed
+* Export `DOCLING_DEVICE=cpu` (already set in `docker-compose.yml`) to force Docling's accelerator settings to stay on CPU even when CUDA is available
 
 ## Testing
 ```bash
@@ -86,4 +87,3 @@ curl -s 'http://localhost:9091/api/v1/query?query=histogram_quantile(0.95,sum by
 ## Testing
 - Compare results to legacy pipeline for accuracy and completeness.
 - Validate multi-format support and health checks.
-
