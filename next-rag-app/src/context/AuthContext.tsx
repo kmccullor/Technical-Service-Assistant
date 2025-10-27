@@ -196,6 +196,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     applyState({ user: null, accessToken: null, refreshToken: null, expiresAt: null });
     persist({});
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (!path.startsWith('/login')) {
+        try { window.location.href = '/login'; } catch (_) {}
+      }
+    }
   }, []);
 
   // Global 401 handling: monkey patch fetch once
