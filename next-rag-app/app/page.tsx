@@ -10,23 +10,26 @@ import { UserMenu } from '@/components/layout/user-menu'
 
 export default function HomePage() {
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>()
+  const [conversationRefreshKey, setConversationRefreshKey] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
   const { user, logout, loading } = useAuth()
   const router = useRouter()
+  const passwordChangeRequired = user?.password_change_required
+  const userEmail = user?.email
 
   // Handle password change redirect
   useEffect(() => {
     console.log('[HOME] Password change check:', { 
-      userEmail: user?.email, 
-      passwordChangeRequired: user?.password_change_required, 
+      userEmail, 
+      passwordChangeRequired, 
       redirecting 
     })
-    if (user?.password_change_required && !redirecting) {
+    if (passwordChangeRequired && !redirecting) {
       console.log('[HOME] Redirecting to password change page')
       setRedirecting(true)
       router.push('/change-password')
     }
-  }, [user?.password_change_required, router, redirecting])
+  }, [passwordChangeRequired, userEmail, router, redirecting])
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -60,6 +63,22 @@ export default function HomePage() {
     setCurrentConversationId(id)
   }
 
+  const handleConversationCreated = (id: number) => {
+    setCurrentConversationId(id)
+    setConversationRefreshKey(prev => prev + 1)
+  }
+
+  const handleConversationActivity = () => {
+    setConversationRefreshKey(prev => prev + 1)
+  }
+
+  const handleConversationDeleted = (id: number) => {
+    if (currentConversationId === id) {
+      setCurrentConversationId(undefined)
+    }
+    setConversationRefreshKey(prev => prev + 1)
+  }
+
   return (
     <div className="flex h-screen">
       {user && (
@@ -67,6 +86,8 @@ export default function HomePage() {
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
           currentConversationId={currentConversationId}
+          refreshKey={conversationRefreshKey}
+          onConversationDeleted={handleConversationDeleted}
         />
       )}
       <main className="flex-1 flex flex-col">
@@ -87,7 +108,11 @@ export default function HomePage() {
           </div>
         </div>
         {user ? (
-          <ChatInterface conversationId={currentConversationId} />
+          <ChatInterface
+            conversationId={currentConversationId}
+            onConversationCreated={handleConversationCreated}
+            onConversationActivity={handleConversationActivity}
+          />
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-4">

@@ -301,6 +301,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_DOMAIN=RNI-LLM-01.lab.sensus.net
       - GF_SMTP_ENABLED=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-amazonprometheus-datasource
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -341,8 +343,13 @@ services:
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: "postgresql://postgres:postgres@pgvector:5432/vector_db?sslmode=disable"
+    command:
+      - "--config.file=/dev/null"
+      - "--log.level=error"
     ports:
       - "9187:9187"
+    volumes:
+      - ./monitoring/postgres_exporter.yml:/postgres_exporter.yml:ro
     depends_on:
       - pgvector
     healthcheck:

@@ -94,6 +94,9 @@ class Settings:
     verification_email_sender: str
     verification_email_subject: str
     verification_email_link_base: str
+    password_reset_email_sender: str
+    password_reset_email_subject: str
+    password_reset_email_link_base: str
 
     # Feature Flags
     enable_table_extraction: bool
@@ -198,6 +201,9 @@ def get_settings() -> Settings:
     s.verification_email_sender = os.getenv("VERIFICATION_EMAIL_SENDER", "no-reply@technical-service-assistant.local")
     s.verification_email_subject = os.getenv("VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account")
     s.verification_email_link_base = os.getenv("VERIFICATION_EMAIL_LINK_BASE", "http://localhost:3000/verify-email")
+    s.password_reset_email_sender = os.getenv("PASSWORD_RESET_EMAIL_SENDER", s.verification_email_sender)
+    s.password_reset_email_subject = os.getenv("PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password")
+    s.password_reset_email_link_base = os.getenv("PASSWORD_RESET_EMAIL_LINK_BASE", "http://localhost:3000/reset-password")
 
     # Feature Flags
     s.enable_table_extraction = _get_bool("ENABLE_TABLE_EXTRACTION", True)

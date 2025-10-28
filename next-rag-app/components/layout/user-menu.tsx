@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ChevronDown, User, Key, LogOut } from 'lucide-react'
+import { ChevronDown, User, Key, LogOut, Shield } from 'lucide-react'
 
 interface UserMenuProps {
   className?: string
@@ -23,6 +23,9 @@ export function UserMenu({ className }: UserMenuProps) {
   if (!user) {
     return null
   }
+  const normalizedRoleName = typeof user.role_name === 'string' ? user.role_name.toLowerCase() : null
+  const roleId = typeof user.role_id === 'string' ? Number.parseInt(user.role_id, 10) : user.role_id
+  const isAdmin = normalizedRoleName === 'admin' || roleId === 1
 
   return (
     <DropdownMenu>
@@ -44,6 +47,17 @@ export function UserMenu({ className }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAdmin && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/admin" className="flex items-center cursor-pointer">
+                <Shield className="mr-2 h-4 w-4" />
+                <span>User / Role Management</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/change-password" className="flex items-center cursor-pointer">
             <Key className="mr-2 h-4 w-4" />

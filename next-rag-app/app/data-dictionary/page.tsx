@@ -136,44 +136,7 @@ export default function DataDictionaryManager() {
   const [version2, setVersion2] = useState('')
   const [comparisonResults, setComparisonResults] = useState<any>(null)
 
-  useEffect(() => {
-    if (!accessToken) return
-    const loadInitialData = async () => {
-      try {
-        const response = await fetch('/api/reranker/data-dictionary/rni-versions', {
-          headers: buildHeaders(),
-        })
-        const versions = await response.json()
-        const activeVersion = versions.find((v: RNIVersion) => v.is_active)
-        if (activeVersion) {
-          setSelectedVersion(activeVersion.version_number)
-        }
-      } catch (error) {
-        console.error('Failed to set initial version:', error)
-      }
-    }
-    fetchRNIVersions()
-    loadInitialData()
-  }, [accessToken, buildHeaders])
-
-  useEffect(() => {
-    if (!accessToken || !selectedVersion) return
-    fetchSchemaOverview()
-    fetchDatabaseInstances()
-  }, [accessToken, selectedVersion])
-
-  useEffect(() => {
-    if (!accessToken || !selectedVersion) return
-    fetchSchemaOverview()
-  }, [accessToken, selectedDatabase, selectedSchema, selectedVersion])
-
-  useEffect(() => {
-    if (!accessToken || !selectedVersion) return
-    fetchSchemaOverview()
-    fetchDatabaseInstances()
-  }, [accessToken, selectedVersion, selectedDatabase, selectedSchema])
-
-  const fetchRNIVersions = async () => {
+  const fetchRNIVersions = useCallback(async () => {
     if (!accessToken) return
     try {
       const response = await fetch('/api/reranker/data-dictionary/rni-versions', {
@@ -188,9 +151,9 @@ export default function DataDictionaryManager() {
     } catch (error) {
       console.error('Failed to fetch RNI versions:', error)
     }
-  }
+  }, [accessToken, buildHeaders, selectedVersion])
 
-  const fetchSchemaOverview = async () => {
+  const fetchSchemaOverview = useCallback(async () => {
     if (!accessToken) return
     setIsLoading(true)
     try {
@@ -209,11 +172,11 @@ export default function DataDictionaryManager() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accessToken, buildHeaders, selectedVersion, selectedDatabase, selectedSchema])
 
-  const fetchDatabaseInstances = async () => {
+  const fetchDatabaseInstances = useCallback(async () => {
     if (!accessToken || !selectedVersion) return
-    
+
     try {
       const selectedVersionObj = rniVersions.find(v => v.version_number === selectedVersion)
       if (!selectedVersionObj) return
@@ -226,7 +189,22 @@ export default function DataDictionaryManager() {
     } catch (error) {
       console.error('Failed to fetch database instances:', error)
     }
-  }
+  }, [accessToken, buildHeaders, rniVersions, selectedVersion])
+
+  useEffect(() => {
+    if (!accessToken) return
+    fetchRNIVersions()
+  }, [accessToken, fetchRNIVersions])
+
+  useEffect(() => {
+    if (!accessToken || !selectedVersion) return
+    fetchDatabaseInstances()
+  }, [accessToken, selectedVersion, fetchDatabaseInstances])
+
+  useEffect(() => {
+    if (!accessToken || !selectedVersion) return
+    fetchSchemaOverview()
+  }, [accessToken, selectedVersion, fetchSchemaOverview])
 
   const fetchColumnDetails = async (tableName: string) => {
     if (!accessToken) return
@@ -373,7 +351,7 @@ export default function DataDictionaryManager() {
               <DialogHeader>
                 <DialogTitle>Upload Database Schema</DialogTitle>
                 <DialogDescription>
-                  Upload schema data for Sensus AMI databases. You'll need to run the provided SQL query on your database and upload the CSV results.
+                  Upload schema data for Sensus AMI databases. You&apos;ll need to run the provided SQL query on your database and upload the CSV results.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -1151,7 +1129,7 @@ function TechnicalServicesAssistant({
                     <li>Connect to your {databaseName} database server</li>
                     <li>Execute the query in your SQL client</li>
                     <li>Export the results as a CSV file</li>
-                    <li>Upload the CSV file using the "Upload Schema" button</li>
+                    <li>Upload the CSV file using the &quot;Upload Schema&quot; button</li>
                   </ol>
                   <p className="text-xs text-blue-600 mt-2">
                     <strong>Note:</strong> The system cannot access your database servers directly. You must run the query and upload the results manually.
@@ -1165,7 +1143,7 @@ function TechnicalServicesAssistant({
                 <h5 className="font-medium text-orange-800">Database Not Configured</h5>
                 <p className="text-sm text-orange-700 mt-1">
                   The database {databaseName} is not configured for RNI version {rniVersion}. 
-                  Please add it using the "Database Instances" tab first.
+                  Please add it using the &quot;Database Instances&quot; tab first.
                 </p>
               </div>
             )}

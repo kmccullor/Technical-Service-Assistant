@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { advancedLoadBalancer } from '../lib/load-balancer'
-import { localModelService } from '../lib/local-models'
+import { localModelService, type ChatMessage } from '../lib/local-models'
 import { cachePreWarmer } from '../lib/cache-prewarmer'
 
 interface TestResult {
@@ -290,7 +290,7 @@ class OllamaClusterTester {
     console.log('💬 Testing chat generation...')
     
     try {
-      const testMessages = [
+      const testMessages: ChatMessage[] = [
         { role: 'user', content: 'What is load balancing?' }
       ]
       

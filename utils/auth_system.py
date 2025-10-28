@@ -809,7 +809,255 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
+    async def initiate_password_reset(self, email: str) -> bool:
+        """Generate and dispatch a password reset token for the given email.
+
+        Returns True when a notification was queued for an existing user, False otherwise.
+        Caller should always present a generic success response to avoid account enumeration.
+        """
+        normalized_email = email.strip().lower()
+        user = await self.get_user_by_email(normalized_email)
+
+        if not user:
+            await self.log_security_event(
+                event_type="password_reset_requested",
+                severity="low",
+                details={"email": normalized_email, "matched": False},
+            )
+            return False
+
+        token = self.generate_secure_token()
+        token_hash = self._hash_token(token)
+        expires_at = datetime.utcnow() + self.password_reset_expire
+
+        try:
+            await self._run_in_thread(
+                self._store_password_reset_token_sync,
+                user.id,
+                token_hash,
+                expires_at,
+            )
+            sent = await self._run_in_thread(
+                self._dispatch_password_reset_email_sync,
+                user,
+                token,
+                expires_at,
+            )
+        except Exception as exc:
+            await self.log_security_event(
+                event_type="password_reset_failed",
+                severity="high",
+                user_id=user.id,
+                details={"email": normalized_email, "error": str(exc)},
+            )
+            logger.error("Password reset initiation failed for %s: %s", normalized_email, exc)
+            raise
+
+        await self.log_security_event(
+            event_type="password_reset_requested",
+            severity="low",
+            user_id=user.id,
+            details={"email": normalized_email, "email_dispatched": sent},
+        )
+        await self.log_audit_event(
+            user_id=user.id,
+            action="password_reset_requested",
+            resource_type="user",
+            resource_id=str(user.id),
+            details={"email_dispatched": sent, "expires_at": expires_at.isoformat()},
+        )
+
+        return sent
+
+    def _store_password_reset_token_sync(self, user_id: int, token_hash: str, expires_at: datetime):
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                UPDATE verification_tokens
+                SET used = true
+                WHERE user_id = %s AND token_type = 'password_reset'
+                """,
+                (user_id,),
+            )
+            cursor.execute(
+                """
+                INSERT INTO verification_tokens (user_id, token, token_type, expires_at)
+                VALUES (%s, %s, 'password_reset', %s)
+                """,
+                (user_id, token_hash, expires_at),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+
+    def _dispatch_password_reset_email_sync(self, user: User, token: str, expires_at: datetime) -> bool:
+        recipient = user.email
+        if not recipient:
+            logger.warning("Cannot send password reset email without recipient address")
+            return False
+
+        sender = self.settings.password_reset_email_sender or self.settings.verification_email_sender
+        subject = self.settings.password_reset_email_subject
+        reset_url = f"{self.settings.password_reset_email_link_base}?token={token}"
+
+        msg = MIMEMultipart()
+        msg["From"] = sender
+        msg["To"] = recipient
+        msg["Subject"] = subject
+
+        body = (
+            f"Hello {user.full_name or user.email},\n\n"
+            "We received a request to reset the password for your Technical Service Assistant account.\n\n"
+            f"Password reset token: {token}\n"
+            f"Reset link: {reset_url}\n\n"
+            f"This token expires at {expires_at.isoformat()} UTC. "
+            "If you did not request this change, please ignore this email or contact support.\n\n"
+            "Regards,\nTechnical Service Assistant"
+        )
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port, timeout=15) as server:
+                if self.settings.smtp_use_tls:
+                    server.starttls()
+                if self.settings.smtp_username and self.settings.smtp_password:
+                    server.login(self.settings.smtp_username, self.settings.smtp_password)
+                server.sendmail(sender, [recipient], msg.as_string())
+            return True
+        except Exception as exc:
+            logger.error("Failed to send password reset email to %s: %s", recipient, exc)
+            return False
+
+    async def confirm_password_reset(self, token: str, new_password: str) -> bool:
+        """Validate reset token and apply new password."""
+        token = token.strip()
+        if len(token) < 8:
+            raise ValidationError("Password reset token is invalid")
+
+        if len(new_password) < 8:
+            raise ValidationError("Password must be at least 8 characters long")
+
+        new_hash = self.hash_password(new_password)
+
+        try:
+            user_id = await self._run_in_thread(
+                self._apply_password_reset_sync,
+                self._hash_token(token),
+                token,
+                new_hash,
+            )
+        except ValidationError as exc:
+            await self.log_security_event(
+                event_type="password_reset_invalid",
+                severity="medium",
+                details={"error": str(exc)},
+            )
+            raise
+        except Exception as exc:
+            logger.error("Password reset confirmation failed: %s", exc)
+            raise
+
+        if not user_id:
+            return False
+
+        await self.log_audit_event(
+            user_id=user_id,
+            action="password_reset_completed",
+            resource_type="user",
+            resource_id=str(user_id),
+            details={"method": "self_service_token"},
+        )
+        await self.log_security_event(
+            event_type="password_reset_completed",
+            severity="low",
+            user_id=user_id,
+            details={"method": "token"},
+        )
+        return True
+
+    def _apply_password_reset_sync(self, token_hash: str, raw_token: str, new_hash: str) -> int:
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT id, user_id, expires_at, used
+                FROM verification_tokens
+                WHERE token = %s AND token_type = 'password_reset'
+                """,
+                (token_hash,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute(
+                    """
+                    SELECT id, user_id, expires_at, used
+                    FROM verification_tokens
+                    WHERE token = %s AND token_type = 'password_reset'
+                    """,
+                    (raw_token,),
+                )
+                row = cursor.fetchone()
+            if not row:
+                raise ValidationError("Invalid password reset token")
+
+            row_d = dict(row)
+            token_id = row_d.get("id")
+            user_id = row_d.get("user_id")
+            expires_at = row_d.get("expires_at")
+            used = row_d.get("used")
+
+            if not user_id:
+                raise ValidationError("Password reset token is not linked to a user")
+            if used:
+                raise ValidationError("Password reset token has already been used")
+            if expires_at and expires_at < datetime.utcnow():
+                raise ValidationError("Password reset token has expired")
+
+            now = datetime.utcnow()
+            cursor.execute(
+                """
+                UPDATE users
+                SET password_hash = %s,
+                    password_change_required = false,
+                    password_changed_at = %s,
+                    login_attempts = 0,
+                    locked_until = NULL,
+                    updated_at = %s
+                WHERE id = %s
+                """,
+                (new_hash, now, now, user_id),
+            )
+            if cursor.rowcount == 0:
+                raise ValidationError("Unable to update password for the provided token")
+
+            cursor.execute(
+                """
+                UPDATE verification_tokens
+                SET used = true
+                WHERE id = %s
+                """,
+                (token_id,),
+            )
+            conn.commit()
+            return int(user_id)
+        except ValidationError:
+            conn.rollback()
+            raise
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+
     # Email Verification
     async def send_verification_email(self, user: User) -> bool:
         """Send verification email with secure token storage."""

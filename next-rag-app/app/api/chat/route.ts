@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server'
 import { performStreamingRAG } from '@/lib/rag'
 import { db } from '@/lib/db'
-import { conversations, messages, type NewMessage } from '@/lib/db/schema'
+import { conversations, messages } from '@/lib/db/schema'
+import { and, desc, eq } from 'drizzle-orm'
+import { fetchCurrentUser } from '@/lib/server/auth'
 
 // Remove edge runtime for PostgreSQL compatibility
 // export const runtime = 'edge'
 
 interface ChatRequest {
   conversationId?: number
-  messages: Array<{
-    role: 'user' | 'assistant' | 'system'
-    content: string
-  }>
+  message: string
+  displayMessage?: string
   useWebFallback?: boolean
   temperature?: number
   maxTokens?: number
@@ -22,21 +22,20 @@ export async function POST(req: NextRequest) {
     const body: ChatRequest = await req.json()
     console.log('Chat API received body:', JSON.stringify(body, null, 2))
     
-    const { conversationId, messages: chatMessages, useWebFallback = true, temperature = 0.7, maxTokens = 1024 } = body
-
-    if (!chatMessages || chatMessages.length === 0) {
-      console.log('Error: Messages are required')
-      return new Response('Messages are required', { status: 400 })
+    const authHeader = req.headers.get('authorization')
+    const user = await fetchCurrentUser(authHeader)
+    if (!user) {
+      return new Response('Unauthorized', { status: 401 })
     }
 
-    // Get the latest user message
-    const userMessage = chatMessages[chatMessages.length - 1]
-    if (userMessage.role !== 'user') {
-      console.log('Error: Last message must be from user, got:', userMessage.role)
-      return new Response('Last message must be from user', { status: 400 })
+    const { conversationId, message, displayMessage, useWebFallback = true, temperature = 0.7, maxTokens = 1024 } = body
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      console.log('Error: Message is required')
+      return new Response('Message is required', { status: 400 })
     }
 
-    console.log('Processing user message:', userMessage.content)
+    console.log('Processing user message:', message)
 
     // Check if we should use local models or OpenAI
     const useLocalModels = process.env.USE_LOCAL_MODELS === 'true'
@@ -81,28 +80,79 @@ export async function POST(req: NextRequest) {
     }
 
     // Perform RAG search and generation
-    const ragResult = await performStreamingRAG(userMessage.content, {
+    // Load prior conversation history (up to 30 most recent messages)
+    const storedUserContent = (displayMessage ?? message).trim()
+    const baseTitle = storedUserContent || 'New conversation'
+    const conversationTitle = baseTitle.length > 50 ? `${baseTitle.slice(0, 50)}...` : baseTitle
+
+    // Create or get conversation
+    let convId: number
+    if (conversationId) {
+      const existingConversation = await db
+        .select({ id: conversations.id })
+        .from(conversations)
+        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, user.id)))
+        .limit(1)
+
+      if (existingConversation.length === 0) {
+        return new Response('Conversation not found', { status: 404 })
+      }
+      convId = conversationId
+    } else {
+      const [newConversation] = await db
+        .insert(conversations)
+        .values({
+          title: conversationTitle,
+          userId: user.id,
+        })
+        .returning({ id: conversations.id })
+      convId = newConversation.id
+    }
+
+    const historyRecords = await db
+      .select({
+        role: messages.role,
+        content: messages.content,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(eq(messages.conversationId, convId))
+      .orderBy(desc(messages.createdAt))
+      .limit(30)
+
+    const orderedHistory = historyRecords.reverse()
+
+    const historyText = orderedHistory
+      .map((record) => {
+        const roleLabel = record.role === 'assistant' ? 'Assistant' : 'User'
+        return `${roleLabel}: ${record.content ?? ''}`
+      })
+      .join('\n')
+
+    const promptSegments = []
+    if (historyText) {
+      promptSegments.push(`Previous conversation context:\n${historyText}`)
+    }
+    promptSegments.push(`Current user request:\n${message}`)
+    const ragPrompt = promptSegments.join('\n\n')
+
+    const ragResult = await performStreamingRAG(ragPrompt, {
       useWebFallback,
       temperature,
       maxTokens,
       confidenceThreshold: 0.3
     })
 
-    // Create or get conversation
-    let convId: number = conversationId || 0
-    if (!conversationId) {
-      const [newConversation] = await db.insert(conversations).values({
-        title: userMessage.content.slice(0, 50) + (userMessage.content.length > 50 ? '...' : '')
-      }).returning()
-      convId = newConversation.id
-    }
-
     // Save user message
     await db.insert(messages).values({
       conversationId: convId,
       role: 'user',
-      content: userMessage.content
+      content: storedUserContent
     })
+    await db
+      .update(conversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(conversations.id, convId))
 
     // Create streaming response
     const encoder = new TextEncoder()
@@ -141,9 +191,13 @@ export async function POST(req: NextRequest) {
             citations: ragResult.sources.map(source => ({
               title: source.document.title,
               source: source.document.source,
-              content: source.content?.slice(0, 200) + '...'
-            }))
+              content: source.content?.slice(0, 200) + '...',
+            })),
           })
+          await db
+            .update(conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(conversations.id, convId))
 
           // Send completion
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({

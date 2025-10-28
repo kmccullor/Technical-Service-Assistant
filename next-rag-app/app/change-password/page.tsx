@@ -15,6 +15,7 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isForced, setIsForced] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     // Check if this is a forced password change
@@ -27,6 +28,14 @@ export default function ChangePasswordPage() {
       setIsForced(true)
     }
   }, [user])
+
+  useEffect(() => {
+    if (!user && !redirecting) {
+      console.log('[CHANGE_PWD] No user found, redirecting to login')
+      router.replace('/login')
+      setRedirecting(true)
+    }
+  }, [user, router, redirecting])
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {
@@ -96,24 +105,17 @@ export default function ChangePasswordPage() {
 
       if (response.ok) {
         console.log('[CHANGE_PWD] Password change successful')
-        setSuccess('Password changed successfully!')
-        // Refresh user profile to update password_change_required status
-        console.log('[CHANGE_PWD] Refreshing user profile to update password_change_required status')
-        await refresh()
-        console.log('[CHANGE_PWD] Profile refreshed, scheduling redirect in 1 second')
-        setTimeout(() => {
-          if (isForced) {
-            // For forced changes, redirect to home
-            console.log('[CHANGE_PWD] Redirecting to home page after forced password change')
-            router.push('/')
-          } else {
-            // For voluntary changes, stay on page
-            console.log('[CHANGE_PWD] Clearing form after voluntary password change')
-            setCurrentPassword('')
-            setNewPassword('')
-            setConfirmPassword('')
-          }
-        }, 3000)
+        setSuccess('Password changed successfully. Redirecting to login...')
+        try {
+          console.log('[CHANGE_PWD] Refreshing user profile before logout')
+          await refresh()
+        } catch (refreshError) {
+          console.warn('[CHANGE_PWD] Failed to refresh profile after password change', refreshError)
+        }
+        console.log('[CHANGE_PWD] Logging user out after password change')
+        setRedirecting(true)
+        logout()
+        router.replace('/login')
       } else {
         setError(data.detail || 'Failed to change password')
       }
@@ -129,9 +131,7 @@ export default function ChangePasswordPage() {
     router.push('/login')
   }
 
-  if (!user) {
-    console.log('[CHANGE_PWD] No user found, redirecting to login')
-    router.push('/login')
+  if (!user && redirecting) {
     return null
   }
 

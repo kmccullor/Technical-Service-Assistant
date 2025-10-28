@@ -1,1 +1,0 @@
-{"localMode":true,"ollamaAvailable":true,"ollamaUrl":"http://ollama-server-1:11434","models":{"embedding":"nomic-embed-text:v1.5","chat":"mistral:7b","available":["nomic-embed-text:v1.5","mistral:7b","phi3:mini","gemma2:2b"]},"config":{"rerankerEnabled":true,"webSearchEnabled":true,"confidenceThreshold":"0.2"}}

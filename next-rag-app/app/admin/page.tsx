@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
-import { listUsers, listRoles, updateUser, updateRole, createUser, deleteUser, AdminUser, RoleInfo } from '@/lib/admin'
+import { listUsers, listRoles, updateUser, updateRole, createUser, deleteUser, AdminUser, RoleInfo, AdminUserStatus } from '@/lib/admin'
 import Link from 'next/link'
 import { Shield, RefreshCw } from 'lucide-react'
 
@@ -34,8 +34,8 @@ export default function AdminPage() {
         listUsers({ accessToken, search }),
         listRoles(accessToken),
       ])
-      setUsers(u.users)
-      setRoles(r)
+      setUsers(Array.isArray(u?.users) ? u.users : [])
+      setRoles(Array.isArray(r) ? r : [])
       setError(null)
     } catch (e: any) {
       setError(e.message || 'Failed to load admin data')
@@ -56,7 +56,7 @@ export default function AdminPage() {
     }
   }
 
-  const handleUserStatusChange = async (id: number, status: string) => {
+  const handleUserStatusChange = async (id: number, status: AdminUserStatus) => {
     try {
       setUpdatingUser(id)
       const updated = await updateUser(accessToken, id, { status })
@@ -135,6 +135,9 @@ export default function AdminPage() {
       <Link href="/" className="underline">Return Home</Link>
     </div>
   }
+
+  const safeRoles = Array.isArray(roles) ? roles : []
+  const safeUsers = Array.isArray(users) ? users : []
 
   return (
     <div className="flex flex-col h-screen">
@@ -224,7 +227,7 @@ export default function AdminPage() {
                       onChange={e => setCreateUserForm(prev => ({ ...prev, role_id: Number(e.target.value) }))}
                       className="w-full border rounded px-2 py-1 text-sm"
                     >
-                      {roles.map(r => (
+                      {safeRoles.map(r => (
                         <option key={r.id} value={r.id}>{r.name}</option>
                       ))}
                     </select>
@@ -257,7 +260,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(u => (
+                  {safeUsers.map(u => (
                     <tr key={u.id} className="border-t">
                       <td className="p-2 font-mono text-xs">{u.id}</td>
                       <td className="p-2">{u.email}</td>
@@ -269,7 +272,7 @@ export default function AdminPage() {
                           disabled={updatingUser === u.id}
                           onChange={e => handleUserRoleChange(u.id, Number(e.target.value))}
                         >
-                          {roles.map(r => (
+                          {safeRoles.map(r => (
                             <option key={r.id} value={r.id}>{r.name}</option>
                           ))}
                         </select>
@@ -279,7 +282,7 @@ export default function AdminPage() {
                           className="border rounded px-1 py-0.5 text-xs"
                           value={u.status}
                           disabled={updatingUser === u.id}
-                          onChange={e => handleUserStatusChange(u.id, e.target.value)}
+                          onChange={e => handleUserStatusChange(u.id, e.target.value as AdminUserStatus)}
                         >
                           <option value="active">active</option>
                           <option value="disabled">disabled</option>
@@ -320,7 +323,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {roles.map(r => (
+                  {safeRoles.map(r => (
                     <tr key={r.id} className="border-t">
                       <td className="p-2 font-mono text-xs">{r.id}</td>
                       <td className="p-2 font-medium">{r.name}</td>

@@ -20,27 +20,6 @@ try:
 except ImportError:
     import acronym_extractor
 
-    # Optional safety check: ensure no conflicting processors are running.
-    # Skips when DOCLING_SKIP_DOCKER_CHECK is set, or when docker CLI isn't present.
-    skip_check = os.getenv("DOCLING_SKIP_DOCKER_CHECK", "").lower() in {"1", "true", "yes"}
-    docker_bin = shutil.which("docker")
-    if not skip_check and docker_bin:
-        try:
-            import subprocess
-            result = subprocess.run([docker_bin, 'ps', '--format', '{{.Names}}'],
-                                    capture_output=True, text=True, timeout=3)
-            if result.returncode == 0 and 'pdf_processor' in result.stdout:
-                logger.error("CONFLICT DETECTED: pdf_processor container is running. Stopping to prevent conflicts.")
-                logger.error("Please stop pdf_processor before running docling_processor: docker stop pdf_processor")
-                return 1
-            elif result.returncode != 0:
-                logger.warning("Docker conflict check failed (rc=%s): %s", result.returncode, result.stderr.strip())
-        except Exception as safety_err:
-            logger.warning("Docker conflict check raised: %s", safety_err)
-    else:
-        logger.info("Skipping docker conflict check (skip=%s, docker_in_path=%s)",
-                    skip_check, bool(docker_bin))
-
 settings = get_settings()
 UPLOADS_DIR = settings.uploads_dir
 ARCHIVE_DIR = settings.archive_dir

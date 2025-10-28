@@ -9,9 +9,11 @@ jest.mock('@/src/context/AuthContext', () => ({
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+  const MockLink = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   )
+  MockLink.displayName = 'NextLinkMock'
+  return MockLink
 })
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>

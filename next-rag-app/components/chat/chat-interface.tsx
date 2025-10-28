@@ -32,7 +32,7 @@ async function copyToClipboard(text: string) {
     document.body.removeChild(textarea)
   }
 }
-import { Send, Loader2, FileText, Search, Globe, Paperclip, X, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { Send, Loader2, FileText, Search, Globe, Paperclip, X, Upload, CheckCircle, AlertCircle, Maximize2, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
@@ -67,6 +67,8 @@ interface Message {
 
 interface ChatInterfaceProps {
   conversationId?: number
+  onConversationCreated?: (conversationId: number) => void
+  onConversationActivity?: (conversationId: number) => void
 }
 
 const ALLOWED_EXTENSIONS = [
@@ -77,7 +79,7 @@ const ALLOWED_EXTENSIONS = [
 ]
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-export function ChatInterface({ conversationId }: ChatInterfaceProps) {
+export function ChatInterface({ conversationId, onConversationCreated, onConversationActivity }: ChatInterfaceProps) {
   const { accessToken } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -86,6 +88,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [inputExpanded, setInputExpanded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -98,22 +101,78 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     scrollToBottom()
   }, [messages])
 
-  // Handle conversation changes - clear messages for new chat or load existing conversation
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+
+  // Handle conversation changes - load history for existing conversations
   useEffect(() => {
+    let cancelled = false
+
+    const loadHistory = async (id: number) => {
+      if (!accessToken) {
+        setHistoryError('Authentication required to load conversation.')
+        setMessages([])
+        return
+      }
+      try {
+        setHistoryLoading(true)
+        setHistoryError(null)
+        const response = await fetch(`/api/conversations/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: 'no-store',
+        })
+        if (!response.ok) {
+          if (response.status === 404) {
+            setHistoryError('Conversation not found.')
+            setMessages([])
+            return
+          }
+          const detail = await response.text().catch(() => '')
+          throw new Error(detail || `Failed to load conversation (status ${response.status})`)
+        }
+        const data = await response.json()
+        if (cancelled) return
+        const mapped: Message[] = Array.isArray(data?.messages)
+          ? data.messages.map((msg: any) => ({
+              id: String(msg.id),
+              role: msg.role === 'assistant' ? 'assistant' : 'user',
+              content: msg.content ?? '',
+              citations: Array.isArray(msg.citations) ? msg.citations : undefined,
+              searchType: msg.searchType ?? msg.method,
+              timestamp: new Date(msg.createdAt ?? msg.created_at ?? new Date().toISOString()),
+            }))
+          : []
+        setMessages(mapped)
+        setUploadedFile(null)
+        setUploadError(null)
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load conversation history:', error)
+          setHistoryError('Unable to load conversation history.')
+          setMessages([])
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false)
+        }
+      }
+    }
+
     if (conversationId === undefined) {
-      // New chat - clear messages
       setMessages([])
       setInput('')
       setUploadedFile(null)
       setUploadError(null)
+      setHistoryError(null)
+      setHistoryLoading(false)
     } else {
-      // Load existing conversation (implement when conversation history API is available)
-      // For now, just clear messages when switching conversations
-      setMessages([])
-      setUploadedFile(null)
-      setUploadError(null)
+      loadHistory(conversationId)
     }
-  }, [conversationId])
+
+    return () => {
+      cancelled = true
+    }
+  }, [conversationId, accessToken])
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
@@ -268,18 +327,49 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    const rawInput = input.trim()
+    if (!rawInput || isLoading) return
+    if (!accessToken) {
+      setToastMsg('Please sign in to chat.')
+      setToastOpen(true)
+      return
+    }
+
+    const commandMatch = rawInput.match(/^\/(new|update|close)\s+case\s+(.+)$/i)
+    let displayContent = rawInput
+    let outboundContent = rawInput
+
+    if (commandMatch) {
+      const action = commandMatch[1].toLowerCase()
+      const caseNumber = commandMatch[2].trim()
+      if (!caseNumber) {
+        setToastMsg('Please provide a case number, e.g. /new case 01125052')
+        setToastOpen(true)
+        return
+      }
+
+      if (action === 'new') {
+        displayContent = `📄 Initiating Salesforce case ${caseNumber}`
+        outboundContent = `You are assisting with Salesforce case ${caseNumber}. Using the conversation context, define the case for analysis and recommendation by providing:\n- A concise case overview with important facts known so far.\n- Immediate diagnostic or triage steps to perform.\n- Clarifying questions that should be asked of the customer.\n- Recommended next actions for engineering/support teams.\nReturn the response with headings: Case Overview, Immediate Actions, Clarifying Questions, Recommended Next Steps.`
+      } else if (action === 'update') {
+        displayContent = `🛠️ Updating Salesforce case ${caseNumber}`
+        outboundContent = `You are providing an update on Salesforce case ${caseNumber}. Review the conversation context and produce:\n- The current status/progress of the case.\n- Outstanding issues or blockers.\n- Recommended next steps for the support engineer.\n- Suggested customer communication points.\nReturn the response with headings: Case Status, Outstanding Items, Recommended Actions, Customer Communication.`
+      } else if (action === 'close') {
+        displayContent = `✅ Closing Salesforce case ${caseNumber}`
+        outboundContent = `You are preparing to close Salesforce case ${caseNumber}. Based on the conversation context, provide:\n- A brief incident summary.\n- Actions taken and resolutions applied.\n- Verification steps or final checks completed/needed.\n- Final closing comments for the customer.\nReturn the response with headings: Summary, Actions Taken, Verification, Closing Comments.`
+      }
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: displayContent,
       uploadedFile: uploadedFile || undefined,
       timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
-    const currentInput = input.trim()
+    const currentInput = outboundContent
     setInput('')
     setIsLoading(true)
 
@@ -329,11 +419,12 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+          Authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           conversationId,
-          messages: [...messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: currentInput }]
+          message: currentInput,
+          displayMessage: userMessage.content,
         }),
       })
 
@@ -350,6 +441,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
         content: '',
         timestamp: new Date()
       }
+      let resolvedConversationId: number | undefined = conversationId
 
       setMessages(prev => [...prev, assistantMessage])
 
@@ -380,8 +472,12 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
                     : m
                 ))
               } else if (data.type === 'conversation_id') {
-                // Handle conversation ID
-                console.log('Conversation ID:', data.conversationId)
+                if (typeof data.conversationId === 'number') {
+                  resolvedConversationId = data.conversationId
+                  if (conversationId === undefined) {
+                    onConversationCreated?.(data.conversationId)
+                  }
+                }
               } else if (data.type === 'done') {
                 // Streaming completed
                 console.log('Streaming completed')
@@ -394,6 +490,10 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             }
           }
         }
+      }
+
+      if (resolvedConversationId !== undefined) {
+        onConversationActivity?.(resolvedConversationId)
       }
     } catch (error) {
       console.error('Chat error:', error)
@@ -456,13 +556,23 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {historyLoading && messages.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin" />
+            <p>Loading conversation...</p>
+          </div>
+        ) : historyError && messages.length === 0 ? (
+          <div className="text-center text-red-500 py-8">
+            <AlertCircle className="h-10 w-10 mx-auto mb-4" />
+            <p>{historyError}</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
             <p>Ask questions about your documents or any topic.</p>
           </div>
-        )}
+        ) : null}
 
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -530,7 +640,10 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             </div>
           </div>
         ))}
-        
+        {historyLoading && messages.length > 0 && (
+          <div className="text-center text-xs text-muted-foreground">Updating conversation…</div>
+        )}
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-lg p-4">
@@ -543,7 +656,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t p-4">
+      <div className="sticky bottom-0 border-t bg-background p-4 z-10">
         {/* File Upload Area */}
         {uploadedFile && (
           <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
@@ -583,8 +696,24 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <div className="flex-1 relative">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Press Enter to send, Shift+Enter for a new line.</span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setInputExpanded(prev => !prev)}
+                className="text-muted-foreground hover:text-foreground"
+                title={inputExpanded ? 'Collapse input' : 'Expand input'}
+              >
+                {inputExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative">
             <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
@@ -593,7 +722,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
                   "Describe what you see in the image or ask questions about it..." : 
                   "Ask questions about the uploaded document...") : 
                 "Ask a question about your documents..."}
-              className="min-h-[60px] resize-none pr-12"
+              className={`w-full pr-12 resize-y ${inputExpanded ? 'min-h-[180px]' : 'min-h-[80px]'} max-h-[320px]`}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
@@ -601,7 +730,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
                 }
               }}
             />
-            <div className="absolute right-3 bottom-3">
+            <div className="absolute right-3 bottom-3 flex items-center gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -612,28 +741,34 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="h-6 w-6 p-0"
+                className="h-7 w-7"
                 title="Upload document for analysis"
               >
                 {isUploading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Paperclip className="h-3 w-3" />
+                  <Paperclip className="h-4 w-4" />
                 )}
               </Button>
             </div>
           </div>
-          <Button type="submit" disabled={!input.trim() || isLoading} className="self-end">
-            <Send className="h-4 w-4" />
-          </Button>
+
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">
+              {!uploadedFile && '💡 Tip: Click the clip icon or drag & drop files to upload logs, configs, images, or other documents.'}
+            </div>
+            <Button type="submit" disabled={!input.trim() || isLoading}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" /> Send</>}
+            </Button>
+          </div>
         </form>
-        
+
         {!uploadedFile && (
           <div className="mt-2 text-xs text-muted-foreground">
-            💡 Tip: Click the 📎 icon or drag & drop files to upload logs, configs, images, or other documents for analysis
+            Need to describe a longer issue? Expand the input or attach files for deeper analysis.
           </div>
         )}
       </div>

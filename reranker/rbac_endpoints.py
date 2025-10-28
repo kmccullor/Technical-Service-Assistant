@@ -14,7 +14,8 @@ from utils.auth_system import (
 )
 from utils.rbac_models import (
     APIResponse, UserResponse, TokenResponse,
-    CreateUserRequest, LoginRequest, RefreshTokenRequest
+    CreateUserRequest, LoginRequest, RefreshTokenRequest,
+    ResetPasswordRequest, ConfirmPasswordResetRequest
 )
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,33 @@ async def force_change_password(payload: ForceChangePasswordRequest, current_use
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Password change failed") from e
+
+
+@router.post("/forgot-password", response_model=APIResponse)
+async def forgot_password(payload: ResetPasswordRequest, auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
+    """Initiate password reset by emailing a one-time token."""
+    try:
+        dispatched = await auth.initiate_password_reset(payload.email)
+    except Exception as exc:
+        logger.exception("Failed to initiate password reset for %s", payload.email)
+        raise HTTPException(status_code=500, detail="Failed to process password reset request") from exc
+
+    message = "If an account exists for that email, you'll receive password reset instructions shortly."
+    return APIResponse(success=True, message=message, data={"email_dispatched": dispatched})
+
+
+@router.post("/reset-password", response_model=APIResponse)
+async def reset_password(payload: ConfirmPasswordResetRequest, auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
+    """Complete password reset using a previously issued token."""
+    try:
+        await auth.confirm_password_reset(payload.token, payload.new_password)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Failed to complete password reset")
+        raise HTTPException(status_code=500, detail="Failed to reset password") from exc
+
+    return APIResponse(success=True, message="Password reset successfully", data={"reset": True})
 
 
 class AdminResetPasswordRequest(BaseModel):

@@ -1,0 +1,7 @@
+queries:
+  - query: "SELECT 1 AS up"
+    metrics:
+      - metric_name: postgres_dummy_up
+        type: gauge
+        help: "Dummy metric to satisfy exporter"
+        value: up

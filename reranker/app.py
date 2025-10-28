@@ -32,6 +32,7 @@ class RAGChatResponse(BaseModel):
 # --- End RAGChatRequest/RAGChatResponse early definition ---
 
 import sys
+import math
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -798,6 +799,13 @@ def get_db_connection():
     )
 
 
+def clamp_confidence(value: Optional[float], default: float = 0.0) -> float:
+    """Clamp confidence scores to the valid 0..1 range."""
+    if value is None or math.isnan(value):
+        return max(0.0, min(1.0, default))
+    return max(0.0, min(1.0, float(value)))
+
+
 def require_api_key(x_api_key: Optional[str] = Header(default=None)):
     if settings.api_key and x_api_key != settings.api_key:
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
@@ -1014,14 +1022,13 @@ def rerank(req: RerankRequest):
     return RerankResponse(
         reranked=list(reranked), 
         scores=list(scores),
-        confidence_score=float(max(scores)) if scores else 0.8,
+        confidence_score=clamp_confidence(max(scores) if scores else None, default=0.8),
         response_time_ms=0
     )
 
 
-@app.post("/search", response_model=RerankResponse, dependencies=[Depends(require_api_key)])
-def search_documents(req: RerankRequest, current_user: Optional[User] = Depends(lambda: None)):
-    """Simple document search without LLM chat completion with privacy filtering"""
+def search_documents_core(req: RerankRequest, current_user: Optional[User] = None) -> RerankResponse:
+    """Shared implementation for document search."""
     if not req.passages:
         # If no passages provided, retrieve from database with privacy filtering
         try:
@@ -1125,10 +1132,15 @@ def search_documents(req: RerankRequest, current_user: Optional[User] = Depends(
     return RerankResponse(
         reranked=list(reranked), 
         scores=list(scores),
-        confidence_score=float(max(scores)) if scores else 0.8,
+        confidence_score=clamp_confidence(max(scores) if scores else None, default=0.8),
         response_time_ms=0  # We'll add proper timing later
     )
 
+
+@app.post("/search", response_model=RerankResponse, dependencies=[Depends(require_api_key)])
+def search_documents(req: RerankRequest, current_user: Optional[User] = Depends(lambda: None)):
+    """Simple document search without LLM chat completion with privacy filtering"""
+    return search_documents_core(req, current_user)
 
 @app.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_api_key)])
 def chat(req: ChatRequest):
@@ -1445,7 +1457,7 @@ def rag_chat(request: RAGChatRequest, instance_url: Optional[str] = None, curren
                 effective_privacy = 'public'
 
             search_req = RerankRequest(query=request.query, passages=[], top_k=request.max_context_chunks, privacy_filter=effective_privacy)
-            search_resp = search_documents(search_req)  # reuse guarded rerank inside
+            search_resp = search_documents_core(search_req, current_user)
             context_chunks = search_resp.reranked
             logger.info(f"Retrieved {len(context_chunks)} context chunks for RAG query")
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react'
 import { Upload, File, X, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { useAuth } from '@/src/context/AuthContext'
 
 interface UploadedFile {
   sessionId: string
@@ -32,8 +33,9 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
   const [analysisQuery, setAnalysisQuery] = useState('')
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { accessToken } = useAuth()
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     // Check file size
     if (file.size > MAX_FILE_SIZE) {
       return `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
@@ -46,9 +48,9 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
     }
 
     return null
-  }
+  }, [])
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = useCallback(async (file: File) => {
     const validationError = validateFile(file)
     if (validationError) {
       setError(validationError)
@@ -64,6 +66,7 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
 
       const response = await fetch('/api/temp-upload', {
         method: 'POST',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         body: formData
       })
 
@@ -89,12 +92,12 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
     } finally {
       setIsUploading(false)
     }
-  }
+  }, [accessToken, onFileUploaded, validateFile])
 
-  const handleFileSelect = (files: FileList | null) => {
+  const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return
     uploadFile(files[0])
-  }
+  }, [uploadFile])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -110,7 +113,7 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
     e.preventDefault()
     setIsDragOver(false)
     handleFileSelect(e.dataTransfer.files)
-  }, [])
+  }, [handleFileSelect])
 
   const analyzeDocument = async () => {
     if (!uploadedFile || !analysisQuery.trim()) return
@@ -121,7 +124,10 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
     try {
       const response = await fetch('/api/temp-analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
         body: JSON.stringify({
           sessionId: uploadedFile.sessionId,
           query: analysisQuery.trim(),
