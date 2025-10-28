@@ -5,6 +5,7 @@ import random
 import re
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Set
 from collections import Counter
@@ -252,10 +253,16 @@ Respond with JSON only."""
         # Use intelligent routing to get the best available Ollama instance
         classification_result = get_ai_classification(classification_prompt)
         
-        if classification_result:
+        if classification_result and isinstance(classification_result, dict):
             classification_time = time.time() - start_time
             logger.info(f"AI classification completed successfully in {classification_time:.2f}s")
+            if _classification_needs_enrichment(classification_result):
+                logger.info("AI classification missing key fields, enriching with fallback heuristics")
+                fallback_result = classify_document_fallback(text, filename)
+                return _merge_classification_results(classification_result, fallback_result)
             return classification_result
+        elif classification_result:
+            logger.warning("AI classification returned unexpected payload type, using fallback")
         else:
             logger.warning("AI classification returned empty result, using fallback")
             
@@ -384,6 +391,58 @@ def parse_ai_classification_response(response: str) -> Optional[Dict[str, Any]]:
         logger.error(f"Error parsing AI response: {e}")
     
     return None
+
+
+def _classification_needs_enrichment(classification: Dict[str, Any]) -> bool:
+    """Determine if AI classification left critical fields unset."""
+    for field in ('document_type', 'product_name', 'product_version'):
+        if _is_unknown_value(classification.get(field)):
+            return True
+    return False
+
+
+def _is_unknown_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in ('', 'unknown', 'n/a')
+    return False
+
+
+def _merge_classification_results(primary: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge AI and heuristic classification results, preferring specific values."""
+    base: Dict[str, Any] = deepcopy(fallback) if isinstance(fallback, dict) else {}
+    if not isinstance(primary, dict):
+        return base or {}
+
+    merged = base or {}
+
+    for key, value in primary.items():
+        if key == 'metadata':
+            fallback_meta = merged.get('metadata', {})
+            primary_meta = value or {}
+            if isinstance(fallback_meta, dict) and isinstance(primary_meta, dict):
+                merged['metadata'] = {**fallback_meta, **primary_meta}
+            elif isinstance(primary_meta, dict):
+                merged['metadata'] = primary_meta
+        elif key == 'confidence':
+            try:
+                primary_conf = float(value)
+            except (TypeError, ValueError):
+                primary_conf = None
+            if primary_conf is not None:
+                fallback_conf = merged.get('confidence')
+                try:
+                    fallback_conf = float(fallback_conf)
+                except (TypeError, ValueError):
+                    fallback_conf = None
+                if fallback_conf is None or primary_conf > fallback_conf:
+                    merged['confidence'] = primary_conf
+        else:
+            if not _is_unknown_value(value):
+                merged[key] = value
+
+    return merged or deepcopy(primary)
 
 
 def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
@@ -759,8 +818,11 @@ def insert_document_with_categorization(conn, document_name: str, privacy_level:
                     UPDATE documents SET 
                         privacy_level = %s,
                         document_type = %s,
+                        document_category = %s,
                         product_name = %s,
                         product_version = %s,
+                        classification_confidence = %s,
+                        classification_method = %s,
                         metadata = metadata || %s::jsonb,
                         updated_at = now(),
                         processing_status = 'processed',
@@ -769,10 +831,11 @@ def insert_document_with_categorization(conn, document_name: str, privacy_level:
                 """, (
                     privacy_level,
                     classification.get('document_type', 'unknown'),
+                    classification.get('document_category', 'documentation'),
                     classification.get('product_name', 'unknown'),
                     classification.get('product_version', 'unknown'),
-                    classification.get('document_category', 'documentation'),
                     classification.get('confidence', 0.0),
+                    classification.get('metadata', {}).get('classification_method', 'ai'),
                     json.dumps(classification.get('metadata', {})),
                     document_id
                 ))
@@ -781,10 +844,12 @@ def insert_document_with_categorization(conn, document_name: str, privacy_level:
                 # Create new document record with full classification
                 cur.execute("""
                     INSERT INTO documents (
-                        file_name, file_hash, file_size, mime_type, privacy_level, document_type, product_name, 
-                        product_version, metadata, processing_status, processed_at
+                        file_name, file_hash, file_size, mime_type, 
+                        privacy_level, document_type, document_category,
+                        product_name, product_version, classification_confidence, classification_method,
+                        metadata, processing_status, processed_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'processed', now())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'processed', now())
                     RETURNING id;
                 """, (
                     document_name,
@@ -793,8 +858,11 @@ def insert_document_with_categorization(conn, document_name: str, privacy_level:
                     classification.get('mime_type'),
                     privacy_level,
                     classification.get('document_type', 'unknown'),
+                    classification.get('document_category', 'documentation'),
                     classification.get('product_name', 'unknown'),
                     classification.get('product_version', 'unknown'),
+                    classification.get('confidence', 0.0),
+                    classification.get('metadata', {}).get('classification_method', 'ai'),
                     json.dumps(classification.get('metadata', {})),
                 ))
                 result = cur.fetchone()

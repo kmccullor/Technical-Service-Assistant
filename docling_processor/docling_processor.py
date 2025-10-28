@@ -3,7 +3,9 @@ import time
 import sys
 from datetime import datetime
 import psycopg2
-import docling.document_converter as document_converter
+from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling.datamodel.base_models import InputFormat
+from docling.pipeline.standard_pdf_pipeline import PdfPipelineOptions
 from config import get_settings
 from utils.logging_config import setup_logging
 from prometheus_client import start_http_server, Counter, Gauge, Histogram
@@ -39,6 +41,189 @@ logger = setup_logging(
     log_file=f'/app/logs/docling_processor_{datetime.now().strftime("%Y%m%d")}.log',
     console_output=True
 )
+
+MIN_TEXT_CHAR_THRESHOLD = int(os.environ.get('DOCLING_MIN_TEXT_THRESHOLD', '200'))
+
+def _analyze_pdf_content(file_path: str, filename: str) -> dict:
+    """Quickly inspect a PDF to decide whether OCR is likely required."""
+    try:
+        import fitz  # PyMuPDF
+    except Exception as import_err:
+        logger.debug(f"PyMuPDF unavailable for {filename}: {import_err}")
+        return {'ok': False, 'reason': 'pymupdf_unavailable'}
+
+    analysis_start = time.time()
+    doc = None
+    try:
+        doc = fitz.open(file_path)
+        page_count = len(doc)
+        total_chars = 0
+        text_pages = 0
+        image_heavy_pages = 0
+
+        for page in doc:
+            text = page.get_text('text') or ''
+            char_count = len(text.strip())
+            if char_count > 0:
+                text_pages += 1
+            total_chars += char_count
+            if char_count < 50 and page.get_images(full=True):
+                image_heavy_pages += 1
+
+        avg_chars_per_page = (total_chars / page_count) if page_count else 0
+        needs_ocr = total_chars < MIN_TEXT_CHAR_THRESHOLD or (
+            avg_chars_per_page < 60 and image_heavy_pages >= max(1, page_count // 3)
+        )
+
+        analysis = {
+            'ok': True,
+            'page_count': page_count,
+            'total_chars': total_chars,
+            'avg_chars_per_page': round(avg_chars_per_page, 2),
+            'text_pages': text_pages,
+            'image_heavy_pages': image_heavy_pages,
+            'needs_ocr': needs_ocr,
+            'duration': round(time.time() - analysis_start, 3),
+        }
+        logger.info(
+            "Pre-analysis for %s: pages=%s, text_chars=%s, avg_chars=%.2f, text_pages=%s, image_pages=%s -> %s",
+            filename,
+            page_count,
+            total_chars,
+            avg_chars_per_page,
+            text_pages,
+            image_heavy_pages,
+            "OCR" if needs_ocr else "native text",
+        )
+        return analysis
+    except Exception as analysis_err:
+        logger.warning(f"Failed to pre-analyze {filename} before Docling conversion: {analysis_err}")
+        return {'ok': False, 'reason': 'analysis_failed'}
+    finally:
+        if doc is not None:
+            doc.close()
+
+def _build_converter(use_ocr: bool) -> DocumentConverter:
+    """Construct a Docling converter with explicit OCR preference."""
+    pdf_option = PdfFormatOption(pipeline_options=PdfPipelineOptions(do_ocr=use_ocr))
+    return DocumentConverter(format_options={InputFormat.PDF: pdf_option})
+
+try:
+    PDF_CONVERTER_NO_OCR = _build_converter(use_ocr=False)
+    PDF_CONVERTER_WITH_OCR = _build_converter(use_ocr=True)
+except Exception as converter_err:
+    logger.warning(f"Failed to initialize optimized Docling converters: {converter_err}")
+    # Fallback to default behavior if optimized converters fail
+    PDF_CONVERTER_NO_OCR = DocumentConverter()
+    PDF_CONVERTER_WITH_OCR = PDF_CONVERTER_NO_OCR
+
+def _extract_primary_text(doc) -> str:
+    """Build a textual payload from Docling document content for classification."""
+    if not doc:
+        return ''
+    # Prefer doc.text when populated
+    doc_text = getattr(doc, 'text', None)
+    if isinstance(doc_text, str) and doc_text.strip():
+        return doc_text
+
+    parts = []
+
+    # Aggregate textual blocks
+    for item in getattr(doc, 'texts', []) or []:
+        item_text = getattr(item, 'text', None)
+        if isinstance(item_text, str) and item_text.strip():
+            parts.append(item_text.strip())
+
+    # Append table renderings so classifiers see structured content
+    for table in getattr(doc, 'tables', []) or []:
+        table_text = ''
+        if hasattr(table, 'export_to_markdown'):
+            try:
+                table_text = table.export_to_markdown(doc=doc)
+            except Exception:
+                table_text = ''
+        if not table_text:
+            data = getattr(table, 'data', None)
+            rows = []
+            if data and hasattr(data, 'grid'):
+                for row in getattr(data, 'grid', []):
+                    cells = []
+                    for cell in row:
+                        try:
+                            cell_text = cell._get_text(doc=doc)
+                        except Exception:
+                            cell_text = ''
+                        if cell_text:
+                            cells.append(cell_text.strip())
+                    if cells:
+                        rows.append(' | '.join(cells))
+            table_text = '\n'.join(rows)
+        if isinstance(table_text, str) and table_text.strip():
+            parts.append(table_text.strip())
+
+    # Include picture captions when available
+    for picture in getattr(doc, 'pictures', []) or []:
+        caption = getattr(picture, 'caption', None)
+        if isinstance(caption, str) and caption.strip():
+            parts.append(caption.strip())
+        elif hasattr(caption, 'text'):
+            caption_text = getattr(caption, 'text', '')
+            if isinstance(caption_text, str) and caption_text.strip():
+                parts.append(caption_text.strip())
+
+    return '\n\n'.join(parts)
+
+def _document_needs_ocr(doc) -> bool:
+    """Determine whether OCR is required based on extracted content."""
+    if not doc:
+        return True
+    texts = getattr(doc, 'texts', []) or []
+    if texts:
+        text_chars = sum(len(getattr(item, 'text', '') or '') for item in texts)
+        if text_chars >= MIN_TEXT_CHAR_THRESHOLD:
+            return False
+    pictures = getattr(doc, 'pictures', []) or []
+    tables = getattr(doc, 'tables', []) or []
+    has_visual_only_content = bool(pictures or tables)
+    # Retry with OCR when textual content is minimal and visuals dominate
+    return has_visual_only_content or not texts
+
+def _convert_document(file_path: str, filename: str):
+    """Convert a document using the fastest viable Docling pipeline."""
+    analysis = _analyze_pdf_content(file_path, filename)
+
+    conversion_plan = []
+    if analysis.get('ok'):
+        if analysis['needs_ocr']:
+            conversion_plan.append(('analysis-ocr', PDF_CONVERTER_WITH_OCR))
+            conversion_plan.append(('fallback-no-ocr', PDF_CONVERTER_NO_OCR))
+        else:
+            conversion_plan.append(('analysis-no-ocr', PDF_CONVERTER_NO_OCR))
+            conversion_plan.append(('fallback-ocr', PDF_CONVERTER_WITH_OCR))
+    else:
+        conversion_plan = [
+            ('default-no-ocr', PDF_CONVERTER_NO_OCR),
+            ('default-ocr', PDF_CONVERTER_WITH_OCR),
+        ]
+        if analysis.get('reason'):
+            logger.debug(f"Pre-analysis unavailable for {filename}: {analysis['reason']}")
+
+    last_error = None
+    for label, converter in conversion_plan:
+        try:
+            logger.info(f"Docling conversion step '{label}' starting for {filename}")
+            result = converter.convert(file_path)
+            doc = result.document
+            if converter is PDF_CONVERTER_NO_OCR and _document_needs_ocr(doc):
+                logger.info(f"Post-conversion check indicates OCR still needed for {filename}; retrying with OCR")
+                continue
+            return result, doc
+        except Exception as err:
+            logger.error(f"Docling conversion step '{label}' failed for {filename}: {err}")
+            last_error = err
+    if last_error:
+        raise last_error
+    raise RuntimeError(f"Docling conversion exhausted without success for {filename}")
 
 def _archive_file(src: str, dest: str) -> None:
     """Move a file into archive, handling cross-device issues gracefully.
@@ -87,7 +272,6 @@ def process_pending_files():
         cur.close()
         conn.close()
         return
-    converter = document_converter.DocumentConverter()
     for file_index, filename in enumerate(files, 1):
         file_path = os.path.join(UPLOADS_DIR, filename)
         # Skip directories (they may be auxiliary folders like images, archive etc.)
@@ -97,8 +281,7 @@ def process_pending_files():
         logger.info(f"Processing file {file_index}: {filename}")
         doc_start = time.time()
         try:
-            result = converter.convert(file_path)
-            doc = result.document
+            result, doc = _convert_document(file_path, filename)
             # DoclingDocument does not have 'chunks', so we check for content
             if not doc or (not getattr(doc, 'texts', None) and not getattr(doc, 'tables', None) and not getattr(doc, 'pictures', None)):
                 logger.warning(f"No content extracted from {filename}, archiving")
@@ -120,11 +303,9 @@ def process_pending_files():
                 logger.error(f"Failed to remove existing document '{filename}': {e}")
 
             # Use Docling's metadata for classification, fallback to AI classification if needed
-            doc_text = doc.text if hasattr(doc, 'text') else ''
+            doc_text = _extract_primary_text(doc)
             privacy_level = detect_confidentiality(doc_text)
-            classification = getattr(doc, 'classification', None)
-            if not classification:
-                classification = classify_document_with_ai(doc_text, filename)
+            classification = classify_document_with_ai(doc_text, filename)
 
             # Insert document record
             document_id = insert_document_with_categorization(conn, filename, privacy_level, classification)

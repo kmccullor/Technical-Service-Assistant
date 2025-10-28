@@ -3,3 +3,5 @@ psycopg2-binary
 requests
 pydantic
 prometheus_client
+onnxruntime
+PyMuPDF
