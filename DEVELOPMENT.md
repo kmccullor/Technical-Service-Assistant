@@ -92,6 +92,11 @@ bandit -r .                 # Security scanning
 safety check               # Dependency vulnerabilities
 ```
 
+### Authentication Edge Cases
+- Forced password change: the RBAC middleware (`utils/rbac_middleware.py`) only permits a narrow allowlist when `password_change_required` is true. Keep `/api/auth/login`, `/api/auth/me`, `/api/auth/refresh`, `/api/auth/force-change-password`, and the FastAPI docs endpoints accessible.
+- Any change to that allowlist should be validated with `pytest tests/test_forced_password_change.py` to ensure the frontend still receives the profile payload needed to render the change-password experience.
+- The Next.js app requests `/api/auth/me` immediately after login; removing it from the allowlist results in `403 PASSWORD_CHANGE_REQUIRED` and breaks the forced password change flow.
+
 ### CI/CD Pipeline
 The project includes a comprehensive GitHub Actions pipeline:
 

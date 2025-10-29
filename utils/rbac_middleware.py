@@ -521,8 +521,9 @@ class RBACMiddleware(BaseHTTPMiddleware):
                     user = None  # ignore token errors; normal auth layer will handle
             if user and getattr(user, 'password_change_required', False):
                 allowed_paths_pw = {
-                    '/api/auth/login', '/api/auth/refresh', '/api/auth/force-change-password',
-                    '/docs', '/openapi.json', '/redoc', '/metrics'
+                    '/api/auth/login', '/api/auth/me', '/api/auth/refresh',
+                    '/api/auth/force-change-password', '/docs', '/openapi.json',
+                    '/redoc', '/metrics'
                 }
                 if not (path in allowed_paths_pw or path.startswith('/static/') or request.method == 'OPTIONS'):
                     return JSONResponse(
