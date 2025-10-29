@@ -5,6 +5,8 @@ Handles path setup and common fixtures for pytest runs
 import os
 import sys
 from pathlib import Path
+import builtins
+from unittest.mock import AsyncMock as _AsyncMock, patch as _patch
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent
@@ -26,6 +28,11 @@ os.environ.setdefault("DB_USER", "postgres")
 os.environ.setdefault("DB_PASSWORD", "postgres")
 os.environ.setdefault("EMBEDDING_MODEL", "nomic-embed-text:v1.5")
 os.environ.setdefault("OLLAMA_URL", "http://localhost:11434")
+
+if not hasattr(builtins, "patch"):
+    builtins.patch = _patch
+if not hasattr(builtins, "AsyncMock"):
+    builtins.AsyncMock = _AsyncMock
 
 # Mock setup for testing without external dependencies
 import pytest

@@ -75,7 +75,11 @@ health-check: ## 🏥 Quick health check of core services
 	@curl -f -s http://localhost:11436/api/tags > /dev/null && echo "✅ Ollama-3 OK" || echo "❌ Ollama-3 FAIL"
 	@curl -f -s http://localhost:11437/api/tags > /dev/null && echo "✅ Ollama-4 OK" || echo "❌ Ollama-4 FAIL"
 	@curl -f -s http://localhost:8080 > /dev/null && echo "✅ Frontend OK" || echo "❌ Frontend FAIL"
-	@curl -f -s http://localhost:6379 > /dev/null && echo "✅ Redis OK" || echo "❌ Redis FAIL" 
+	@if python -c "import socket; socket.create_connection(('localhost', 6379), timeout=2).close()" >/dev/null 2>&1; then \
+		echo "✅ Redis OK"; \
+	else \
+		echo "❌ Redis FAIL"; \
+	fi
 	@echo "\n=== System Resources ==="
 	@df -h . | tail -1
 	@free -h | head -2

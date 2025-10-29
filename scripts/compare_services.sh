@@ -3,8 +3,6 @@
 # Compare Docker Compose Services vs Running Containers
 # This script validates that all defined services are actually running
 
-set -e
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

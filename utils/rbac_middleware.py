@@ -33,6 +33,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Callable, Any
 from functools import wraps
 from contextlib import asynccontextmanager
+import inspect
 
 from fastapi import Request, Response, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials
@@ -356,8 +357,12 @@ class RBACManager:
         error_message: Optional[str] = None
     ):
         """Log audit event."""
-        conn = await self.get_db_connection()
-        cursor = conn.cursor()
+        try:
+            conn = await self.get_db_connection()
+            cursor = conn.cursor()
+        except Exception as e:
+            logger.error(f"Failed to acquire DB connection for audit event: {e}")
+            return
         
         try:
             cursor.execute("""
@@ -387,8 +392,12 @@ class RBACManager:
         details: Optional[Dict[str, Any]] = None
     ):
         """Log security event."""
-        conn = await self.get_db_connection()
-        cursor = conn.cursor()
+        try:
+            conn = await self.get_db_connection()
+            cursor = conn.cursor()
+        except Exception as e:
+            logger.error(f"Failed to acquire DB connection for security event: {e}")
+            return
         
         try:
             cursor.execute("""
@@ -496,8 +505,15 @@ class RBACMiddleware(BaseHTTPMiddleware):
                 try:
                     # Lazy import to avoid circulars
                     from utils.auth_system import get_auth_manager
-                    auth_manager = await get_auth_manager()
+                    manager_candidate = get_auth_manager()
+                    auth_manager = (
+                        await manager_candidate
+                        if inspect.iscoroutine(manager_candidate)
+                        else manager_candidate
+                    )
                     payload = auth_manager.decode_token(token)
+                    if inspect.isawaitable(payload):
+                        payload = await payload
                     user_id = payload.get('user_id')
                     if user_id:
                         user = await auth_manager.get_user_by_id(user_id)
@@ -506,7 +522,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
             if user and getattr(user, 'password_change_required', False):
                 allowed_paths_pw = {
                     '/api/auth/login', '/api/auth/refresh', '/api/auth/force-change-password',
-                    '/api/auth/me', '/docs', '/openapi.json', '/redoc', '/metrics'
+                    '/docs', '/openapi.json', '/redoc', '/metrics'
                 }
                 if not (path in allowed_paths_pw or path.startswith('/static/') or request.method == 'OPTIONS'):
                     return JSONResponse(

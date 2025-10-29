@@ -56,6 +56,7 @@ async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:  # pragma: no cover
+        logger.exception("Registration failed for %s", getattr(user, "email", "<unknown>"))
         raise HTTPException(status_code=500, detail="Registration failed") from e
 
 @router.post("/login", response_model=TokenResponse)

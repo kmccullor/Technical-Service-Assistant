@@ -109,6 +109,7 @@ services:
       - DB_NAME=vector_db
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - LOG_LEVEL=DEBUG
       - OLLAMA_URL=http://ollama-server-1:11434
       - EMBEDDING_MODEL=nomic-embed-text
       - CHAT_MODEL=mistral:7B

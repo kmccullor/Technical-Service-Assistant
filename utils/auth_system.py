@@ -41,6 +41,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from config import get_settings
+from utils.logging_config import setup_logging
 from utils.rbac_models import (
     User, Role, Permission, TokenData, TokenResponse, LoginRequest,
     CreateUserRequest, ChangePasswordRequest, ResetPasswordRequest,
@@ -52,8 +53,16 @@ from utils.exceptions import (
     RateLimitError, AccountLockedError
 )
 
-# Configure logging
-logger = logging.getLogger(__name__)
+# Configure logging with standardized setup
+_settings_for_logging = get_settings()
+logger = setup_logging(
+    program_name="auth_system",
+    log_level=getattr(_settings_for_logging, "log_level", "INFO"),
+    log_file=f"/app/logs/auth_system_{datetime.utcnow().strftime('%Y%m%d')}.log"
+    if os.getenv("LOG_DIR") or os.getenv("AUTH_SYSTEM_LOG_TO_FILE", "1") == "1"
+    else None,
+    console_output=True,
+)
 
 # FastAPI security scheme
 security = HTTPBearer()
@@ -90,11 +99,17 @@ class AuthManager:
         """Create a new psycopg2 connection."""
         override = self.__dict__.get("get_db_connection")
         if callable(override):
+            logger.debug("Using override for DB connection")
             result = override()
             if asyncio.iscoroutine(result):
                 return asyncio.run(result)
             return result
-
+        masked_dsn = self.db_connection_string
+        if "@" in masked_dsn and ":" in masked_dsn.split("@")[0]:
+            creds, host_part = masked_dsn.split("@", 1)
+            user_part = creds.split("://")[-1].split(":")[0]
+            masked_dsn = masked_dsn.replace(creds, f"{user_part}:***")
+        logger.debug("Opening psycopg2 connection to %s", masked_dsn)
         return psycopg2.connect(
             self.db_connection_string,
             cursor_factory=RealDictCursor
@@ -229,10 +244,15 @@ class AuthManager:
     # User Management
     async def create_user(self, user_data: CreateUserRequest, created_by: Optional[int] = None) -> User:
         """Create new user account."""
+        logger.info(
+            "Attempting to create user email=%s role_id=%s",
+            user_data.email,
+            user_data.role_id,
+        )
         try:
             user = await self._run_in_thread(self._create_user_sync, user_data)
         except Exception as e:
-            logger.error(f"Error creating user: {str(e)}")
+            logger.exception("Error creating user %s", user_data.email)
             raise
 
         await self.log_audit_event(
@@ -247,6 +267,7 @@ class AuthManager:
         return user
 
     def _create_user_sync(self, user_data: CreateUserRequest) -> User:
+        logger.debug("Opening DB connection for user creation")
         conn = self._open_connection()
         cursor = conn.cursor()
 
@@ -263,6 +284,11 @@ class AuthManager:
 
             cursor.execute("SELECT id FROM roles WHERE id = %s", (user_data.role_id,))
             if not cursor.fetchone():
+                logger.warning(
+                    "Role ID %s not found while creating user %s",
+                    user_data.role_id,
+                    user_data.email,
+                )
                 raise ValidationError("Invalid role ID")
 
             password_hash = self.hash_password(user_data.password)
@@ -304,6 +330,7 @@ class AuthManager:
             conn.commit()
 
             if not user_row:
+                logger.error("User creation returned no row for %s", user_data.email)
                 raise ValidationError("Failed to create user record")
 
             if isinstance(user_row, dict):
@@ -331,6 +358,7 @@ class AuthManager:
             )
         except Exception:
             conn.rollback()
+            logger.exception("Transaction rolled back while creating user %s", user_data.email)
             raise
         finally:
             cursor.close()
@@ -1065,11 +1093,24 @@ class AuthManager:
         token_hash = self._hash_token(verification_token)
         expires_at = datetime.utcnow() + timedelta(hours=24)
 
+        logger.info(
+            "Generating verification token for user_id=%s email=%s expires_at=%s",
+            user.id,
+            user.email,
+            expires_at.isoformat(),
+        )
+
         await self._run_in_thread(
             self._store_verification_token_sync,
             user.id,
             token_hash,
             expires_at,
+        )
+
+        logger.debug(
+            "Stored verification token hash_prefix=%s for user_id=%s",
+            token_hash[:8],
+            user.id,
         )
 
         sent = await self._run_in_thread(
@@ -1145,9 +1186,10 @@ class AuthManager:
                 if self.settings.smtp_username and self.settings.smtp_password:
                     server.login(self.settings.smtp_username, self.settings.smtp_password)
                 server.sendmail(sender, [recipient], msg.as_string())
+            logger.debug("Verification email dispatched via SMTP host=%s", self.settings.smtp_host)
             return True
         except Exception as exc:
-            logger.error("Failed to send verification email to %s: %s", recipient, exc)
+            logger.exception("Failed to send verification email to %s", recipient)
             return False
     
     # Audit Logging
