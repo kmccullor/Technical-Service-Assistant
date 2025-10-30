@@ -166,7 +166,7 @@ class IntelligentRouter:
                 quality_tier=1,
             ),
         }
-        
+
         # Instance specialization mapping
         self.instance_specializations = {
             1: {  # General Chat & Document QA (11434)
@@ -343,7 +343,7 @@ class IntelligentRouter:
         # Get available models for this instance
         instance_spec = self.instance_specializations.get(instance_num, {})
         available_models = instance_spec.get("primary_models", [])
-        
+
         # Filter candidates from available models on this instance
         candidates = []
         for model_name in available_models:
@@ -351,11 +351,11 @@ class IntelligentRouter:
                 continue
             if "embed" in model_name.lower():  # Skip embedding models
                 continue
-                
+
             profile = self.model_profiles.get(model_name)
             if not profile:
                 continue
-                
+
             if require_context and profile.context_length < 8192:
                 continue
 
@@ -389,7 +389,7 @@ class IntelligentRouter:
             reasoning += " (high quality)"
 
         return best_model, reasoning
-    
+
     def select_best_model(
         self, question_type: QuestionType, prefer_speed: bool, require_context: bool, exclude_models: List[str]
     ) -> Tuple[str, str]:
@@ -404,21 +404,21 @@ class IntelligentRouter:
         for i, instance in enumerate(self.instances, 1):
             if not instance.healthy:
                 continue
-            
+
             spec = self.instance_specializations.get(i, {})
             if question_type in spec.get("strengths", []):
                 specialized_instances.append((instance, i))
-        
+
         if specialized_instances:
             # Select the least loaded specialized instance
             best_instance, instance_num = min(specialized_instances, key=lambda x: x[0].load_score)
             spec_desc = self.instance_specializations[instance_num]["description"]
             logger.info(f"Selected specialized instance {instance_num} ({spec_desc}) for {question_type.value}")
             return best_instance
-        
+
         # Fallback to general instance selection
         return self.select_best_instance()
-    
+
     def select_best_instance(self) -> OllamaInstance:
         """Select best available instance based on health and load."""
         healthy_instances = [i for i in self.instances if i.healthy]
@@ -443,10 +443,10 @@ class IntelligentRouter:
 
         # Select specialized instance for this question type
         selected_instance = self.select_specialized_instance(question_type)
-        
+
         # Get instance number for model selection
         instance_num = next((i for i, inst in enumerate(self.instances, 1) if inst == selected_instance), 1)
-        
+
         # Select best model for the specialized instance
         selected_model, reasoning = self.select_best_model_for_instance(
             question_type, instance_num, request.prefer_speed, request.require_context, request.exclude_models

@@ -182,7 +182,7 @@ async def get_rni_versions(active_only: bool = Query(False, description="Filter 
             if active_only:
                 query += " WHERE is_active = true"
             query += " ORDER BY version_number DESC"
-            
+
             cursor.execute(query)
             results = cursor.fetchall()
             return [RNIVersion(**row) for row in results]
@@ -216,9 +216,9 @@ async def update_rni_version(version_id: int, version: RNIVersion):
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                UPDATE rni_versions 
-                SET version_number = %(version_number)s, version_name = %(version_name)s, 
-                    description = %(description)s, release_date = %(release_date)s, 
+                UPDATE rni_versions
+                SET version_number = %(version_number)s, version_name = %(version_name)s,
+                    description = %(description)s, release_date = %(release_date)s,
                     is_active = %(is_active)s
                 WHERE id = %(id)s
                 RETURNING *
@@ -240,13 +240,13 @@ async def get_database_instances(rni_version_id: Optional[int] = Query(None, des
         with conn.cursor() as cursor:
             query = "SELECT * FROM database_instances"
             params = {}
-            
+
             if rni_version_id:
                 query += " WHERE rni_version_id = %(rni_version_id)s"
                 params['rni_version_id'] = rni_version_id
-                
+
             query += " ORDER BY database_name"
-            
+
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [DatabaseInstance(**row) for row in results]
@@ -260,9 +260,9 @@ async def create_database_instance(instance: DatabaseInstance):
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO database_instances 
+                INSERT INTO database_instances
                 (rni_version_id, database_name, database_type, server_name, port, description, connection_string_template, is_active)
-                VALUES (%(rni_version_id)s, %(database_name)s, %(database_type)s, %(server_name)s, 
+                VALUES (%(rni_version_id)s, %(database_name)s, %(database_type)s, %(server_name)s,
                         %(port)s, %(description)s, %(connection_string_template)s, %(is_active)s)
                 RETURNING *
             """, instance.dict(exclude={'id'}))
@@ -288,7 +288,7 @@ async def get_schema_overview(
         with conn.cursor() as cursor:
             query = "SELECT * FROM v_schema_overview WHERE 1=1"
             params = {}
-            
+
             if version_number:
                 query += " AND version_number = %(version_number)s"
                 params['version_number'] = version_number
@@ -298,7 +298,7 @@ async def get_schema_overview(
             if schema_name:
                 query += " AND schema_name = %(schema_name)s"
                 params['schema_name'] = schema_name
-                
+
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [SchemaOverview(**row) for row in results]
@@ -318,7 +318,7 @@ async def get_column_details(
         with conn.cursor() as cursor:
             query = "SELECT * FROM v_column_details WHERE 1=1"
             params = {}
-            
+
             if version_number:
                 query += " AND version_number = %(version_number)s"
                 params['version_number'] = version_number
@@ -331,7 +331,7 @@ async def get_column_details(
             if table_name:
                 query += " AND table_name = %(table_name)s"
                 params['table_name'] = table_name
-                
+
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [ColumnDetails(**row) for row in results]
@@ -347,13 +347,13 @@ async def get_tables(schema_id: Optional[int] = Query(None, description="Filter 
         with conn.cursor() as cursor:
             query = "SELECT * FROM database_tables"
             params = {}
-            
+
             if schema_id:
                 query += " WHERE schema_id = %(schema_id)s"
                 params['schema_id'] = schema_id
-                
+
             query += " ORDER BY table_name"
-            
+
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [DatabaseTable(**row) for row in results]
@@ -367,11 +367,11 @@ async def create_table(table: DatabaseTable):
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO database_tables 
-                (schema_id, table_name, table_type, description, row_count, size_bytes, 
+                INSERT INTO database_tables
+                (schema_id, table_name, table_type, description, row_count, size_bytes,
                  owner_name, created_date, modified_date, is_active)
-                VALUES (%(schema_id)s, %(table_name)s, %(table_type)s, %(description)s, 
-                        %(row_count)s, %(size_bytes)s, %(owner_name)s, %(created_date)s, 
+                VALUES (%(schema_id)s, %(table_name)s, %(table_type)s, %(description)s,
+                        %(row_count)s, %(size_bytes)s, %(owner_name)s, %(created_date)s,
                         %(modified_date)s, %(is_active)s)
                 RETURNING *
             """, table.dict(exclude={'id'}))
@@ -407,13 +407,13 @@ async def create_column(column: DatabaseColumn):
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO database_columns 
-                (table_id, column_name, ordinal_position, data_type, max_length, precision_value, 
-                 scale_value, is_nullable, is_primary_key, is_foreign_key, is_identity, 
+                INSERT INTO database_columns
+                (table_id, column_name, ordinal_position, data_type, max_length, precision_value,
+                 scale_value, is_nullable, is_primary_key, is_foreign_key, is_identity,
                  default_value, description)
-                VALUES (%(table_id)s, %(column_name)s, %(ordinal_position)s, %(data_type)s, 
-                        %(max_length)s, %(precision_value)s, %(scale_value)s, %(is_nullable)s, 
-                        %(is_primary_key)s, %(is_foreign_key)s, %(is_identity)s, 
+                VALUES (%(table_id)s, %(column_name)s, %(ordinal_position)s, %(data_type)s,
+                        %(max_length)s, %(precision_value)s, %(scale_value)s, %(is_nullable)s,
+                        %(is_primary_key)s, %(is_foreign_key)s, %(is_identity)s,
                         %(default_value)s, %(description)s)
                 RETURNING *
             """, column.dict(exclude={'id'}))
@@ -438,14 +438,14 @@ async def get_change_log(
         with conn.cursor() as cursor:
             query = "SELECT * FROM schema_change_log"
             params = {}
-            
+
             if rni_version_id:
                 query += " WHERE rni_version_id = %(rni_version_id)s"
                 params['rni_version_id'] = rni_version_id
-                
+
             query += " ORDER BY created_at DESC LIMIT %(limit)s"
             params['limit'] = limit
-            
+
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [SchemaChangeLog(**row) for row in results]
@@ -459,11 +459,11 @@ async def create_change_log_entry(log_entry: SchemaChangeLog):
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO schema_change_log 
-                (rni_version_id, database_instance_id, change_type, object_type, object_name, 
+                INSERT INTO schema_change_log
+                (rni_version_id, database_instance_id, change_type, object_type, object_name,
                  schema_name, change_description, sql_statement, impact_level, created_by)
-                VALUES (%(rni_version_id)s, %(database_instance_id)s, %(change_type)s, 
-                        %(object_type)s, %(object_name)s, %(schema_name)s, %(change_description)s, 
+                VALUES (%(rni_version_id)s, %(database_instance_id)s, %(change_type)s,
+                        %(object_type)s, %(object_name)s, %(schema_name)s, %(change_description)s,
                         %(sql_statement)s, %(impact_level)s, %(created_by)s)
                 RETURNING *
             """, log_entry.dict(exclude={'id'}))
@@ -488,54 +488,54 @@ async def compare_schemas(
             query = """
                 WITH version1_data AS (
                     SELECT schema_name, table_name, column_name, data_type, is_nullable
-                    FROM v_column_details 
+                    FROM v_column_details
                     WHERE version_number = %(version1)s
                     AND (%(database_name)s IS NULL OR database_name = %(database_name)s)
                 ),
                 version2_data AS (
                     SELECT schema_name, table_name, column_name, data_type, is_nullable
-                    FROM v_column_details 
+                    FROM v_column_details
                     WHERE version_number = %(version2)s
                     AND (%(database_name)s IS NULL OR database_name = %(database_name)s)
                 )
-                SELECT 
+                SELECT
                     'ADDED' as change_type,
                     v2.schema_name, v2.table_name, v2.column_name, v2.data_type, v2.is_nullable
                 FROM version2_data v2
-                LEFT JOIN version1_data v1 ON v2.schema_name = v1.schema_name 
+                LEFT JOIN version1_data v1 ON v2.schema_name = v1.schema_name
                     AND v2.table_name = v1.table_name AND v2.column_name = v1.column_name
                 WHERE v1.column_name IS NULL
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'REMOVED' as change_type,
                     v1.schema_name, v1.table_name, v1.column_name, v1.data_type, v1.is_nullable
                 FROM version1_data v1
-                LEFT JOIN version2_data v2 ON v1.schema_name = v2.schema_name 
+                LEFT JOIN version2_data v2 ON v1.schema_name = v2.schema_name
                     AND v1.table_name = v2.table_name AND v1.column_name = v2.column_name
                 WHERE v2.column_name IS NULL
-                
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     'MODIFIED' as change_type,
                     v2.schema_name, v2.table_name, v2.column_name, v2.data_type, v2.is_nullable
                 FROM version1_data v1
-                JOIN version2_data v2 ON v1.schema_name = v2.schema_name 
+                JOIN version2_data v2 ON v1.schema_name = v2.schema_name
                     AND v1.table_name = v2.table_name AND v1.column_name = v2.column_name
                 WHERE v1.data_type != v2.data_type OR v1.is_nullable != v2.is_nullable
-                
+
                 ORDER BY schema_name, table_name, column_name
             """
-            
+
             cursor.execute(query, {
                 'version1': version1,
                 'version2': version2,
                 'database_name': database_name
             })
             results = cursor.fetchall()
-            
+
             return {
                 'version1': version1,
                 'version2': version2,
@@ -572,7 +572,7 @@ async def extract_schema(extraction_request: SchemaExtractionRequest):
             schema_name=extraction_request.schema_name,
             created_by=extraction_request.created_by
         )
-        
+
         if result['status'] == 'success':
             return {
                 "status": "success",
@@ -584,7 +584,7 @@ async def extract_schema(extraction_request: SchemaExtractionRequest):
             }
         else:
             raise HTTPException(status_code=500, detail=result['error'])
-            
+
     except Exception as e:
         logger.error(f"Schema extraction failed: {e}")
         raise HTTPException(status_code=500, detail=f"Schema extraction failed: {str(e)}")
@@ -597,7 +597,7 @@ async def get_extraction_status(rni_version_id: int):
         with conn.cursor() as cursor:
             # Get database instances for this RNI version
             cursor.execute("""
-                SELECT 
+                SELECT
                     di.*,
                     COUNT(DISTINCT ds.id) as schema_count,
                     COUNT(DISTINCT dt.id) as table_count,
@@ -611,19 +611,19 @@ async def get_extraction_status(rni_version_id: int):
                 GROUP BY di.id
                 ORDER BY di.database_name
             """, (rni_version_id,))
-            
+
             instances = cursor.fetchall()
-            
+
             # Get recent change log entries
             cursor.execute("""
-                SELECT * FROM schema_change_log 
-                WHERE rni_version_id = %s 
-                ORDER BY created_at DESC 
+                SELECT * FROM schema_change_log
+                WHERE rni_version_id = %s
+                ORDER BY created_at DESC
                 LIMIT 10
             """, (rni_version_id,))
-            
+
             recent_changes = cursor.fetchall()
-            
+
             return {
                 "rni_version_id": rni_version_id,
                 "database_instances": instances,
@@ -639,7 +639,7 @@ async def get_extraction_status(rni_version_id: int):
 async def bulk_extract_schemas(extraction_requests: List[SchemaExtractionRequest]):
     """Extract schemas from multiple databases in bulk."""
     results = []
-    
+
     for request in extraction_requests:
         try:
             result = extract_and_import_schema(
@@ -653,21 +653,21 @@ async def bulk_extract_schemas(extraction_requests: List[SchemaExtractionRequest
                 schema_name=request.schema_name,
                 created_by=request.created_by
             )
-            
+
             results.append({
                 "database": f"{request.server}/{request.database}",
                 "status": result['status'],
                 "statistics": result.get('statistics', {}),
                 "error": result.get('error', None)
             })
-            
+
         except Exception as e:
             results.append({
                 "database": f"{request.server}/{request.database}",
                 "status": "error",
                 "error": str(e)
             })
-    
+
     return {
         "total_requests": len(extraction_requests),
         "successful": len([r for r in results if r['status'] == 'success']),
@@ -703,13 +703,13 @@ async def query_assistance(request: dict):
     """
     rni_version = request.get('rni_version')
     database_name = request.get('database_name')
-    
+
     if not rni_version:
         raise HTTPException(status_code=400, detail="RNI version is required. Please specify which version (e.g., 2.1.0, 2.0.0, etc.)")
-    
+
     if not database_name:
         raise HTTPException(status_code=400, detail="Database name is required. Supported: FlexnetDB (MSSQL), AMDS, Router, FWDL (PostgreSQL)")
-    
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -725,18 +725,18 @@ async def query_assistance(request: dict):
                     "message": f"RNI version {rni_version} not found. Available versions can be retrieved from /api/data-dictionary/rni-versions",
                     "available_versions_endpoint": "/api/data-dictionary/rni-versions"
                 }
-            
+
             rni_version_id = version_row['id']
-            
+
             # Check if database instance exists for this RNI version
             cursor.execute(
-                """SELECT di.id, di.database_type, di.server_name, di.port 
-                   FROM database_instances di 
+                """SELECT di.id, di.database_type, di.server_name, di.port
+                   FROM database_instances di
                    WHERE di.rni_version_id = %s AND di.database_name = %s""",
                 (rni_version_id, database_name)
             )
             instance_row = cursor.fetchone()
-            
+
             if not instance_row:
                 return {
                     "status": "database_not_configured",
@@ -744,16 +744,16 @@ async def query_assistance(request: dict):
                     "recommended_action": "Add database instance first using /api/data-dictionary/database-instances",
                     "extraction_needed": True
                 }
-            
+
             # Check if we have schema information for this database
             cursor.execute(
-                """SELECT COUNT(*) as schema_count 
-                   FROM database_schemas ds 
+                """SELECT COUNT(*) as schema_count
+                   FROM database_schemas ds
                    WHERE ds.database_instance_id = %s""",
                 (instance_row['id'],)
             )
             schema_count = cursor.fetchone()['schema_count']
-            
+
             if schema_count == 0:
                 # Generate extraction query based on database type
                 extraction_query = generate_extraction_query(instance_row['database_type'], database_name)
@@ -764,7 +764,7 @@ async def query_assistance(request: dict):
                     "extraction_query": extraction_query,
                     "instructions": "Run the extraction query on your database and use /api/data-dictionary/extract-schema to import the results"
                 }
-            
+
             # Schema exists - provide summary
             cursor.execute(
                 """SELECT ds.schema_name, COUNT(dt.id) as table_count
@@ -775,7 +775,7 @@ async def query_assistance(request: dict):
                 (instance_row['id'],)
             )
             schemas = cursor.fetchall()
-            
+
             return {
                 "status": "data_dictionary_available",
                 "message": f"Data dictionary available for {database_name} on RNI version {rni_version}",
@@ -783,19 +783,19 @@ async def query_assistance(request: dict):
                 "schemas_available": [{"schema_name": s['schema_name'], "table_count": s['table_count']} for s in schemas],
                 "query_endpoint": f"/api/data-dictionary/database-schemas?database_instance_id={instance_row['id']}"
             }
-            
+
     finally:
         conn.close()
 
 
 def generate_extraction_query(database_type: str, database_name: str) -> str:
     """Generate appropriate extraction query based on database type."""
-    
+
     if database_type.upper() == "MSSQL":
         return f"""-- Sensus AMI {database_name} Schema Extraction Query (MSSQL)
 -- Run this query to extract schema information for data dictionary import
 
-SELECT 
+SELECT
     s.name AS schema_name,
     t.name AS table_name,
     c.name AS column_name,
@@ -813,7 +813,7 @@ INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
 INNER JOIN sys.columns c ON t.object_id = c.object_id
 INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
 LEFT JOIN (
-    SELECT 
+    SELECT
         ic.object_id,
         ic.column_id,
         c.name AS column_name
@@ -831,7 +831,7 @@ ORDER BY s.name, t.name, c.column_id;"""
         return f"""-- Sensus AMI {database_name} Schema Extraction Query (PostgreSQL)
 -- Run this query to extract schema information for data dictionary import
 
-SELECT 
+SELECT
     n.nspname AS schema_name,
     c.relname AS table_name,
     a.attname AS column_name,
@@ -851,7 +851,7 @@ JOIN pg_type t ON a.atttypid = t.oid
 LEFT JOIN pg_attrdef ad ON a.attrelid = ad.adrelid AND a.attnum = ad.adnum
 LEFT JOIN pg_description d ON c.oid = d.objoid AND a.attnum = d.objsubid
 LEFT JOIN (
-    SELECT 
+    SELECT
         i.indrelid,
         a.attname,
         a.attnum
@@ -881,39 +881,39 @@ async def upload_schema(
     # Validate file type
     if not file.filename or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV file")
-    
+
     # Validate database_type
     if database_type not in ['MSSQL', 'PostgreSQL']:
         raise HTTPException(status_code=400, detail="Database type must be MSSQL or PostgreSQL")
-    
+
     try:
         # Read CSV content
         content = await file.read()
         csv_content = content.decode('utf-8')
-        
+
         # Parse CSV
         csv_reader = csv.DictReader(StringIO(csv_content))
         rows = list(csv_reader)
-        
+
         if not rows:
             raise HTTPException(status_code=400, detail="CSV file is empty")
-        
+
         # Validate required columns
         required_columns = {
-            'schema_name', 'table_name', 'column_name', 'data_type', 
+            'schema_name', 'table_name', 'column_name', 'data_type',
             'is_nullable', 'is_primary_key'
         }
-        
+
         if not required_columns.issubset(set(rows[0].keys())):
             missing_columns = required_columns - set(rows[0].keys())
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"CSV missing required columns: {', '.join(missing_columns)}"
             )
-        
+
         # Process the data using schema extraction utils
         from schema_extraction_utils import SchemaImporter
-        
+
         importer = SchemaImporter()
         result = await importer.import_csv_schema(
             rni_version_id=rni_version_id,
@@ -922,7 +922,7 @@ async def upload_schema(
             csv_data=rows,
             created_by=created_by
         )
-        
+
         return {
             "status": "success",
             "message": f"Schema uploaded successfully for {database_name}",
@@ -932,7 +932,7 @@ async def upload_schema(
                 "schemas": result.get("schemas_imported", 0)
             }
         }
-        
+
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="Invalid CSV file encoding. Please use UTF-8.")
     except csv.Error as e:

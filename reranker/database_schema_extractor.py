@@ -88,11 +88,11 @@ class IndexInfo:
 
 class DatabaseSchemaExtractor:
     """Extracts schema information from databases."""
-    
+
     def __init__(self):
         """Initialize the schema extractor."""
         pass
-    
+
     def connect_postgresql(self, conn_config: DatabaseConnection) -> psycopg2.extensions.connection:
         """Create PostgreSQL connection."""
         try:
@@ -104,20 +104,20 @@ class DatabaseSchemaExtractor:
                 f"password={conn_config.password} "
                 f"connect_timeout={conn_config.connection_timeout}"
             )
-            
+
             conn = psycopg2.connect(connection_string, cursor_factory=RealDictCursor)
             logger.info(f"Connected to PostgreSQL: {conn_config.server}:{conn_config.port}/{conn_config.database}")
             return conn
-            
+
         except Exception as e:
             logger.error(f"PostgreSQL connection failed: {e}")
             raise
-    
+
     def connect_mssql(self, conn_config: DatabaseConnection) -> Any:
         """Create MSSQL connection."""
         if not MSSQL_AVAILABLE:
             raise RuntimeError("pyodbc not available - cannot connect to MSSQL")
-        
+
         try:
             # Build connection string for SQL Server
             conn_str = (
@@ -128,51 +128,51 @@ class DatabaseSchemaExtractor:
                 f"PWD={conn_config.password};"
                 f"Connection Timeout={conn_config.connection_timeout};"
             )
-            
+
             conn = pyodbc.connect(conn_str)
             logger.info(f"Connected to MSSQL: {conn_config.server}:{conn_config.port}/{conn_config.database}")
             return conn
-            
+
         except Exception as e:
             logger.error(f"MSSQL connection failed: {e}")
             raise
-    
+
     def extract_postgresql_schema(self, conn_config: DatabaseConnection, schema_name: Optional[str] = None) -> Dict[str, Any]:
         """Extract complete schema information from PostgreSQL database."""
         conn = self.connect_postgresql(conn_config)
-        
+
         try:
             with conn.cursor() as cursor:
                 schema_filter = schema_name or conn_config.schema or 'public'
-                
+
                 # Get schemas
                 schemas = self._get_postgresql_schemas(cursor, schema_filter)
-                
+
                 # Get tables for each schema
                 tables = {}
                 for schema in schemas:
                     schema_tables = self._get_postgresql_tables(cursor, schema)
-                    
+
                     # Get columns, constraints, and indexes for each table
                     for table in schema_tables:
                         table_name = f"{schema}.{table.table_name}"
-                        
+
                         # Get columns
                         columns = self._get_postgresql_columns(cursor, schema, table.table_name)
-                        
+
                         # Get constraints
                         constraints = self._get_postgresql_constraints(cursor, schema, table.table_name)
-                        
+
                         # Get indexes
                         indexes = self._get_postgresql_indexes(cursor, schema, table.table_name)
-                        
+
                         tables[table_name] = {
                             'table_info': table,
                             'columns': columns,
                             'constraints': constraints,
                             'indexes': indexes
                         }
-                
+
                 return {
                     'database_type': 'PostgreSQL',
                     'server': conn_config.server,
@@ -181,49 +181,49 @@ class DatabaseSchemaExtractor:
                     'tables': tables,
                     'extraction_time': datetime.now()
                 }
-                
+
         finally:
             conn.close()
-    
+
     def extract_mssql_schema(self, conn_config: DatabaseConnection, schema_name: Optional[str] = None) -> Dict[str, Any]:
         """Extract complete schema information from MSSQL database."""
         if not MSSQL_AVAILABLE:
             raise RuntimeError("pyodbc not available - cannot extract MSSQL schema")
-        
+
         conn = self.connect_mssql(conn_config)
-        
+
         try:
             cursor = conn.cursor()
             schema_filter = schema_name or conn_config.schema or 'dbo'
-            
+
             # Get schemas
             schemas = self._get_mssql_schemas(cursor, schema_filter)
-            
+
             # Get tables for each schema
             tables = {}
             for schema in schemas:
                 schema_tables = self._get_mssql_tables(cursor, schema)
-                
+
                 # Get columns, constraints, and indexes for each table
                 for table in schema_tables:
                     table_name = f"{schema}.{table.table_name}"
-                    
+
                     # Get columns
                     columns = self._get_mssql_columns(cursor, schema, table.table_name)
-                    
+
                     # Get constraints
                     constraints = self._get_mssql_constraints(cursor, schema, table.table_name)
-                    
+
                     # Get indexes
                     indexes = self._get_mssql_indexes(cursor, schema, table.table_name)
-                    
+
                     tables[table_name] = {
                         'table_info': table,
                         'columns': columns,
                         'constraints': constraints,
                         'indexes': indexes
                     }
-            
+
             return {
                 'database_type': 'MSSQL',
                 'server': conn_config.server,
@@ -232,33 +232,33 @@ class DatabaseSchemaExtractor:
                 'tables': tables,
                 'extraction_time': datetime.now()
             }
-            
+
         finally:
             conn.close()
-    
+
     # PostgreSQL-specific methods
     def _get_postgresql_schemas(self, cursor, schema_filter: str) -> List[str]:
         """Get PostgreSQL schemas."""
         if schema_filter == '*':
             cursor.execute("""
-                SELECT schema_name 
-                FROM information_schema.schemata 
+                SELECT schema_name
+                FROM information_schema.schemata
                 WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
                 ORDER BY schema_name
             """)
         else:
             cursor.execute("""
-                SELECT schema_name 
-                FROM information_schema.schemata 
+                SELECT schema_name
+                FROM information_schema.schemata
                 WHERE schema_name = %s
             """, (schema_filter,))
-        
+
         return [row['schema_name'] for row in cursor.fetchall()]
-    
+
     def _get_postgresql_tables(self, cursor, schema_name: str) -> List[TableInfo]:
         """Get PostgreSQL tables and views."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 t.table_name,
                 t.table_type,
                 pg_size_pretty(pg_total_relation_size(c.oid)) as size_pretty,
@@ -272,7 +272,7 @@ class DatabaseSchemaExtractor:
             AND t.table_type IN ('BASE TABLE', 'VIEW', 'MATERIALIZED VIEW')
             ORDER BY t.table_name
         """, (schema_name,))
-        
+
         tables = []
         for row in cursor.fetchall():
             # Get row count for tables (not views)
@@ -281,9 +281,10 @@ class DatabaseSchemaExtractor:
                 try:
                     cursor.execute(f"SELECT COUNT(*) as count FROM {schema_name}.{row['table_name']}")
                     row_count = cursor.fetchone()['count']
-                except:
-                    pass  # Skip if we can't count rows
-            
+                except Exception as e:
+                    # Skip if we can't count rows due to permissions or other issues
+                    pass
+
             tables.append(TableInfo(
                 schema_name=schema_name,
                 table_name=row['table_name'],
@@ -293,13 +294,13 @@ class DatabaseSchemaExtractor:
                 size_bytes=row['size_bytes'],
                 owner=str(row['owner']) if row['owner'] else None
             ))
-        
+
         return tables
-    
+
     def _get_postgresql_columns(self, cursor, schema_name: str, table_name: str) -> List[ColumnInfo]:
         """Get PostgreSQL column information."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 c.column_name,
                 c.ordinal_position,
                 c.data_type,
@@ -316,13 +317,13 @@ class DatabaseSchemaExtractor:
             LEFT JOIN pg_class pgc ON pgc.relname = c.table_name
             LEFT JOIN pg_namespace pgn ON pgn.oid = pgc.relnamespace AND pgn.nspname = c.table_schema
             LEFT JOIN (
-                SELECT ku.column_name 
+                SELECT ku.column_name
                 FROM information_schema.table_constraints tc
                 JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name
                 WHERE tc.table_schema = %s AND tc.table_name = %s AND tc.constraint_type = 'PRIMARY KEY'
             ) pk ON pk.column_name = c.column_name
             LEFT JOIN (
-                SELECT ku.column_name 
+                SELECT ku.column_name
                 FROM information_schema.table_constraints tc
                 JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name
                 WHERE tc.table_schema = %s AND tc.table_name = %s AND tc.constraint_type = 'FOREIGN KEY'
@@ -330,7 +331,7 @@ class DatabaseSchemaExtractor:
             WHERE c.table_schema = %s AND c.table_name = %s
             ORDER BY c.ordinal_position
         """, (schema_name, table_name, schema_name, table_name, schema_name, table_name))
-        
+
         columns = []
         for row in cursor.fetchall():
             columns.append(ColumnInfo(
@@ -347,13 +348,13 @@ class DatabaseSchemaExtractor:
                 default_value=row['column_default'],
                 description=row['description']
             ))
-        
+
         return columns
-    
+
     def _get_postgresql_constraints(self, cursor, schema_name: str, table_name: str) -> List[ConstraintInfo]:
         """Get PostgreSQL constraint information."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 tc.constraint_name,
                 tc.constraint_type,
                 STRING_AGG(kcu.column_name, ',' ORDER BY kcu.ordinal_position) as column_names,
@@ -362,16 +363,16 @@ class DatabaseSchemaExtractor:
                 STRING_AGG(ccu.column_name, ',' ORDER BY kcu.ordinal_position) as referenced_columns,
                 cc.check_clause
             FROM information_schema.table_constraints tc
-            LEFT JOIN information_schema.key_column_usage kcu 
+            LEFT JOIN information_schema.key_column_usage kcu
                 ON tc.constraint_name = kcu.constraint_name
-            LEFT JOIN information_schema.constraint_column_usage ccu 
+            LEFT JOIN information_schema.constraint_column_usage ccu
                 ON tc.constraint_name = ccu.constraint_name
-            LEFT JOIN information_schema.check_constraints cc 
+            LEFT JOIN information_schema.check_constraints cc
                 ON tc.constraint_name = cc.constraint_name
             WHERE tc.table_schema = %s AND tc.table_name = %s
             GROUP BY tc.constraint_name, tc.constraint_type, ccu.table_schema, ccu.table_name, cc.check_clause
         """, (schema_name, table_name))
-        
+
         constraints = []
         for row in cursor.fetchall():
             constraints.append(ConstraintInfo(
@@ -383,21 +384,21 @@ class DatabaseSchemaExtractor:
                 referenced_columns=row['referenced_columns'].split(',') if row['referenced_columns'] else None,
                 check_clause=row['check_clause']
             ))
-        
+
         return constraints
-    
+
     def _get_postgresql_indexes(self, cursor, schema_name: str, table_name: str) -> List[IndexInfo]:
         """Get PostgreSQL index information."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 i.indexname as index_name,
-                CASE 
-                    WHEN i.indexdef LIKE '%UNIQUE%' THEN true 
-                    ELSE false 
+                CASE
+                    WHEN i.indexdef LIKE '%UNIQUE%' THEN true
+                    ELSE false
                 END as is_unique,
-                CASE 
-                    WHEN c.contype = 'p' THEN true 
-                    ELSE false 
+                CASE
+                    WHEN c.contype = 'p' THEN true
+                    ELSE false
                 END as is_primary,
                 pg_size_pretty(pg_relation_size(quote_ident(i.schemaname)||'.'||quote_ident(i.indexname))) as size_pretty,
                 pg_relation_size(quote_ident(i.schemaname)||'.'||quote_ident(i.indexname)) as size_bytes,
@@ -406,7 +407,7 @@ class DatabaseSchemaExtractor:
             LEFT JOIN pg_constraint c ON c.conname = i.indexname
             WHERE i.schemaname = %s AND i.tablename = %s
         """, (schema_name, table_name))
-        
+
         indexes = []
         for row in cursor.fetchall():
             # Extract column names from index definition (simplified)
@@ -418,7 +419,7 @@ class DatabaseSchemaExtractor:
             if column_start > 0 and column_end > column_start:
                 columns_str = index_def[column_start+1:column_end]
                 column_names = [col.strip() for col in columns_str.split(',')]
-            
+
             indexes.append(IndexInfo(
                 index_name=row['index_name'],
                 index_type='BTREE',  # Default for PostgreSQL
@@ -427,32 +428,32 @@ class DatabaseSchemaExtractor:
                 is_primary=row['is_primary'],
                 size_bytes=row['size_bytes']
             ))
-        
+
         return indexes
-    
+
     # MSSQL-specific methods (simplified implementations)
     def _get_mssql_schemas(self, cursor, schema_filter: str) -> List[str]:
         """Get MSSQL schemas."""
         if schema_filter == '*':
             cursor.execute("""
-                SELECT name 
-                FROM sys.schemas 
-                WHERE name NOT IN ('sys', 'INFORMATION_SCHEMA', 'guest', 'db_owner', 'db_accessadmin', 
-                                  'db_securityadmin', 'db_ddladmin', 'db_backupoperator', 'db_datareader', 
+                SELECT name
+                FROM sys.schemas
+                WHERE name NOT IN ('sys', 'INFORMATION_SCHEMA', 'guest', 'db_owner', 'db_accessadmin',
+                                  'db_securityadmin', 'db_ddladmin', 'db_backupoperator', 'db_datareader',
                                   'db_datawriter', 'db_denydatareader', 'db_denydatawriter')
                 ORDER BY name
             """)
         else:
             cursor.execute("SELECT name FROM sys.schemas WHERE name = ?", (schema_filter,))
-        
+
         return [row[0] for row in cursor.fetchall()]
-    
+
     def _get_mssql_tables(self, cursor, schema_name: str) -> List[TableInfo]:
         """Get MSSQL tables and views."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 t.name as table_name,
-                CASE t.type 
+                CASE t.type
                     WHEN 'U' THEN 'BASE TABLE'
                     WHEN 'V' THEN 'VIEW'
                     ELSE 'OTHER'
@@ -467,7 +468,7 @@ class DatabaseSchemaExtractor:
             WHERE s.name = ?
             ORDER BY t.name
         """, (schema_name,))
-        
+
         tables = []
         for row in cursor.fetchall():
             tables.append(TableInfo(
@@ -477,13 +478,13 @@ class DatabaseSchemaExtractor:
                 description=row[2] if len(row) > 2 else None,
                 row_count=row[3] if len(row) > 3 else None
             ))
-        
+
         return tables
-    
+
     def _get_mssql_columns(self, cursor, schema_name: str, table_name: str) -> List[ColumnInfo]:
         """Get MSSQL column information (simplified)."""
         cursor.execute("""
-            SELECT 
+            SELECT
                 c.name as column_name,
                 c.column_id as ordinal_position,
                 t.name as data_type,
@@ -503,7 +504,7 @@ class DatabaseSchemaExtractor:
             WHERE s.name = ? AND tb.name = ?
             ORDER BY c.column_id
         """, (schema_name, table_name))
-        
+
         columns = []
         for row in cursor.fetchall():
             columns.append(ColumnInfo(
@@ -518,14 +519,14 @@ class DatabaseSchemaExtractor:
                 default_value=row[8],
                 description=row[9]
             ))
-        
+
         return columns
-    
+
     def _get_mssql_constraints(self, cursor, schema_name: str, table_name: str) -> List[ConstraintInfo]:
         """Get MSSQL constraint information (simplified)."""
         # This would need more complex queries for full constraint information
         return []
-    
+
     def _get_mssql_indexes(self, cursor, schema_name: str, table_name: str) -> List[IndexInfo]:
         """Get MSSQL index information (simplified)."""
         # This would need more complex queries for full index information

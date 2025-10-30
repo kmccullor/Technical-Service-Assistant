@@ -169,30 +169,30 @@ def calculate_tokens_per_second(token_count: int, time_seconds: float) -> float:
 
 # Iterative Research Enhancement System
 async def iterative_research_until_confident(
-    query: str, 
-    target_confidence: float = 0.95, 
+    query: str,
+    target_confidence: float = 0.95,
     max_iterations: int = 25,
     model: str = "mistral:7b",
     privacy_filter: str = "public"
 ) -> RAGChatResponse:
     """Keep researching and gathering more context until confidence reaches target threshold."""
-    
+
     logger.info(f"Starting iterative research for query: '{query}' with target confidence: {target_confidence}")
-    
+
     iteration = 0
     best_response = None
     best_confidence = 0.0
     all_context_used = []
     research_log = []
-    
+
     while iteration < max_iterations:
         iteration += 1
         logger.info(f"🔍 RESEARCH ITERATION {iteration}/{max_iterations} - Starting enhanced search cycle")
         logger.info(f"Current best confidence: {best_confidence:.3f}, Target: {target_confidence:.3f}")
-        
+
         # Gradually increase context chunks per iteration
         max_chunks = min(3 + (iteration * 2), 10)  # 3, 5, 7, 9, 10+ sources
-        
+
         # Try different search approaches each iteration
         search_approaches = [
             ("document_search", "Focus on technical documentation"),
@@ -201,16 +201,16 @@ async def iterative_research_until_confident(
             ("deep_context", "Gather comprehensive background information"),
             ("expert_knowledge", "Apply domain expertise to the question")
         ]
-        
+
         approach_name, approach_description = search_approaches[min(iteration-1, len(search_approaches)-1)]
-        
+
         logger.info(f"📋 Using search strategy: '{approach_name}' - {approach_description}")
         logger.info(f"🎯 Context chunks for this iteration: {max_chunks}")
-        
+
         # Enhanced search with different strategies
         enhanced_query = await enhance_query_for_iteration(query, iteration, approach_description, research_log)
         logger.info(f"🔄 Enhanced query: '{enhanced_query[:100]}{'...' if len(enhanced_query) > 100 else ''}'")
-        
+
         # Perform search with current approach
         rag_request = RAGChatRequest(
             query=enhanced_query,
@@ -221,19 +221,19 @@ async def iterative_research_until_confident(
             temperature=0.3,  # Lower temperature for more focused research
             max_tokens=800
         )
-        
+
         # Get response
         response = rag_chat(rag_request)
-        
+
         # Add new context to cumulative context (avoid duplicates)
         new_context = [ctx for ctx in response.context_used if ctx not in all_context_used]
         all_context_used.extend(new_context)
-        
+
         # Recalculate confidence with all accumulated context
         enhanced_confidence = calculate_enhanced_research_confidence(
             query, all_context_used, response.response, iteration, len(new_context)
         )
-        
+
         research_log.append({
             "iteration": iteration,
             "approach": approach_name,
@@ -243,10 +243,10 @@ async def iterative_research_until_confident(
             "confidence": enhanced_confidence,
             "response_length": len(response.response)
         })
-        
+
         logger.info(f"Iteration {iteration}: confidence={enhanced_confidence:.3f}, "
                    f"new_context={len(new_context)}, total_context={len(all_context_used)}")
-        
+
         # Update best response if this iteration improved confidence
         if enhanced_confidence > best_confidence:
             best_confidence = enhanced_confidence
@@ -254,7 +254,7 @@ async def iterative_research_until_confident(
             best_response.confidence_score = enhanced_confidence
             best_response.context_used = all_context_used.copy()
             best_response.search_method = f"iterative_research_iter_{iteration}"
-            
+
             # Add research metadata
             if not best_response.fusion_metadata:
                 best_response.fusion_metadata = {}
@@ -265,18 +265,18 @@ async def iterative_research_until_confident(
                 "achieved_confidence": enhanced_confidence,
                 "total_context_gathered": len(all_context_used)
             })
-        
+
         # Check if we've reached target confidence
         if enhanced_confidence >= target_confidence:
             logger.info(f"✅ Target confidence {target_confidence} achieved in {iteration} iterations "
                        f"(final confidence: {enhanced_confidence:.3f})")
             break
-            
+
         # Early stopping if confidence isn't improving
         if iteration > 2 and enhanced_confidence < best_confidence * 0.98:
             logger.info(f"⚠️ Confidence not improving significantly, stopping early at iteration {iteration}")
             break
-    
+
     # Final response preparation
     if best_response:
         best_response.search_method = f"iterative_research_final_{iteration}_iters"
@@ -284,12 +284,12 @@ async def iterative_research_until_confident(
                    f"confidence: {best_confidence:.3f}, "
                    f"context_chunks: {len(all_context_used)}")
         return best_response
-    
+
     # Fallback if something went wrong
     logger.warning("Iterative research failed, returning basic response")
     return rag_chat(RAGChatRequest(
-        query=query, 
-        model=model, 
+        query=query,
+        model=model,
         privacy_filter=privacy_filter,
         use_context=True,
         max_context_chunks=10,
@@ -299,49 +299,49 @@ async def iterative_research_until_confident(
 
 async def enhance_query_for_iteration(original_query: str, iteration: int, approach: str, research_log: list) -> str:
     """Enhance the query for each research iteration with different strategies."""
-    
+
     if iteration == 1:
         return original_query  # First iteration uses original query
-    
+
     # Extract key terms from previous research
     previous_findings = []
     for log_entry in research_log:
         if log_entry.get("new_context_count", 0) > 0:
             previous_findings.append(f"Found {log_entry['new_context_count']} new sources")
-    
+
     enhancement_strategies = {
         2: f"{original_query} technical specifications details documentation",
         3: f"comprehensive information about {original_query} including background context",
         4: f"{original_query} expert knowledge troubleshooting advanced configuration",
         5: f"complete reference material for {original_query} all related topics"
     }
-    
+
     return enhancement_strategies.get(iteration, original_query)
 
 def calculate_enhanced_research_confidence(
-    query: str, 
-    context_chunks: list, 
-    response: str, 
-    iteration: int, 
+    query: str,
+    context_chunks: list,
+    response: str,
+    iteration: int,
     new_context_count: int
 ) -> float:
     """Calculate enhanced confidence score for iterative research."""
-    
+
     # Base confidence from standard calculation
     base_confidence = calculate_rag_confidence(query, context_chunks, response)
-    
+
     # Boost confidence based on research depth
     iteration_bonus = min(0.1, iteration * 0.02)  # Up to 10% bonus for multiple iterations
     context_bonus = min(0.1, len(context_chunks) * 0.005)  # Bonus for more context
     new_context_bonus = min(0.05, new_context_count * 0.01)  # Bonus for finding new info
-    
+
     # Response quality indicators
     response_length_bonus = min(0.05, len(response) / 2000 * 0.05)  # Longer responses often more complete
-    
+
     # Calculate enhanced confidence
-    enhanced_confidence = min(0.99, base_confidence + iteration_bonus + context_bonus + 
+    enhanced_confidence = min(0.99, base_confidence + iteration_bonus + context_bonus +
                              new_context_bonus + response_length_bonus)
-    
+
     return enhanced_confidence
 
 # Setup standardized Log4 logging
@@ -369,6 +369,32 @@ def get_ollama_client(instance_url: Optional[str] = None) -> ollama.Client:
         elif "ollama-server-4:11437" in instance_url:
             return ollama.Client(host="http://localhost:11437")
     return ollama_client
+
+
+async def async_generate_embedding(text: str, model: str = None) -> List[float]:
+    """Async wrapper for synchronous embedding generation."""
+    if model is None:
+        model = settings.embedding_model
+    # Run synchronous operation in thread pool
+    loop = asyncio.get_event_loop()
+    embedding = await loop.run_in_executor(
+        None,
+        lambda: ollama_client.embeddings(model=model, prompt=text)["embedding"]
+    )
+    return embedding
+
+
+async def async_generate_text(prompt: str, model: str = None, **kwargs) -> str:
+    """Async wrapper for synchronous text generation."""
+    if model is None:
+        model = settings.chat_model
+    # Run synchronous operation in thread pool
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(
+        None,
+        lambda: ollama_client.generate(model=model, prompt=prompt, **kwargs)
+    )
+    return response["response"]
 
 
 # Add RBAC middleware
@@ -401,26 +427,26 @@ async def metrics_middleware(request: Request, call_next):
     # Skip metrics collection for the metrics endpoint itself
     if request.url.path == "/metrics":
         return await call_next(request)
-    
+
     start_time = time.time()
     ACTIVE_REQUESTS.inc()
-    
+
     try:
         response = await call_next(request)
         duration = time.time() - start_time
-        
+
         # Record Prometheus metrics
         REQUEST_COUNT.labels(
             method=request.method,
             endpoint=request.url.path,
             status=str(response.status_code)
         ).inc()
-        
+
         REQUEST_DURATION.labels(
             method=request.method,
             endpoint=request.url.path
         ).observe(duration)
-        
+
         # Also record legacy metrics for compatibility
         metrics_collector.record_api_request(
             endpoint=request.url.path,
@@ -428,7 +454,7 @@ async def metrics_middleware(request: Request, call_next):
             status_code=response.status_code,
             duration=duration
         )
-        
+
         return response
     except Exception as e:
         REQUEST_COUNT.labels(
@@ -469,7 +495,7 @@ async def get_reasoning_orchestrator():
                     # Use existing search functionality
                     try:
                         query_embedding = ollama_client.embeddings(
-                            model=settings.embedding_model.split(":")[0], prompt=query
+                            model=settings.embedding_model, prompt=query
                         )["embedding"]
 
                         conn = get_db_connection()
@@ -573,6 +599,9 @@ class RAGChatResponse(BaseModel):
     fusion_metadata: Optional[dict] = Field(
         default=None, description="Metadata about fusion when search_method='fusion'"
     )
+    source_metadata: Optional[List[dict]] = Field(
+        default=None, description="Metadata about sources (titles, filenames, etc.)"
+    )
     event_id: Optional[int] = Field(default=None, description="Analytics event id for feedback linkage")
     # Token performance metrics
     tokens_input: Optional[int] = Field(default=None, description="Number of input tokens processed")
@@ -615,7 +644,7 @@ class FeedbackSummary(BaseModel):
 
 class DocumentInfo(BaseModel):
     """Document information for knowledge base browsing."""
-    
+
     id: int
     file_name: str
     title: Optional[str] = None
@@ -631,7 +660,7 @@ class DocumentInfo(BaseModel):
 
 class DocumentListRequest(BaseModel):
     """Request for listing documents with optional filters."""
-    
+
     limit: int = Field(20, ge=1, le=100, description="Maximum number of documents to return")
     offset: int = Field(0, ge=0, description="Number of documents to skip")
     document_type: Optional[str] = Field(None, description="Filter by document type")
@@ -644,7 +673,7 @@ class DocumentListRequest(BaseModel):
 
 class DocumentListResponse(BaseModel):
     """Response containing list of documents with metadata."""
-    
+
     documents: List[DocumentInfo]
     total_count: int
     offset: int
@@ -654,7 +683,7 @@ class DocumentListResponse(BaseModel):
 
 class DocumentStatsResponse(BaseModel):
     """Knowledge base statistics."""
-    
+
     total_documents: int
     total_chunks: int
     document_types: Dict[str, int]
@@ -1024,7 +1053,7 @@ def rerank(req: RerankRequest):
     scored = sorted(zip(req.passages, results), key=lambda x: x[1], reverse=True)
     reranked, scores = zip(*scored[: req.top_k]) if scored else ([], [])
     return RerankResponse(
-        reranked=list(reranked), 
+        reranked=list(reranked),
         scores=list(scores),
         confidence_score=clamp_confidence(max(scores) if scores else None, default=0.8),
         response_time_ms=0
@@ -1044,12 +1073,12 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
             else:
                 effective_filter = 'public'
 
-            query_embedding = ollama_client.embeddings(model=settings.embedding_model.split(":")[0], prompt=req.query)[
+            query_embedding = ollama_client.embeddings(model=settings.embedding_model, prompt=req.query)[
                 "embedding"
             ]
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
+
             # Build privacy filter condition using documents table
             privacy_condition = ""
             # Enforce role-based privacy: non-auth users -> public only; employees/admin can request all
@@ -1057,10 +1086,11 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
 
             if effective_filter != 'all':
                 privacy_condition = "AND d.privacy_level = %s"
-            
+
             cursor.execute(
                 f"""
-                SELECT c.content
+                SELECT c.content, c.page_number, c.section_title,
+                       d.file_name, d.title, d.document_type, d.product_name
                 FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
                 WHERE c.embedding IS NOT NULL
@@ -1068,13 +1098,15 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
                 ORDER BY c.embedding <-> %s::vector
                 LIMIT %s
                 """,
-                (effective_filter, query_embedding, settings.retrieval_candidates) if effective_filter != 'all' 
+                (effective_filter, query_embedding, settings.retrieval_candidates) if effective_filter != 'all'
                 else (query_embedding, settings.retrieval_candidates),
             )
             chunks = cursor.fetchall()
             cursor.close()
             conn.close()
             passages = [row["content"] for row in chunks]
+            # Store metadata for later use in response
+            chunk_metadata = chunks
         except Exception:
             logger.exception("Database search failed, falling back to direct text search")
             # Fallback: Use simple text search when embedding generation fails
@@ -1082,12 +1114,12 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
                 conn = get_db_connection()
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
                 query_terms = req.query.lower().replace("'", "''")
-                
+
                 # Build privacy filter condition for text search using documents table
                 privacy_condition = ""
                 if effective_filter != 'all':
                     privacy_condition = "AND d.privacy_level = %s"
-                
+
                 cursor.execute(
                     f"""
                     SELECT c.content
@@ -1118,7 +1150,7 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
 
     if not passages:
         return RerankResponse(
-            reranked=[], 
+            reranked=[],
             scores=[],
             confidence_score=0.0,
             response_time_ms=0
@@ -1134,7 +1166,7 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
     scored = sorted(zip(passages, results), key=lambda x: x[1], reverse=True)
     reranked, scores = zip(*scored[: req.top_k]) if scored else ([], [])
     return RerankResponse(
-        reranked=list(reranked), 
+        reranked=list(reranked),
         scores=list(scores),
         confidence_score=clamp_confidence(max(scores) if scores else None, default=0.8),
         response_time_ms=0  # We'll add proper timing later
@@ -1150,7 +1182,7 @@ def search_documents(req: RerankRequest, current_user: Optional[User] = Depends(
 def chat(req: ChatRequest):
     try:
         # 1. Generate embedding for query
-        query_embedding = ollama_client.embeddings(model=settings.embedding_model.split(":")[0], prompt=req.message)[
+        query_embedding = ollama_client.embeddings(model=settings.embedding_model, prompt=req.message)[
             "embedding"
         ]
         # 2. Retrieve candidate passages
@@ -1225,16 +1257,16 @@ async def smart_chat(request: RAGChatRequest):
     try:
         # First, check if this is a document discovery query
         query_type, params = document_query_handler.analyze_query(request.query)
-        
+
         if query_type:
             logger.info(f"Detected document query: {query_type.value} with params: {params}")
             return await handle_document_query(query_type, params, request)
-        
+
         # Use intelligent routing to select the best model and instance
         routing = await intelligent_route(ModelSelectionRequest(query=request.query, prefer_speed=False, require_context=True))
         logger.info(f"Smart chat received request model: {request.model}")
         logger.info(f"Intelligent routing selected: {routing.selected_model} on {routing.selected_instance}")
-        
+
         # Create new request with selected model if using default
         if request.model == "llama3.1:8b":  # Default model
             # Create new request object with the selected model
@@ -1245,13 +1277,13 @@ async def smart_chat(request: RAGChatRequest):
             # Use original request with specified model
             logger.info(f"Using original model {request.model} with routing to {routing.instance_url}")
             return rag_chat(request, routing.instance_url)
-        
+
     except Exception as e:
         logger.error(f"Smart chat error: {e}")
         raise HTTPException(status_code=500, detail=f"Smart chat failed: {str(e)}")
 
 
-async def handle_document_query(query_type: DocumentQueryType, params: Dict[str, str], 
+async def handle_document_query(query_type: DocumentQueryType, params: Dict[str, str],
                                request: RAGChatRequest) -> RAGChatResponse:
     """Handle document discovery queries with natural language responses."""
     try:
@@ -1259,46 +1291,46 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
             # Get document statistics
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
+
             cursor.execute("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_documents,
                     MAX(processed_at) as last_processed
-                FROM documents 
+                FROM documents
                 WHERE processing_status = 'processed'
             """)
             basic_stats = cursor.fetchone()
-            
+
             cursor.execute("SELECT COUNT(*) as total_chunks FROM document_chunks")
             chunk_stats = cursor.fetchone()
-            
+
             cursor.execute("""
-                SELECT document_type, COUNT(*) as count 
-                FROM documents 
+                SELECT document_type, COUNT(*) as count
+                FROM documents
                 WHERE processing_status = 'processed' AND document_type IS NOT NULL
                 GROUP BY document_type
             """)
             doc_types = {row['document_type']: row['count'] for row in cursor.fetchall()}
-            
+
             cursor.execute("""
-                SELECT product_name, COUNT(*) as count 
-                FROM documents 
+                SELECT product_name, COUNT(*) as count
+                FROM documents
                 WHERE processing_status = 'processed' AND product_name IS NOT NULL
                 GROUP BY product_name
             """)
             products = {row['product_name']: row['count'] for row in cursor.fetchall()}
-            
+
             cursor.execute("""
-                SELECT privacy_level, COUNT(*) as count 
-                FROM documents 
+                SELECT privacy_level, COUNT(*) as count
+                FROM documents
                 WHERE processing_status = 'processed'
                 GROUP BY privacy_level
             """)
             privacy = {row['privacy_level']: row['count'] for row in cursor.fetchall()}
-            
+
             cursor.close()
             conn.close()
-            
+
             stats = {
                 'total_documents': basic_stats['total_documents'] if basic_stats else 0,
                 'total_chunks': chunk_stats['total_chunks'] if chunk_stats else 0,
@@ -1308,9 +1340,9 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
                 'avg_chunks_per_document': (chunk_stats['total_chunks'] / max(basic_stats['total_documents'], 1)) if (basic_stats and chunk_stats) else 0,
                 'last_processed': basic_stats['last_processed'].isoformat() if (basic_stats and basic_stats['last_processed']) else None
             }
-            
+
             results = stats
-            
+
         else:
             # Handle document listing queries
             doc_request = DocumentListRequest(
@@ -1323,51 +1355,51 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
                 sort_by=params.get('sort_by', 'created_at'),
                 sort_order=params.get('sort_order', 'desc')
             )
-            
+
             # Get documents from database
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            
+
             where_conditions = ["d.processing_status = 'processed'"]
             query_params = []
-            
+
             if doc_request.document_type:
                 where_conditions.append("d.document_type = %s")
                 query_params.append(doc_request.document_type)
-                
+
             if doc_request.product_name:
                 where_conditions.append("d.product_name = %s")
                 query_params.append(doc_request.product_name)
-                
+
             if doc_request.privacy_level:
                 where_conditions.append("d.privacy_level = %s")
                 query_params.append(doc_request.privacy_level)
-                
+
             if doc_request.search_term:
                 where_conditions.append("(d.file_name ILIKE %s OR d.title ILIKE %s)")
                 search_pattern = f"%{doc_request.search_term}%"
                 query_params.extend([search_pattern, search_pattern])
-            
+
             where_clause = " AND ".join(where_conditions)
-            
+
             # Get count and documents
             cursor.execute(f"SELECT COUNT(*) as total FROM documents d WHERE {where_clause}", query_params)
             count_result = cursor.fetchone()
             total_count = count_result['total'] if count_result else 0
-            
+
             cursor.execute(f"""
                 SELECT d.*, COALESCE(chunk_counts.chunk_count, 0) as chunk_count
                 FROM documents d
                 LEFT JOIN (
-                    SELECT document_id, COUNT(*) as chunk_count 
-                    FROM document_chunks 
+                    SELECT document_id, COUNT(*) as chunk_count
+                    FROM document_chunks
                     GROUP BY document_id
                 ) chunk_counts ON d.id = chunk_counts.document_id
                 WHERE {where_clause}
                 ORDER BY d.{doc_request.sort_by} {doc_request.sort_order.upper()}
                 LIMIT %s
             """, query_params + [doc_request.limit])
-            
+
             docs = []
             for row in cursor.fetchall():
                 docs.append({
@@ -1379,18 +1411,18 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
                     'chunk_count': row['chunk_count'],
                     'processed_at': row['processed_at'].isoformat() if row['processed_at'] else None
                 })
-            
+
             cursor.close()
             conn.close()
-            
+
             results = {
                 'documents': docs,
                 'total_count': total_count
             }
-        
+
         # Generate natural language response
         response_prompt = document_query_handler.generate_response_prompt(query_type, params, results)
-        
+
         # Use the appropriate model to generate a natural response
         try:
             ollama_response = ollama_client.generate(
@@ -1399,7 +1431,7 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
                 options={"temperature": request.temperature, "num_predict": request.max_tokens}
             )
             response_text = ollama_response.get("response", "I found the document information but couldn't format a response.")
-            
+
         except Exception as e:
             logger.error(f"Ollama generation error: {e}")
             # Fallback to structured response
@@ -1409,7 +1441,7 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
                 doc_count = len(results.get('documents', []))
                 total = results.get('total_count', 0)
                 response_text = f"I found {doc_count} documents" + (f" out of {total} total matches" if total > doc_count else "") + "."
-        
+
         return RAGChatResponse(
             response=response_text,
             context_used=[],
@@ -1418,7 +1450,7 @@ async def handle_document_query(query_type: DocumentQueryType, params: Dict[str,
             confidence_score=0.9,  # High confidence for document queries
             search_method="document_discovery"
         )
-        
+
     except Exception as e:
         logger.error(f"Document query error: {e}")
         raise HTTPException(status_code=500, detail=f"Document query failed: {str(e)}")
@@ -1649,10 +1681,10 @@ def classify_question(query: str) -> QuestionType:
 
 def select_model_for_question(question_type: QuestionType) -> Tuple[str, int]:
     """Select best model and instance for question type using specialized distribution.
-    
+
     Returns:
         Tuple[str, int]: (model_name, instance_index) for specialized routing
-        
+
     Model specialization per instance:
     - Instance 1 (Chat/QA): mistral:7b, llama3.1:8b, nomic-embed-text:v1.5
     - Instance 2 (Code/Technical): gemma2:2b, phi3:mini, mistral:7b
@@ -1662,23 +1694,23 @@ def select_model_for_question(question_type: QuestionType) -> Tuple[str, int]:
     if question_type == QuestionType.CODE:
         # Code questions -> Instance 2 (specialized for coding)
         return "phi3:mini", 1  # Index 1 = ollama-server-2
-    
+
     elif question_type == QuestionType.TECHNICAL:
         # Technical questions -> Instance 2 (technical specialization)
         return "mistral:7b", 1
-    
+
     elif question_type == QuestionType.MATH:
         # Math/reasoning -> Instance 3 (reasoning specialization)
         return "llama3.2:3b", 2  # Index 2 = ollama-server-3
-    
+
     elif question_type == QuestionType.CREATIVE:
         # Creative tasks -> Instance 3 (reasoning capabilities)
         return "llama3.1:8b", 2
-    
+
     elif question_type == QuestionType.FACTUAL:
         # Factual questions -> Instance 1 (general chat/QA)
         return "mistral:7b", 0  # Index 0 = ollama-server-1
-    
+
     else:  # QuestionType.CHAT
         # General chat -> Instance 1 (chat specialization)
         return "llama3.1:8b", 0
@@ -1720,21 +1752,21 @@ async def select_best_instance(instances: List[OllamaInstance]) -> OllamaInstanc
 async def intelligent_route(request: ModelSelectionRequest):
     """Get optimal model and instance selection for a query using specialized distribution."""
     start_time = time.time()
-    
+
     try:
         question_type = classify_question(request.query)
         selected_model, instance_index = select_model_for_question(question_type)
-        
+
         # Get the specialized instance for this question type
         target_instance = instances[instance_index]
-        
+
         # Health check the target instance
         health_check_start = time.time()
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
                 response = await client.get(f"{target_instance.url}/api/tags")
                 health_check_time = time.time() - health_check_start
-                
+
                 # Record instance health metrics
                 is_healthy = response.status_code == 200
                 metrics_collector.record_ollama_health(
@@ -1743,35 +1775,35 @@ async def intelligent_route(request: ModelSelectionRequest):
                     is_healthy=is_healthy,
                     response_time=health_check_time
                 )
-                
+
                 if not is_healthy:
                     # Fallback to general instance selection if specialized instance is unhealthy
                     logger.warning(f"Specialized instance {target_instance.name} unhealthy, falling back")
                     target_instance = await select_best_instance(instances)
                     selected_model = "mistral:7b"  # Safe fallback model
-                    
+
         except Exception as e:
             logger.warning(f"Health check failed for {target_instance.name}, using fallback: {e}")
-            
+
             # Record unhealthy status
             metrics_collector.record_ollama_health(
                 instance_name=target_instance.name,
                 instance_url=target_instance.url,
                 is_healthy=False
             )
-            
+
             target_instance = await select_best_instance(instances)
             selected_model = "mistral:7b"
 
         # Record routing metrics
         routing_duration = time.time() - start_time
-        
+
         # Record Prometheus metrics
         MODEL_SELECTION_COUNT.labels(
             model=selected_model,
             instance=target_instance.name
         ).inc()
-        
+
         # Record legacy metrics for compatibility
         metrics_collector.record_model_request(
             model_name=selected_model,
@@ -1794,12 +1826,12 @@ async def intelligent_route(request: ModelSelectionRequest):
         routing_duration = time.time() - start_time
         metrics_collector.record_model_request(
             model_name="unknown",
-            instance="unknown", 
+            instance="unknown",
             question_type="unknown",
             duration=routing_duration,
             status="error"
         )
-        
+
         logger.error(f"Routing error: {e}")
         raise HTTPException(status_code=500, detail=f"Routing failed: {str(e)}")
 
@@ -1818,7 +1850,7 @@ async def ollama_health():
                     instance.healthy = True
                     instance.response_time = response.elapsed.total_seconds()
                     healthy_count += 1
-                    
+
                     # Record healthy instance metrics
                     metrics_collector.record_ollama_health(
                         instance_name=instance.name,
@@ -1826,7 +1858,7 @@ async def ollama_health():
                         is_healthy=True,
                         response_time=instance.response_time
                     )
-                    
+
                     status = {
                         "name": instance.name,
                         "url": instance.url,
@@ -1836,14 +1868,14 @@ async def ollama_health():
                     }
                 else:
                     instance.healthy = False
-                    
+
                     # Record unhealthy instance
                     metrics_collector.record_ollama_health(
                         instance_name=instance.name,
                         instance_url=instance.url,
                         is_healthy=False
                     )
-                    
+
                     status = {
                         "name": instance.name,
                         "url": instance.url,
@@ -1852,18 +1884,18 @@ async def ollama_health():
                     }
         except Exception as e:
             instance.healthy = False
-            
+
             # Record failed instance
             metrics_collector.record_ollama_health(
                 instance_name=instance.name,
                 instance_url=instance.url,
                 is_healthy=False
             )
-            
+
             status = {"name": instance.name, "url": instance.url, "healthy": False, "error": str(e)}
 
         instance_statuses.append(status)
-    
+
     # Update system resource metrics
     metrics_collector.update_system_metrics()
 
@@ -1884,7 +1916,7 @@ async def get_metrics():
     """Expose Prometheus metrics."""
     if not metrics_collector.enabled:
         raise HTTPException(status_code=503, detail="Metrics collection not available")
-    
+
     try:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
         metrics_data = generate_latest(metrics_collector.registry)
@@ -2004,18 +2036,18 @@ async def get_system_status():
     }
 
 
-def calculate_rag_confidence(query: str, context_chunks: List[str], response: str, 
+def calculate_rag_confidence(query: str, context_chunks: List[str], response: str,
                            query_analysis: Optional[QueryAnalysis] = None) -> float:
     """Calculate confidence score for RAG response with optional enhanced analysis."""
     if not context_chunks:
         return 0.0
-    
+
     # Use enhanced confidence calculation if query analysis is available
     if query_analysis:
         return enhanced_search.calculate_enhanced_confidence(
             query, context_chunks, response, query_analysis
         )
-    
+
     # Fallback to original confidence calculation
     base_confidence = min(len(context_chunks) / 10.0, 0.6)  # More conservative: max 0.6 confidence
 
@@ -2079,7 +2111,7 @@ async def search_web(query: str, max_results: int = 10) -> List[WebSearchResult]
                 if response.status_code == 200:
                     data = response.json()
                     raw_results = []
-                    
+
                     # Process DuckDuckGo Instant Answer results
                     if data.get("AbstractText"):
                         raw_results.append({
@@ -2088,7 +2120,7 @@ async def search_web(query: str, max_results: int = 10) -> List[WebSearchResult]
                             "content": data.get("AbstractText", ""),
                             "score": 1.0,
                         })
-                    
+
                     # Process related topics
                     for i, topic in enumerate(data.get("RelatedTopics", [])[:max_results-len(raw_results)]):
                         if isinstance(topic, dict) and topic.get("Text"):
@@ -2098,7 +2130,7 @@ async def search_web(query: str, max_results: int = 10) -> List[WebSearchResult]
                                 "content": topic.get("Text", ""),
                                 "score": 1.0 - (i * 0.1),
                             })
-                    
+
                     # If no instant answers, try web search fallback with simple Wikipedia/DuckDuckGo
                     if not raw_results:
                         # Create basic web search results from query
@@ -2108,7 +2140,7 @@ async def search_web(query: str, max_results: int = 10) -> List[WebSearchResult]
                             "content": f"Search for '{query}' using DuckDuckGo privacy-focused search.",
                             "score": 0.8,
                         })
-                    
+
                     if raw_results:
                         store_web_results(query, raw_results)
                     results = [WebSearchResult(**r) for r in raw_results]
@@ -2125,7 +2157,7 @@ async def search_web(query: str, max_results: int = 10) -> List[WebSearchResult]
                 "content": f"For comprehensive results about '{query}', try searching on DuckDuckGo.",
                 "score": 0.5,
             }]
-            
+
             results = [WebSearchResult(**r) for r in fallback_results]
             logger.info(f"Using fallback search result for: {query}")
             return results
@@ -2735,24 +2767,24 @@ async def hybrid_search(request: HybridSearchRequest):
     """Enhanced hybrid search with adaptive thresholds and specialized model routing."""
     try:
         start_ts = time.time()
-        
+
         # Perform advanced query analysis if enabled
         query_analysis = None
         adaptive_threshold = request.confidence_threshold
-        
+
         if request.enable_adaptive_threshold:
             query_analysis = enhanced_search.analyze_query(request.query, request.confidence_threshold)
             adaptive_threshold = query_analysis.confidence_threshold
-            
+
             # Use specialized model if not explicitly overridden
             if request.model == "mistral:7b":  # Default model
                 request.model = query_analysis.optimal_model
-            
+
             logger.info(f"Query analysis: complexity={query_analysis.complexity.value}, "
                        f"type={query_analysis.question_type}, "
                        f"adaptive_threshold={adaptive_threshold:.3f}, "
                        f"optimal_model={query_analysis.optimal_model}")
-        
+
         # Check if iterative research is enabled
         if request.enable_iterative_research:
             logger.info(f"Starting iterative research for query: {request.query}")
@@ -2777,7 +2809,7 @@ async def hybrid_search(request: HybridSearchRequest):
 
             with performance_context("rag_search", {"search_method": "hybrid_rag"}):
                 rag_response = rag_chat(rag_request)
-        
+
         # Enhanced confidence calculation if query analysis available
         if query_analysis:
             # Recalculate confidence with enhanced method
@@ -2786,13 +2818,13 @@ async def hybrid_search(request: HybridSearchRequest):
             )
             original_confidence = rag_response.confidence_score
             rag_response.confidence_score = enhanced_confidence
-            
+
             logger.info(f"Enhanced confidence: {enhanced_confidence:.3f} "
                        f"(original: {original_confidence:.3f})")
 
         # Record RAG confidence metrics with analysis context
         metrics_collector.record_rag_confidence(
-            confidence=rag_response.confidence_score, 
+            confidence=rag_response.confidence_score,
             search_method=f"hybrid_rag_{query_analysis.complexity.value if query_analysis else 'standard'}"
         )
 
@@ -2914,26 +2946,26 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
     """Advanced search with full query optimization and adaptive routing."""
     try:
         start_ts = time.time()
-        
+
         # Always perform comprehensive query analysis
         query_analysis = enhanced_search.analyze_query(request.query, request.confidence_threshold)
-        
+
         logger.info(f"Enhanced search analysis - Query: '{request.query[:50]}...', "
                    f"Complexity: {query_analysis.complexity.value}, "
                    f"Type: {query_analysis.question_type}, "
                    f"Strategy: {query_analysis.search_strategy.value}, "
                    f"Adaptive threshold: {query_analysis.confidence_threshold:.3f}")
-        
+
         # Route to specialized model based on analysis
         optimized_model = query_analysis.optimal_model
-        
+
         # Determine chunk count based on complexity
         chunk_count = request.max_context_chunks
         if query_analysis.complexity == "complex":
             chunk_count = min(chunk_count + 3, 10)  # More context for complex queries
         elif query_analysis.complexity == "simple":
             chunk_count = max(chunk_count - 1, 3)   # Less context for simple queries
-        
+
         # Create optimized RAG request
         rag_request = RAGChatRequest(
             query=request.query,
@@ -2944,29 +2976,29 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
             temperature=request.temperature,
             max_tokens=request.max_tokens,
         )
-        
+
         with performance_context("enhanced_rag_search", {
             "complexity": query_analysis.complexity.value,
             "question_type": query_analysis.question_type,
             "model": optimized_model
         }):
             rag_response = rag_chat(rag_request)
-        
+
         # Always use enhanced confidence calculation
         enhanced_confidence = enhanced_search.calculate_enhanced_confidence(
             request.query, rag_response.context_used, rag_response.response, query_analysis
         )
         original_confidence = rag_response.confidence_score
         rag_response.confidence_score = enhanced_confidence
-        
+
         logger.info(f"Confidence enhancement: {original_confidence:.3f} → {enhanced_confidence:.3f}")
-        
+
         # Record comprehensive metrics
         metrics_collector.record_rag_confidence(
-            confidence=enhanced_confidence, 
+            confidence=enhanced_confidence,
             search_method=f"enhanced_{query_analysis.complexity.value}_{query_analysis.question_type}"
         )
-        
+
         # Apply search strategy
         if query_analysis.search_strategy == "rag_only" or enhanced_confidence >= query_analysis.confidence_threshold:
             # High confidence or RAG-only strategy
@@ -2983,21 +3015,21 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
                 fused_count=0,
                 model_used=optimized_model,
             )
-            
+
             # Enhanced response with analysis insights logged
             logger.info(f"Enhanced RAG success - Complexity: {query_analysis.complexity.value}, "
                        f"Model: {optimized_model}, Strategy: {query_analysis.search_strategy.value}, "
                        f"Confidence: {original_confidence:.3f} → {enhanced_confidence:.3f}")
-            
+
             return rag_response
-        
+
         # Low confidence - apply strategy
         if query_analysis.search_strategy == "web_preferred" or not request.enable_web_search:
             # Web search or web disabled
             if request.enable_web_search:
                 logger.info(f"Low confidence {enhanced_confidence:.3f}, using web search strategy")
                 web_results = await search_web(request.query, max_results=8)
-                
+
                 if web_results:
                     # Use existing web response generation
                     temp_request = HybridSearchRequest(
@@ -3015,7 +3047,7 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
                         target_confidence=0.95,
                         max_research_iterations=25
                     )
-                    
+
                     # Create classification object for compatibility
                     from query_classifier import QueryClassification, QueryType
                     classification = QueryClassification(
@@ -3026,11 +3058,11 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
                         prefer_web_search=True,
                         keywords_matched=query_analysis.domain_keywords[:3]
                     )
-                    
+
                     web_response = await _generate_web_response(
                         temp_request, web_results, "enhanced_web", classification
                     )
-                    
+
                     # Record enhanced web search event
                     web_response.event_id = record_search_event(
                         query=request.query,
@@ -3045,15 +3077,15 @@ async def enhanced_search_endpoint(request: HybridSearchRequest):
                         fused_count=0,
                         model_used=optimized_model,
                     )
-                    
+
                     return web_response
-            
+
             # Return RAG response with low confidence indicator
             logger.warning(f"Low confidence {enhanced_confidence:.3f}, no web search available")
             # Note: Metadata would be added here in production with extended response model
-            
+
             return rag_response
-            
+
     except Exception as e:
         logger.error(f"Enhanced search error: {e}")
         raise HTTPException(status_code=500, detail=f"Enhanced search failed: {str(e)}")
@@ -3065,67 +3097,67 @@ async def get_document_stats():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get basic counts
         cursor.execute("""
-            SELECT 
+            SELECT
                 COUNT(*) as total_documents,
                 MAX(processed_at) as last_processed
-            FROM documents 
+            FROM documents
             WHERE processing_status = 'processed'
         """)
         basic_stats = cursor.fetchone()
-        
+
         # Get total chunks
         cursor.execute("""
-            SELECT COUNT(*) as total_chunks 
+            SELECT COUNT(*) as total_chunks
             FROM document_chunks dc
-            JOIN documents d ON dc.document_id = d.id 
+            JOIN documents d ON dc.document_id = d.id
             WHERE d.processing_status = 'processed'
         """)
         chunk_stats = cursor.fetchone()
-        
+
         # Get document type breakdown
         cursor.execute("""
-            SELECT document_type, COUNT(*) as count 
-            FROM documents 
+            SELECT document_type, COUNT(*) as count
+            FROM documents
             WHERE processing_status = 'processed' AND document_type IS NOT NULL
-            GROUP BY document_type 
+            GROUP BY document_type
             ORDER BY count DESC
         """)
         type_breakdown = {row['document_type']: row['count'] for row in cursor.fetchall()}
-        
+
         # Get product breakdown
         cursor.execute("""
-            SELECT product_name, COUNT(*) as count 
-            FROM documents 
+            SELECT product_name, COUNT(*) as count
+            FROM documents
             WHERE processing_status = 'processed' AND product_name IS NOT NULL
-            GROUP BY product_name 
+            GROUP BY product_name
             ORDER BY count DESC
         """)
         product_breakdown = {row['product_name']: row['count'] for row in cursor.fetchall()}
-        
+
         # Get privacy breakdown
         cursor.execute("""
-            SELECT privacy_level, COUNT(*) as count 
-            FROM documents 
+            SELECT privacy_level, COUNT(*) as count
+            FROM documents
             WHERE processing_status = 'processed'
-            GROUP BY privacy_level 
+            GROUP BY privacy_level
             ORDER BY count DESC
         """)
         privacy_breakdown = {row['privacy_level']: row['count'] for row in cursor.fetchall()}
-        
+
         cursor.close()
         conn.close()
-        
+
         total_docs = basic_stats['total_documents'] if basic_stats else 0
         total_chunks = chunk_stats['total_chunks'] if chunk_stats else 0
         avg_chunks = total_chunks / max(total_docs, 1)
-        
+
         last_processed = None
         if basic_stats and basic_stats['last_processed']:
             last_processed = basic_stats['last_processed'].isoformat()
-        
+
         return DocumentStatsResponse(
             total_documents=total_docs,
             total_chunks=total_chunks,
@@ -3135,7 +3167,7 @@ async def get_document_stats():
             avg_chunks_per_document=round(avg_chunks, 1),
             last_processed=last_processed
         )
-        
+
     except Exception as e:
         logger.error(f"Error fetching document stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch document statistics")
@@ -3147,35 +3179,35 @@ async def list_documents(request: DocumentListRequest):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Build base query with filters
         where_conditions = ["d.processing_status = 'processed'"]
         params = []
-        
+
         if request.document_type:
             where_conditions.append("d.document_type = %s")
             params.append(request.document_type)
-            
+
         if request.product_name:
             where_conditions.append("d.product_name = %s")
             params.append(request.product_name)
-            
+
         if request.privacy_level:
             where_conditions.append("d.privacy_level = %s")
             params.append(request.privacy_level)
-            
+
         if request.search_term:
             where_conditions.append("(d.file_name ILIKE %s OR d.title ILIKE %s)")
             search_pattern = f"%{request.search_term}%"
             params.extend([search_pattern, search_pattern])
-        
+
         where_clause = " AND ".join(where_conditions)
-        
+
         # Validate sort parameters
         valid_sort_fields = {"created_at", "file_name", "chunk_count", "processed_at"}
         sort_field = request.sort_by if request.sort_by in valid_sort_fields else "created_at"
         sort_order = "ASC" if request.sort_order.lower() == "asc" else "DESC"
-        
+
         # Get total count for pagination
         count_query = f"""
             SELECT COUNT(*) as total
@@ -3185,10 +3217,10 @@ async def list_documents(request: DocumentListRequest):
         cursor.execute(count_query, params)
         count_result = cursor.fetchone()
         total_count = count_result['total'] if count_result else 0
-        
+
         # Get documents with chunk counts
         documents_query = f"""
-            SELECT 
+            SELECT
                 d.id,
                 d.file_name,
                 d.title,
@@ -3202,18 +3234,18 @@ async def list_documents(request: DocumentListRequest):
                 COALESCE(chunk_counts.chunk_count, 0) as chunk_count
             FROM documents d
             LEFT JOIN (
-                SELECT document_id, COUNT(*) as chunk_count 
-                FROM document_chunks 
+                SELECT document_id, COUNT(*) as chunk_count
+                FROM document_chunks
                 GROUP BY document_id
             ) chunk_counts ON d.id = chunk_counts.document_id
             WHERE {where_clause}
             ORDER BY d.{sort_field} {sort_order}
             LIMIT %s OFFSET %s
         """
-        
+
         query_params = params + [request.limit, request.offset]
         cursor.execute(documents_query, query_params)
-        
+
         documents = []
         for row in cursor.fetchall():
             documents.append(DocumentInfo(
@@ -3229,12 +3261,12 @@ async def list_documents(request: DocumentListRequest):
                 processed_at=row['processed_at'].isoformat() if row['processed_at'] else None,
                 created_at=row['created_at'].isoformat()
             ))
-        
+
         cursor.close()
         conn.close()
-        
+
         has_more = (request.offset + len(documents)) < total_count
-        
+
         return DocumentListResponse(
             documents=documents,
             total_count=total_count,
@@ -3242,7 +3274,7 @@ async def list_documents(request: DocumentListRequest):
             limit=request.limit,
             has_more=has_more
         )
-        
+
     except Exception as e:
         logger.error(f"Error listing documents: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve document list")
@@ -3271,10 +3303,10 @@ async def get_document_details(document_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get document info with chunk details
         cursor.execute("""
-            SELECT 
+            SELECT
                 d.*,
                 COUNT(dc.id) as chunk_count,
                 MIN(dc.created_at) as first_chunk_created,
@@ -3285,25 +3317,25 @@ async def get_document_details(document_id: int):
             WHERE d.id = %s AND d.processing_status = 'processed'
             GROUP BY d.id
         """, [document_id])
-        
+
         document = cursor.fetchone()
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
-        
+
         # Get chunk breakdown by type
         cursor.execute("""
             SELECT chunk_type, COUNT(*) as count
-            FROM document_chunks 
+            FROM document_chunks
             WHERE document_id = %s
             GROUP BY chunk_type
             ORDER BY count DESC
         """, [document_id])
-        
+
         chunk_types = {row['chunk_type']: row['count'] for row in cursor.fetchall()}
-        
+
         cursor.close()
         conn.close()
-        
+
         return {
             **dict(document),
             "chunk_types": chunk_types,
@@ -3312,7 +3344,7 @@ async def get_document_details(document_id: int):
             "first_chunk_created": document['first_chunk_created'].isoformat() if document['first_chunk_created'] else None,
             "last_chunk_created": document['last_chunk_created'].isoformat() if document['last_chunk_created'] else None
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -3325,14 +3357,14 @@ async def process_temp_document(request: TempDocProcessRequest):
     """Process temporarily uploaded document for analysis."""
     try:
         temp_doc = temp_processor.process_file(
-            request.file_path, 
-            request.file_name, 
+            request.file_path,
+            request.file_name,
             request.session_id
         )
-        
+
         # Generate embeddings for search capability
         success = temp_processor.generate_embeddings(request.session_id)
-        
+
         return {
             "success": True,
             "session_id": request.session_id,
@@ -3355,14 +3387,14 @@ async def analyze_temp_document(request: TempAnalysisRequest):
         session_info = temp_processor.get_session_info(request.session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         # Search temporary document
         search_results = temp_processor.search_temp_documents(
-            request.query, 
-            request.session_id, 
+            request.query,
+            request.session_id,
             request.max_results or 5
         )
-        
+
         if not search_results:
             return TempAnalysisResponse(
                 session_id=request.session_id,
@@ -3372,14 +3404,14 @@ async def analyze_temp_document(request: TempAnalysisRequest):
                 confidence=0.0,
                 response="No relevant content found in the uploaded document."
             )
-        
+
         # Build context from search results
         context_chunks = [result[0] for result in search_results]
         confidence = max([result[1] for result in search_results])
-        
+
         # Generate response using Technical Service Assistant prompt
         context_text = "\\n\\n".join(f"Section {i+1}: {chunk}" for i, chunk in enumerate(context_chunks))
-        
+
         prompt = f"""{TECHNICAL_SERVICE_SYSTEM_PROMPT}
 
 Analyze the following content from the uploaded document: {session_info["file_name"]}
@@ -3393,10 +3425,10 @@ Provide a technical analysis focusing on troubleshooting, configuration, or syst
 
         # Generate response using Ollama
         llm_response = ollama_client.chat(
-            model=settings.chat_model, 
+            model=settings.chat_model,
             messages=[{"role": "user", "content": prompt}]
         )
-        
+
         # Format results for response
         formatted_results = [
             {
@@ -3406,7 +3438,7 @@ Provide a technical analysis focusing on troubleshooting, configuration, or syst
             }
             for i, result in enumerate(search_results)
         ]
-        
+
         return TempAnalysisResponse(
             session_id=request.session_id,
             query=request.query,
@@ -3415,7 +3447,7 @@ Provide a technical analysis focusing on troubleshooting, configuration, or syst
             confidence=confidence,
             response=llm_response["message"]["content"]
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -3429,7 +3461,7 @@ async def get_temp_session_info(session_id: str):
     session_info = temp_processor.get_session_info(session_id)
     if not session_info:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return session_info
 
 
@@ -3439,7 +3471,7 @@ async def cleanup_temp_session(session_id: str):
     success = temp_processor.cleanup_session(session_id)
     if not success:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return {"success": True, "message": "Session cleaned up successfully"}
 
 
@@ -3503,7 +3535,7 @@ async def metrics_health():
             except Exception:
                 ollama_health[f"ollama-server-{i}"] = False
                 OLLAMA_HEALTH.labels(instance=f"ollama-server-{i}").set(0)
-        
+
         # Check database connectivity
         db_healthy = False
         try:
@@ -3514,7 +3546,7 @@ async def metrics_health():
             conn.close()
         except Exception:
             pass
-        
+
         return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
@@ -3633,7 +3665,7 @@ async def periodic_cleanup():
 # @app.post("/api/auth/users/{user_id}/roles")
 # @require_permission("roles", "assign")
 # async def assign_user_role(
-#     user_id: int, 
+#     user_id: int,
 #     role_assignment: UserRoleAssignment,
 #     current_user: User = Depends(get_current_user)
 # ):

@@ -7,9 +7,12 @@ from this module instead of reading os.environ directly to ensure consistency.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 # Load .env automatically if present to mirror top-level config behavior
 try:  # pragma: no cover - optional convenience
@@ -112,7 +115,7 @@ class Settings:
 
     # Timeouts
     embedding_timeout_seconds: int
-    
+
     # Phase 2B Query Expansion Controls
     enable_semantic_expansion_filter: bool
     expansion_max_terms_base: int
@@ -280,6 +283,7 @@ def get_settings() -> Settings:
 
 if __name__ == "__main__":
     # Simple debug output
+    logging.basicConfig(level=logging.INFO)
     cfg = get_settings()
     for k, v in cfg.as_dict().items():
-        print(f"{k}={v}")
+        logger.info(f"{k}={v}")
