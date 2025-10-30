@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures for the Technical Service Assistant test suite."""
 
+import os
 import sys
 from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,26 @@ from fastapi.testclient import TestClient
 
 # Import your main application components
 from config import get_settings
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Relax default addopts when PYTEST_RELAX_DEFAULTS is enabled."""
+    relax_flag = os.getenv("PYTEST_RELAX_DEFAULTS", "").lower()
+    if relax_flag not in {"1", "true", "yes", "on"}:
+        return
+
+    # Allow full test selection instead of the focused keyword filter.
+    if getattr(config.option, "keyword", None):
+        config.option.keyword = ""
+
+    # Disable coverage enforcement and reports for sandboxed runs.
+    for attr in ("cov", "cov_source", "cov_report"):
+        if hasattr(config.option, attr):
+            setattr(config.option, attr, [])
+    if hasattr(config.option, "no_cov"):
+        config.option.no_cov = True
+    if hasattr(config.option, "cov_fail_under"):
+        config.option.cov_fail_under = 0
 
 
 @pytest.fixture(scope="session")

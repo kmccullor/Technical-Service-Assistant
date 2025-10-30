@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password Change Enforcement**: Enhanced RBAC middleware to block users requiring password changes from accessing protected endpoints
 - **Forced Password Change Flow**: Added comprehensive unit tests for forced password change workflow with authentication flag validation
 - **Profile Fetch Allowlist**: Restored `/api/auth/me` in the forced password change allowlist so the client can fetch context after login
+- **Pytest Sandbox Override**: Added `PYTEST_RELAX_DEFAULTS` flag to relax ring-limited coverage settings when running focused tests in constrained environments
 - **Compatibility Improvements**: Replaced root `rbac_endpoints.py` with compatibility shim to eliminate code duplication
 
 ## [4.2.0] - 2025-09-24 - RAG Validation & 95% Confidence Achievement

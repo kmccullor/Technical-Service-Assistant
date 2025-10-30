@@ -78,6 +78,11 @@ export default function LoginPage() {
               {formError || error}
             </div>
           )}
+          <div className="text-right text-sm">
+            <Link href="/forgot-password" className="text-primary underline">
+              Forgot password?
+            </Link>
+          </div>
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>

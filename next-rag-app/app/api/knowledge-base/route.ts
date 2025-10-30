@@ -4,6 +4,17 @@ import { documentChunks } from '@/lib/db/schema'
 import { sql } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return Response.json({
+      stats: {
+        documents: 0,
+        chunks: 0,
+        avgChunkLength: 0,
+        totalContent: 0,
+      },
+      documents: [],
+    })
+  }
   try {
     // Get document count and chunk count
     const [stats] = await db

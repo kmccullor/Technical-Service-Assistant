@@ -99,6 +99,8 @@ services:
       context: .
       dockerfile: reranker/Dockerfile
     container_name: reranker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     ports:
       - "8008:8008"
@@ -114,6 +116,17 @@ services:
       - EMBEDDING_MODEL=nomic-embed-text
       - CHAT_MODEL=mistral:7B
       - RERANK_MODEL=BAAI/bge-reranker-base
+      - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
+      - SMTP_PORT=${SMTP_PORT:-25}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - VERIFICATION_EMAIL_SENDER=${VERIFICATION_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
+      - VERIFICATION_EMAIL_SUBJECT=${VERIFICATION_EMAIL_SUBJECT:-Verify your Technical Service Assistant account}
+      - VERIFICATION_EMAIL_LINK_BASE=${VERIFICATION_EMAIL_LINK_BASE:-http://localhost:3000/verify-email}
+      - PASSWORD_RESET_EMAIL_SENDER=${PASSWORD_RESET_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
+      - PASSWORD_RESET_EMAIL_SUBJECT=${PASSWORD_RESET_EMAIL_SUBJECT:-Reset your Technical Service Assistant password}
+      - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-http://localhost:3000/reset-password}
     depends_on:
       - pgvector
       - ollama-server-1
