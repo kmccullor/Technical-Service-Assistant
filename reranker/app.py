@@ -1,7 +1,7 @@
 
 # --- RAGChatRequest and RAGChatResponse must be defined before any function/type hint that uses them ---
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class RAGChatRequest(BaseModel):
     """RAG-enhanced chat request following Pydantic AI patterns."""
@@ -32,12 +32,14 @@ class RAGChatResponse(BaseModel):
 # --- End RAGChatRequest/RAGChatResponse early definition ---
 
 import sys
+import asyncio
 import math
 import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Tuple
+from contextlib import asynccontextmanager
 
 import httpx
 import ollama
@@ -581,6 +583,8 @@ class RAGChatResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     event_id: Optional[int] = Field(None, description="Associated search_events id")
     query: str = Field(..., description="Original user query")
     response_excerpt: Optional[str] = Field(
@@ -3524,32 +3528,46 @@ async def metrics_health():
         raise HTTPException(status_code=500, detail="Health check failed")
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize metrics server on startup."""
+cleanup_task: Optional[asyncio.Task] = None
+
+
+@asynccontextmanager
+async def app_lifespan(_: FastAPI):
+    """Application lifespan management replacing deprecated startup event."""
+    global cleanup_task
+
     logger.info("Starting up Technical Service Assistant with performance monitoring")
-    
-    # Start metrics server if enabled
+
     if metrics_collector.enabled:
         try:
             metrics_collector.start_metrics_server(port=9091)
         except Exception as e:
             logger.warning(f"Could not start metrics server: {e}")
-    
-    # Update initial system metrics
+
     metrics_collector.update_system_metrics()
-    
-    # Start periodic cleanup of temporary documents
-    import asyncio
-    asyncio.create_task(periodic_cleanup())
-    
+
+    cleanup_task = asyncio.create_task(periodic_cleanup())
     logger.info("Startup complete - monitoring active")
+
+    try:
+        yield
+    finally:
+        if cleanup_task:
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
+            cleanup_task = None
+
+        logger.info("Shutdown complete - monitoring stopped")
+
+
+app.router.lifespan_context = app_lifespan
 
 
 async def periodic_cleanup():
     """Periodically clean up expired temporary document sessions."""
-    import asyncio
-    
     while True:
         try:
             await asyncio.sleep(3600)  # Run every hour

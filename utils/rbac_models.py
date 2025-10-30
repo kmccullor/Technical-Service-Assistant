@@ -20,11 +20,18 @@ Usage:
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field, EmailStr, validator
-from pydantic import model_validator
 from enum import Enum
 import re
+from typing import Any, Dict, List, Optional
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class PermissionLevel(str, Enum):
@@ -59,6 +66,9 @@ class RoleType(str, Enum):
 # Base Models
 class TimestampedModel(BaseModel):
     """Base model with timestamp fields."""
+
+    model_config = ConfigDict(from_attributes=True)
+
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
@@ -72,15 +82,12 @@ class Permission(TimestampedModel):
     resource: str = Field(..., min_length=1, max_length=100)
     action: PermissionLevel
     
-    @validator('name')
-    def validate_permission_name(cls, v):
+    @field_validator('name')
+    def validate_permission_name(cls, v: str) -> str:
         """Validate permission name format."""
         if not re.match(r'^[a-zA-Z0-9_]+$', v):
             raise ValueError('Permission name must contain only alphanumeric characters and underscores')
         return v.lower()
-
-    class Config:
-        from_attributes = True
 
 
 class CreatePermissionRequest(BaseModel):
@@ -111,24 +118,22 @@ class Role(TimestampedModel):
     permissions: List[str] = Field(default_factory=list)
     is_system_role: bool = Field(default=False)
     
-    @validator('name')
-    def validate_role_name(cls, v):
+    @field_validator('name')
+    def validate_role_name(cls, v: str) -> str:
         """Validate role name format."""
         if not re.match(r'^[a-zA-Z0-9_\-\s]+$', v):
             raise ValueError('Role name contains invalid characters')
         return v.lower()
     
-    @validator('permissions')
-    def validate_permissions(cls, v):
+    @field_validator('permissions')
+    def validate_permissions(cls, v: List[str]) -> List[str]:
         """Validate permission format."""
         valid_permissions = [p.value for p in PermissionLevel]
         for perm in v:
             if perm not in valid_permissions:
                 raise ValueError(f'Invalid permission: {perm}')
-        return list(set(v))  # Remove duplicates
-
-    class Config:
-        from_attributes = True
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(v))
 
 
 class CreateRoleRequest(BaseModel):
@@ -175,11 +180,11 @@ class User(TimestampedModel):
     password_changed_at: Optional[datetime] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
     
-    @validator('email')
-    def validate_email(cls, v):
+    @field_validator('email')
+    def normalize_email(cls, v: EmailStr) -> EmailStr:
         """Additional email validation."""
         # Convert to lowercase for consistency
-        return v.lower()
+        return EmailStr(str(v).lower())
     
     @property
     def full_name(self) -> str:
@@ -204,10 +209,6 @@ class User(TimestampedModel):
             not self.is_locked
         )
 
-    class Config:
-        from_attributes = True
-
-
 class CreateUserRequest(BaseModel):
     """Request model for user creation."""
     email: EmailStr
@@ -216,8 +217,8 @@ class CreateUserRequest(BaseModel):
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     role_id: int = Field(..., gt=0)
     
-    @validator('password')
-    def validate_password(cls, v):
+    @field_validator('password')
+    def validate_password(cls, v: str) -> str:
         """Validate password strength."""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -248,14 +249,14 @@ class ChangePasswordRequest(BaseModel):
     confirm_password: str = Field(..., min_length=8, max_length=128)
 
     @model_validator(mode='after')
-    def validate_password_match(self):  # type: ignore[override]
+    def validate_password_match(cls, model: 'ChangePasswordRequest') -> 'ChangePasswordRequest':
         """Ensure new password matches confirmation."""
-        if self.new_password != self.confirm_password:
+        if model.new_password != model.confirm_password:
             raise ValueError('New password and confirmation do not match')
-        return self
+        return model
 
-    @validator('new_password')
-    def validate_new_password_strength(cls, v):
+    @field_validator('new_password')
+    def validate_new_password_strength(cls, v: str) -> str:
         """Validate password strength requirements."""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -276,36 +277,14 @@ class ForcePasswordChangeRequest(BaseModel):
     confirm_password: str = Field(..., min_length=8, max_length=128)
     
     @model_validator(mode='after')
-    def validate_password_match(self):  # type: ignore[override]
+    def validate_password_match(cls, model: 'ForcePasswordChangeRequest') -> 'ForcePasswordChangeRequest':
         """Validate password confirmation using Pydantic v2 style validator."""
-        if self.new_password != self.confirm_password:
+        if model.new_password != model.confirm_password:
             raise ValueError('New password and confirmation do not match')
-        return self
+        return model
     
-    @validator('new_password')
-    def validate_forced_password_strength(cls, v):
-        """Validate new password strength for forced changes."""
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('Password must contain at least one special character')
-        return v
-    
-    @model_validator(mode='after')
-    def validate_password_match(self):  # type: ignore[override]
-        """Validate password confirmation using Pydantic v2 style validator."""
-        if self.new_password != self.confirm_password:
-            raise ValueError('New password and confirmation do not match')
-        return self
-    
-    @validator('new_password')
-    def validate_new_password(cls, v):
+    @field_validator('new_password')
+    def validate_new_password(cls, v: str) -> str:
         """Validate new password strength."""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -384,11 +363,11 @@ class ConfirmPasswordResetRequest(BaseModel):
     confirm_password: str = Field(..., min_length=8, max_length=128)
     
     @model_validator(mode='after')
-    def validate_password_match(self):  # type: ignore[override]
+    def validate_password_match(cls, model: 'ConfirmPasswordResetRequest') -> 'ConfirmPasswordResetRequest':
         """Validate password confirmation using Pydantic v2 style validator."""
-        if self.new_password != self.confirm_password:
+        if model.new_password != model.confirm_password:
             raise ValueError('New password and confirmation do not match')
-        return self
+        return model
 
 
 # Audit and Security Models
@@ -405,10 +384,6 @@ class AuditLog(TimestampedModel):
     success: bool = Field(default=True)
     error_message: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
-
 class SecurityEvent(TimestampedModel):
     """Security event model for monitoring."""
     id: Optional[int] = None
@@ -420,10 +395,6 @@ class SecurityEvent(TimestampedModel):
     resolved: bool = Field(default=False)
     resolved_by: Optional[int] = None
     resolved_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
 
 # API Response Models
 class APIResponse(BaseModel):

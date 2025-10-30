@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReasoningType(str, Enum):
@@ -58,6 +58,8 @@ class ReasoningQuery(BaseModel):
 
 class ReasoningResponse(BaseModel):
     """Output from reasoning engine."""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     original_query: str
     reasoning_type: ReasoningType

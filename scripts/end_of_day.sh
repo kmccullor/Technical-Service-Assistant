@@ -174,14 +174,32 @@ send_eod_notification() {
         info "Notification sent to webhook"
     fi
     
-    # Email notification with Python fallback
+    # Email notification with sendmail fallback
     if [[ -n "${EOD_EMAIL:-}" ]]; then
-        # Try mailx/mail first
-        if command -v mail &> /dev/null; then
-            echo -e "Technical Service Assistant - End of Day Report\n\nStatus: $status\nSummary: $summary\nTime: $(date)\n\nDetailed report available at: logs/daily_report_$DATE_STAMP.md" | \
-                mail -s "Technical Service Assistant - EOD Report ($status)" "$EOD_EMAIL"
-            info "Email notification sent to $EOD_EMAIL (via mail command)"
+        local email_subject="Technical Service Assistant - EOD Report ($status)"
+        local email_body="Technical Service Assistant - End of Day Report
+
+Status: $status
+Summary: $summary
+Time: $(date)
+
+Detailed report available at: logs/daily_report_$DATE_STAMP.md"
+        # Prefer sendmail for compatibility with MTA relays
+        if command -v sendmail &> /dev/null; then
+            {
+                echo "To: $EOD_EMAIL"
+                echo "Subject: $email_subject"
+                echo "Content-Type: text/plain; charset=\"UTF-8\""
+                echo
+                echo "$email_body"
+            } | sendmail -t
+            info "Email notification sent to $EOD_EMAIL (via sendmail)"
         
+        # Fallback to traditional mail command
+        elif command -v mail &> /dev/null; then
+            echo -e "$email_body" | mail -s "$email_subject" "$EOD_EMAIL"
+            info "Email notification sent to $EOD_EMAIL (via mail command)"
+
         # Fallback to Python email script
         elif [[ -f "$PROJECT_ROOT/email_eod_report.py" ]]; then
             info "Using Python email script to send report..."
@@ -607,6 +625,9 @@ run_automated_eod() {
     
     # Generate comprehensive daily report
     generate_automated_report
+
+    # If applicable, roll up a weekly summary
+    generate_weekly_summary_if_needed
     
     # Create system snapshot
     create_system_snapshot
@@ -715,6 +736,100 @@ EOF
     log_message "✅ Automated daily report generated: $REPORT_FILE"
 }
 
+# Weekly summary generator (runs on Sundays)
+generate_weekly_summary_if_needed() {
+    local day_of_week
+    day_of_week=$(date +%u)
+    
+    # Only run on Sundays (7) to capture the week that just ended
+    if [[ "$day_of_week" != "7" ]]; then
+        return 0
+    fi
+
+    local week_id
+    week_id=$(date +%G-W%V)
+    local summary_file="$LOG_DIR/weekly_summary_${week_id}.md"
+
+    if [[ -f "$summary_file" ]]; then
+        log_message "ℹ️ Weekly summary already exists for $week_id: $summary_file"
+        return 0
+    fi
+
+    local weekly_reports=()
+    while IFS= read -r report_path; do
+        weekly_reports+=("$report_path")
+    done < <(find "$LOG_DIR" -maxdepth 1 -type f -name "daily_report_*.md" -mtime -7 | sort)
+    if [[ ${#weekly_reports[@]} -eq 0 ]]; then
+        log_message "⚠️ No daily reports found for weekly summary generation"
+        return 0
+    fi
+
+    cat > "$summary_file" << EOF
+# 📅 Weekly Operational Summary - $week_id
+
+**Generated:** $(date +"%Y-%m-%d %H:%M:%S %Z")  
+**Daily Reports Included:** ${#weekly_reports[@]}
+
+---
+
+## Daily Status Overview
+
+EOF
+
+    local healthy_days=0
+    local degraded_days=0
+    local critical_days=0
+
+    for report in "${weekly_reports[@]}"; do
+        local report_date_raw
+        report_date_raw=$(basename "$report" .md | sed 's/daily_report_//')
+        local display_date
+        display_date=$(python3 - <<PY 2>/dev/null
+from datetime import datetime
+date_str = "$report_date_raw"
+try:
+    dt = datetime.strptime(date_str, "%Y%m%d")
+    print(dt.strftime("%A, %B %d, %Y"))
+except ValueError:
+    print(date_str)
+PY
+)
+        local status_line
+        status_line=$(grep -m1 -E '\*\*System Status\*\*' "$report" || true)
+        local status="Unknown"
+        if [[ -n "$status_line" ]]; then
+            status=$(echo "$status_line" | sed 's/.*\*\*System Status\*\*: *//')
+        fi
+        case "$status" in
+            *HEALTHY*) ((healthy_days++)) ;;
+            *DEGRADED*) ((degraded_days++)) ;;
+            *CRITICAL*) ((critical_days++)) ;;
+        esac
+
+        cat >> "$summary_file" << EOF
+- **$display_date** — Status: ${status:-Unknown}  (Report: $(basename "$report"))
+EOF
+    done
+
+    cat >> "$summary_file" << EOF
+
+---
+
+## 📈 Weekly Status Breakdown
+- Healthy days: $healthy_days
+- Degraded days: $degraded_days
+- Critical days: $critical_days
+
+## 🔍 Suggested Follow-ups
+- Review degraded and critical days for remediation tasks.
+- Confirm action items were tracked in daily reports.
+- Archive or share this summary with stakeholders as needed.
+
+EOF
+
+    log_message "📚 Weekly summary generated: $summary_file"
+}
+
 # Create system snapshot
 create_system_snapshot() {
     log_message "📸 Creating system snapshot..."
@@ -756,9 +871,14 @@ EOF
 cleanup_old_logs() {
     log_message "🧹 Cleaning up old log files..."
     
-    find "$LOG_DIR" -name "*.log" -type f -mtime +30 -delete 2>/dev/null
-    find "$LOG_DIR" -name "*.md" -type f -mtime +30 -delete 2>/dev/null
-    find "$LOG_DIR" -name "*.json" -type f -mtime +30 -delete 2>/dev/null
+    find "$LOG_DIR" -type f -name "*.log" -mtime +30 -delete 2>/dev/null
+    find "$LOG_DIR" -type f -name "*.json" -mtime +30 -delete 2>/dev/null
+    find "$LOG_DIR" -type f -name "*.md" ! -name "weekly_summary_*.md" -mtime +30 -delete 2>/dev/null
+    find "$LOG_DIR" -type f -name "weekly_summary_*.md" -mtime +180 -delete 2>/dev/null
+
+    if [[ -d "$PROJECT_ROOT/backup" ]]; then
+        find "$PROJECT_ROOT/backup" -maxdepth 1 -mindepth 1 -type d -name "*_end_of_day" -mtime +30 -exec rm -rf {} \; 2>/dev/null
+    fi
     
     log_message "✅ Log cleanup completed"
 }
