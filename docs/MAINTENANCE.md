@@ -24,7 +24,7 @@ make cleanup
 
 ### 🧹 **Weekly Cleanup Actions**
 - **Old Backup Files**: Removes `.bak*` files older than 7 days
-- **Old Log Files**: Removes log files older than 7 days  
+- **Old Log Files**: Removes log files older than 7 days
 - **Python Cache**: Removes all `__pycache__` directories
 - **Temporary Files**: Removes `.pyc`, `.tmp`, `.DS_Store` files
 - **Docker System**: Prunes unused images, containers, and build cache
@@ -65,7 +65,7 @@ The project `.gitignore` prevents these file types from being committed:
 
 ### Best Practices
 1. **Run `make morning` daily** - Automated monitoring and cleanup
-2. **Run `make cleanup` weekly** - Comprehensive system maintenance  
+2. **Run `make cleanup` weekly** - Comprehensive system maintenance
 3. **Monitor disk usage** - Watch for unusual growth patterns
 4. **Keep Docker pruned** - Prevents excessive space usage
 5. **Review logs regularly** - Archive important logs before cleanup
@@ -87,7 +87,7 @@ The project `.gitignore` prevents these file types from being committed:
 
 The morning checklist reports cleanup metrics in the daily summary:
 - Backup file count
-- Log directory size  
+- Log directory size
 - Python cache directory count
 - Docker reclaimable space
 

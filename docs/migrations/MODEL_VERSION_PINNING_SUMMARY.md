@@ -35,7 +35,7 @@ Successfully replaced all `:latest` model tags with specific versions to prevent
 
 ### Embedding Models
 - **Primary**: `nomic-embed-text:v1.5` (was `nomic-embed-text:latest`)
-- **High Quality**: `mxbai-embed-large:v1`  
+- **High Quality**: `mxbai-embed-large:v1`
 - **Multilingual**: `bge-m3:567m`
 - **Lightweight**: `all-minilm:v2.6`
 
@@ -52,7 +52,7 @@ Successfully replaced all `:latest` model tags with specific versions to prevent
 ## 🛡️ Production Safety Benefits
 - **Predictable Behavior**: Models won't change unexpectedly when Ollama updates
 - **Stable Performance**: Consistent response quality and timing
-- **Easier Debugging**: Known model versions make troubleshooting simpler  
+- **Easier Debugging**: Known model versions make troubleshooting simpler
 - **Version Control**: Can track which specific model versions work best
 - **Rollback Capability**: Can revert to known-good versions if needed
 

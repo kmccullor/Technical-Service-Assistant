@@ -17,7 +17,7 @@ interface TempUploadProps {
 }
 
 const ALLOWED_EXTENSIONS = [
-  '.txt', '.log', '.csv', '.json', '.sql', '.pdf', 
+  '.txt', '.log', '.csv', '.json', '.sql', '.pdf',
   '.xml', '.conf', '.config', '.ini', '.properties',
   '.out', '.err', '.trace', '.dump'
 ]
@@ -191,7 +191,7 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
             accept={ALLOWED_EXTENSIONS.join(',')}
             onChange={(e) => handleFileSelect(e.target.files)}
           />
-          
+
           {isUploading ? (
             <div className="space-y-4">
               <Loader2 className="h-12 w-12 mx-auto text-blue-500 animate-spin" />
@@ -299,7 +299,7 @@ export default function TempUpload({ onFileUploaded, onAnalysisResult }: TempUpl
               Confidence: {(analysisResult.confidence * 100).toFixed(1)}%
             </p>
           </div>
-          
+
           <div className="prose prose-sm max-w-none">
             <div className="bg-gray-50 rounded p-4">
               <p className="font-medium text-gray-700 mb-2">Technical Analysis:</p>

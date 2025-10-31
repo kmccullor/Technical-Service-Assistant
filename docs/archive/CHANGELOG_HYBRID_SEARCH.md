@@ -103,7 +103,7 @@
 
 #### Integration Tests
 - **API Endpoints**: All hybrid search endpoints functional
-- **Frontend Controls**: Settings properly affect search behavior  
+- **Frontend Controls**: Settings properly affect search behavior
 - **Error Scenarios**: Graceful handling of search failures
 
 #### Performance Tests
@@ -161,7 +161,7 @@ RELEVANCE_BONUS_FACTOR=0.2
 
 This hybrid search implementation successfully fulfills the user's original requirements:
 - ✅ "Search RAG if confidence is less than 50% then search the web"
-- ✅ "Self-hosted search (privacy-first): SearXNG + your RAG app"  
+- ✅ "Self-hosted search (privacy-first): SearXNG + your RAG app"
 - ✅ "There only need so be one dialog"
 
 The system now provides intelligent, privacy-first search that seamlessly combines document knowledge with web search capabilities.

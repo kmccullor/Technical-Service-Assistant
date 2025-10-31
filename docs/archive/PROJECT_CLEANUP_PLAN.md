@@ -4,7 +4,7 @@
 
 ### Core Documentation (Keep in Root)
 - `README.md` - Main project documentation
-- `ARCHITECTURE.md` - System architecture overview  
+- `ARCHITECTURE.md` - System architecture overview
 - `DEVELOPMENT.md` - Development setup and guidelines
 - `CODE_QUALITY.md` - Code quality standards
 - `CONTRIBUTING.md` - Contribution guidelines
@@ -13,7 +13,7 @@
 
 ### Operations & Deployment (Move to docs/operations/)
 - `DEPLOYMENT_GUIDE.md`
-- `SCALING_PLAN.md` 
+- `SCALING_PLAN.md`
 - `SECURITY_IMPLEMENTATION.md`
 - `ENTERPRISE_DEPLOYMENT_COMPLETE.md`
 - `RBAC_FIX_SUMMARY.md`
@@ -78,7 +78,7 @@
 ```
 docs/
 ├── operations/
-├── monitoring/  
+├── monitoring/
 ├── phases/
 ├── testing/
 ├── migrations/

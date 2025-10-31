@@ -77,11 +77,11 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 find "$ARCHIVE_DIR" -name "*.pdf" -type f | while read file; do
     filename=$(basename "$file")
     name_without_ext="${filename%.*}"
-    
+
     # Create unique filename with timestamp
     new_filename="${name_without_ext}_reprocess_${TIMESTAMP}_${PROCESSED}.pdf"
     destination="$UPLOADS_DIR/$new_filename"
-    
+
     # Copy file to uploads (keep original in archive)
     if cp "$file" "$destination"; then
         echo -e "${GREEN}✅ Queued: $filename -> $new_filename${NC}"
@@ -90,7 +90,7 @@ find "$ARCHIVE_DIR" -name "*.pdf" -type f | while read file; do
         echo -e "${RED}❌ Failed: $filename${NC}"
         ((FAILED++))
     fi
-    
+
     # Small delay to avoid overwhelming the processor
     sleep 1
 done

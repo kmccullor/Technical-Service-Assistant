@@ -19,10 +19,10 @@ export default function HomePage() {
 
   // Handle password change redirect
   useEffect(() => {
-    console.log('[HOME] Password change check:', { 
-      userEmail, 
-      passwordChangeRequired, 
-      redirecting 
+    console.log('[HOME] Password change check:', {
+      userEmail,
+      passwordChangeRequired,
+      redirecting
     })
     if (passwordChangeRequired && !redirecting) {
       console.log('[HOME] Redirecting to password change page')

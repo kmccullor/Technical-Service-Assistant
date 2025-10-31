@@ -16,6 +16,6 @@ CREATE TABLE embeddings (
 CREATE INDEX embeddings_embedding_idx ON embeddings USING ivfflat (embedding vector_cosine_ops);
 
 -- Insert the nomic-embed-text model if it doesn't exist
-INSERT INTO models (name, provider, dimension_size) 
+INSERT INTO models (name, provider, dimension_size)
 VALUES ('nomic-embed-text:v1.5', 'ollama', 768)
 ON CONFLICT (name) DO UPDATE SET dimension_size = 768;

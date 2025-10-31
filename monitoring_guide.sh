@@ -72,7 +72,7 @@ echo "🎯 Prometheus Targets Status:"
 if curl -s http://$HOSTNAME:$PROMETHEUS_PORT/api/v1/targets 2>/dev/null | grep -q "up"; then
     target_count=$(curl -s http://$HOSTNAME:$PROMETHEUS_PORT/api/v1/targets 2>/dev/null | jq -r '.data.activeTargets | length' 2>/dev/null || echo "unknown")
     echo "  ✅ Prometheus monitoring $target_count targets"
-    
+
     # Show target health
     echo "  📊 Target Health:"
     curl -s http://$HOSTNAME:$PROMETHEUS_PORT/api/v1/targets 2>/dev/null | jq -r '.data.activeTargets[] | "    • \(.labels.job): \(.health)"' 2>/dev/null | head -10

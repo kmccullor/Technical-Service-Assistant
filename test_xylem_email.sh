@@ -19,7 +19,7 @@ export EOD_SMTP_USE_TLS="true"
 
 echo "📍 Configuration:"
 echo "   From: $EOD_SENDER_EMAIL"
-echo "   To: $EOD_RECIPIENT_EMAIL"  
+echo "   To: $EOD_RECIPIENT_EMAIL"
 echo "   SMTP: $EOD_SMTP_SERVER:$EOD_SMTP_PORT"
 echo "   TLS: $EOD_SMTP_USE_TLS"
 echo ""

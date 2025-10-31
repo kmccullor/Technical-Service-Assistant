@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ChevronDown, User, Key, LogOut, Shield } from 'lucide-react'
+import { ChevronDown, User, Key, LogOut, Shield, BarChart3, Activity } from 'lucide-react'
 
 interface UserMenuProps {
   className?: string
@@ -54,6 +54,18 @@ export function UserMenu({ className }: UserMenuProps) {
                 <Shield className="mr-2 h-4 w-4" />
                 <span>User / Role Management</span>
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="http://RNI-LLM-01.lab.sensus.net:3001" target="_blank" rel="noopener noreferrer" className="flex items-center cursor-pointer">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                <span>Grafana Dashboard</span>
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="http://RNI-LLM-01.lab.sensus.net:9091" target="_blank" rel="noopener noreferrer" className="flex items-center cursor-pointer">
+                <Activity className="mr-2 h-4 w-4" />
+                <span>Prometheus Server</span>
+              </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>

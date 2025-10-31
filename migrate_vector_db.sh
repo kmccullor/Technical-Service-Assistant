@@ -33,12 +33,12 @@ docker exec pgvector psql -U postgres -d vector_db -c "\dx"
 
 echo "Step 7: Verifying indexes..."
 docker exec pgvector psql -U postgres -d vector_db -c "
-SELECT 
-    indexname, 
-    tablename, 
-    indexdef 
-FROM pg_indexes 
-WHERE schemaname = 'public' 
+SELECT
+    indexname,
+    tablename,
+    indexdef
+FROM pg_indexes
+WHERE schemaname = 'public'
     AND indexname LIKE '%embedding%'
 ORDER BY tablename, indexname;"
 

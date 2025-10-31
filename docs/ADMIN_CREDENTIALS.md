@@ -12,7 +12,7 @@
 ### Additional Admin Accounts
 - **Email**: `kevin.mccullor@xylem.com`
 - **Password**: `NewSecurePass123!`
-- **Role**: Admin (role_id = 1) 
+- **Role**: Admin (role_id = 1)
 - **Status**: Active, Verified
 - **Password Change Required**: No
 
@@ -39,7 +39,7 @@ else:
 
 ## Admin Endpoints Available
 - `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Get profile 
+- `GET /api/auth/me` - Get profile
 - `POST /api/auth/admin-reset` - Reset other users' passwords
 - `POST /api/auth/change-password` - Change own password
 

@@ -14,18 +14,18 @@
 <body>
     <div class="container">
         <h1>Authentication Cache Cleaner</h1>
-        
+
         <div class="warning">
             <strong>⚠️ If you're having login issues:</strong>
             <p>This tool will clear cached authentication data that might be causing problems.</p>
         </div>
-        
+
         <button onclick="clearAuthCache()">Clear Auth Cache</button>
         <button onclick="checkCurrentAuth()">Check Current Auth</button>
         <button onclick="testLogin()">Test Login</button>
-        
+
         <div id="output"></div>
-        
+
         <div class="info">
             <h3>📋 Troubleshooting Steps:</h3>
             <ol>
@@ -49,10 +49,10 @@
 
         function clearAuthCache() {
             log('🧹 Clearing authentication cache...');
-            
+
             // Clear the specific auth key
             localStorage.removeItem('tsa_auth_v1');
-            
+
             // Clear any other auth-related keys
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
@@ -61,22 +61,22 @@
                     keysToRemove.push(key);
                 }
             }
-            
+
             keysToRemove.forEach(key => {
                 localStorage.removeItem(key);
                 log(`   Removed: ${key}`);
             });
-            
+
             // Clear session storage too
             sessionStorage.clear();
-            
+
             log('✅ Authentication cache cleared successfully!', true);
             log('Please refresh the page and try logging in again.');
         }
 
         function checkCurrentAuth() {
             log('🔍 Checking current authentication state...');
-            
+
             const authData = localStorage.getItem('tsa_auth_v1');
             if (authData) {
                 try {
@@ -95,7 +95,7 @@
 
         async function testLogin() {
             log('🧪 Testing login functionality...');
-            
+
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -105,7 +105,7 @@
                         password: 'admin%2025'
                     })
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     log(`✅ Login test successful for ${data.user.email}`, true);

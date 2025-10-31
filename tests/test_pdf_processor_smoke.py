@@ -3,9 +3,7 @@
 These do not enforce coverage yet; they validate basic behaviors deterministically
 and provide a foundation for future expansion.
 """
-import io
-import os
-import tempfile
+
 import pytest
 
 from pdf_processor import pdf_utils

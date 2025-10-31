@@ -35,7 +35,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // First, process the uploaded file if not already processed
     const tempDir = join(process.cwd(), 'temp-uploads', sessionId)
     const metadataPath = join(tempDir, 'metadata.json')
-    
+
     try {
       const { readFile } = await import('fs/promises')
       const metadata = JSON.parse(await readFile(metadataPath, 'utf-8'))
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       // Send file to reranker for processing
       const rerankerBaseUrl = process.env.RERANKER_BASE_URL || 'http://reranker:8008'
-      
+
       // First, process the document
       const processResponse = await fetch(`${rerankerBaseUrl}/api/temp-process`, {
         method: 'POST',
@@ -85,9 +85,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       const analysisResult: AnalyzeResponse = await analyzeResponse.json()
-      
+
       console.log(`Analysis complete for session ${sessionId}: ${query}`)
-      
+
       return NextResponse.json(analysisResult)
 
     } catch (fileError) {
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
-    
+
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 })
     }
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Get session info from reranker
     const rerankerBaseUrl = process.env.RERANKER_BASE_URL || 'http://reranker:8008'
     const response = await fetch(`${rerankerBaseUrl}/api/temp-session/${sessionId}`)
-    
+
     if (!response.ok) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }

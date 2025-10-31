@@ -35,7 +35,7 @@ settings = get_settings()
 ## Key Tables
 
 - `users` - User accounts and authentication
-- `roles` - User roles (admin, employee, guest)  
+- `roles` - User roles (admin, employee, guest)
 - `document_chunks` - Processed document content with embeddings
 - `audit_logs` - Security and system audit trail
 - `verification_tokens` - Email verification tokens
@@ -45,5 +45,5 @@ settings = get_settings()
 ❌ **Wrong database name**: Don't use `postgres` or `technical_service_assistant`
 ✅ **Correct database name**: Always use `vector_db`
 
-❌ **Wrong connection**: `psql -U postgres -d postgres` 
+❌ **Wrong connection**: `psql -U postgres -d postgres`
 ✅ **Correct connection**: `psql -U postgres -d vector_db`

@@ -54,7 +54,7 @@ Your 4-container Ollama cluster has been successfully updated, optimized, and va
 
 **Container Health**: ✅ 4/4 healthy (100%)
 - `ollama-server-1` (port 11434) ✅ Healthy
-- `ollama-server-2` (port 11435) ✅ Healthy  
+- `ollama-server-2` (port 11435) ✅ Healthy
 - `ollama-server-3` (port 11436) ✅ Healthy
 - `ollama-server-4` (port 11437) ✅ Healthy
 

@@ -35,7 +35,7 @@ class QueryEnhancer:
 
         # RNI-specific terminology expansion
         self.technical_synonyms = {
-            "RNI": ["Radio Network Interface", "RNI system", "Network Interface"],
+            "RNI": ["Regional Network Interface", "RNI system", "Network Interface"],
             "security": ["authentication", "authorization", "encryption", "access control"],
             "configuration": ["setup", "config", "settings", "parameters"],
             "installation": ["install", "deployment", "setup", "implementation"],
@@ -49,7 +49,7 @@ class QueryEnhancer:
 
         # Technical acronym expansions
         self.acronym_expansions = {
-            "RNI": "Radio Network Interface",
+            "RNI": "Regional Network Interface",
             "HSM": "Hardware Security Module",
             "AD": "Active Directory",
             "LDAP": "Lightweight Directory Access Protocol",

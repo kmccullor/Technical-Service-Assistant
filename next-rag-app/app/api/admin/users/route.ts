@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const text = await r.text()
     let data: any = null
     try { data = JSON.parse(text) } catch(_) {}
-    
+
     if (r.ok && data && data.items) {
       // Transform backend response format to match frontend expectation
       const transformed = {
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json(transformed, { status: r.status })
     }
-    
+
     return NextResponse.json(data ?? { detail: text || 'Admin users failed' }, { status: r.status })
   } catch (e:any) {
     return NextResponse.json({ detail: 'Admin users proxy error', error: e?.message }, { status: 500 })
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const text = await r.text()
     let data: any = null
     try { data = JSON.parse(text) } catch(_) {}
-    
+
     if (r.ok && data) {
       // Transform backend response format to match frontend expectation
       const transformed = {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(transformed, { status: r.status })
     }
-    
+
     return NextResponse.json(data ?? { detail: text || 'Create user failed' }, { status: r.status })
   } catch (e:any) {
     return NextResponse.json({ detail: 'Create user proxy error', error: e?.message }, { status: 500 })

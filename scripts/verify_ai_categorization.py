@@ -3,17 +3,19 @@
 Verification script for AI categorization database schema and functionality.
 """
 
-import json
-import sys
 import os
+import sys
+
 sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
 
 # Set environment variables to avoid app directory issues
-os.environ['UPLOADS_DIR'] = '/home/kmccullor/Projects/Technical-Service-Assistant/uploads'
-os.environ['ARCHIVE_DIR'] = '/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive'
+os.environ["UPLOADS_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads"
+os.environ["ARCHIVE_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
 
 import psycopg2
+
 from config import get_settings
+
 
 def verify_ai_categorization_schema():
     """Verify that the AI categorization database schema is properly applied."""
@@ -22,26 +24,28 @@ def verify_ai_categorization_schema():
 
     try:
         # Get database connection
-        settings = get_settings()
+        get_settings()
         conn = psycopg2.connect(
             host="localhost",  # Use localhost instead of docker service name
             port=5432,
             database="vector_db",
             user="postgres",
-            password="postgres"
+            password="postgres",
         )
 
         with conn.cursor() as cur:
             # Check pdf_documents table schema
             print("1. Checking pdf_documents table schema...")
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT column_name, data_type, column_default
                 FROM information_schema.columns
                 WHERE table_name = 'pdf_documents'
                 AND column_name IN ('document_type', 'product_name', 'product_version',
                                   'document_category', 'classification_confidence', 'ai_metadata')
                 ORDER BY column_name;
-            """)
+            """
+            )
 
             pdf_docs_columns = cur.fetchall()
             print(f"   Found {len(pdf_docs_columns)} AI categorization columns:")
@@ -50,13 +54,15 @@ def verify_ai_categorization_schema():
 
             # Check document_chunks table schema
             print("\n2. Checking document_chunks table schema...")
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT column_name, data_type, column_default
                 FROM information_schema.columns
                 WHERE table_name = 'document_chunks'
                 AND column_name IN ('document_type', 'product_name')
                 ORDER BY column_name;
-            """)
+            """
+            )
 
             chunks_columns = cur.fetchall()
             print(f"   Found {len(chunks_columns)} AI categorization columns:")
@@ -65,13 +71,15 @@ def verify_ai_categorization_schema():
 
             # Check for new functions
             print("\n3. Checking for AI categorization functions...")
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT routine_name, routine_type
                 FROM information_schema.routines
                 WHERE routine_name LIKE '%categorized%'
                 OR routine_name LIKE '%categorization%'
                 ORDER BY routine_name;
-            """)
+            """
+            )
 
             functions = cur.fetchall()
             print(f"   Found {len(functions)} categorization functions:")
@@ -80,14 +88,16 @@ def verify_ai_categorization_schema():
 
             # Check indexes
             print("\n4. Checking for AI categorization indexes...")
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT indexname, tablename
                 FROM pg_indexes
                 WHERE indexname LIKE '%document_type%'
                 OR indexname LIKE '%product_name%'
                 OR indexname LIKE '%ai_metadata%'
                 ORDER BY tablename, indexname;
-            """)
+            """
+            )
 
             indexes = cur.fetchall()
             print(f"   Found {len(indexes)} categorization indexes:")
@@ -96,13 +106,15 @@ def verify_ai_categorization_schema():
 
             # Sample data check
             print("\n5. Checking for existing categorized documents...")
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT COUNT(*) as total_docs,
                        COUNT(CASE WHEN document_type != 'unknown' THEN 1 END) as categorized_docs,
                        COUNT(CASE WHEN product_name != 'unknown' THEN 1 END) as with_product,
                        COUNT(CASE WHEN classification_confidence > 0 THEN 1 END) as with_confidence
                 FROM pdf_documents;
-            """)
+            """
+            )
 
             stats = cur.fetchone()
             if stats:
@@ -118,14 +130,16 @@ def verify_ai_categorization_schema():
             # Show sample categorized documents
             if categorized > 0:
                 print("\n6. Sample categorized documents:")
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT file_name, document_type, product_name, product_version,
                            classification_confidence
                     FROM pdf_documents
                     WHERE document_type != 'unknown' OR product_name != 'unknown'
                     ORDER BY classification_confidence DESC
                     LIMIT 5;
-                """)
+                """
+                )
 
                 samples = cur.fetchall()
                 for sample in samples:
@@ -138,7 +152,8 @@ def verify_ai_categorization_schema():
             # Test the categorization search function
             print("7. Testing categorization search function...")
             try:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT COUNT(*)
                     FROM match_document_chunks_categorized(
                         array[0.1, 0.2, 0.3]::float[], -- dummy embedding
@@ -147,7 +162,8 @@ def verify_ai_categorization_schema():
                         null,                          -- document_type
                         null                           -- product_name
                     );
-                """)
+                """
+                )
                 result = cur.fetchone()
                 print(f"   Categorization search function working: {result[0] if result else 'No results'}")
             except Exception as e:
@@ -161,8 +177,10 @@ def verify_ai_categorization_schema():
     except Exception as e:
         print(f"Schema verification failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = verify_ai_categorization_schema()

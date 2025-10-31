@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Basic health check - you can add more sophisticated checks here
-    return NextResponse.json({ 
+    return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'next-rag-app'

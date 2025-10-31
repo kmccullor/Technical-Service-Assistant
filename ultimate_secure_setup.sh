@@ -108,7 +108,7 @@ if [ $? -eq 0 ] && [ "$choice" != "3" ]; then
     echo "✅ Password stored securely!"
     echo ""
     echo "🧪 Testing secure email configuration..."
-    
+
     if [ "$choice" = "1" ]; then
         python3 secure_email.py test kmccullor@gmail.com
     elif [ "$choice" = "2" ]; then
@@ -128,7 +128,7 @@ if [ "$choice" = "1" ]; then
     echo "🔧 Manage passwords:"
     echo "   python secure_email.py list"
     echo "   python secure_email.py test kmccullor@gmail.com"
-    
+
 elif [ "$choice" = "2" ]; then
     echo "📤 Send email (encrypted file):"
     echo "   # Password will be prompted securely"
@@ -137,7 +137,7 @@ elif [ "$choice" = "2" ]; then
     echo "🔧 Manage passwords:"
     echo "   python secure_file_email.py list"
     echo "   python secure_file_email.py test kmccullor@gmail.com"
-    
+
 elif [ "$choice" = "3" ]; then
     echo "📤 Send email (environment variable):"
     echo "   export EOD_SENDER_PASSWORD='your_app_password'"

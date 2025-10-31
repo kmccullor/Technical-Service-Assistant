@@ -88,7 +88,7 @@ check-logs: ## 📋 Show recent error logs from all containers
 	@echo "🔍 Recent Error Logs (Last 24 Hours)..."
 	@echo "=== PDF Processor ==="
 	@docker logs --since="24h" pdf_processor 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"
-	@echo "=== Reranker ==="  
+	@echo "=== Reranker ==="
 	@docker logs --since="24h" reranker 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"
 	@echo "=== Database ==="
 	@docker logs --since="24h" pgvector 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"
@@ -114,7 +114,7 @@ test: ## Run pytest
 	$(PYTHON) -m pytest -q
 
 # === COMPREHENSIVE TEST FRAMEWORK ===
-test-all: ## 🧪 Run all ring test suites with performance metrics  
+test-all: ## 🧪 Run all ring test suites with performance metrics
 	$(PYTHON) test_runner.py --all --verbose --performance
 
 test-ring1: ## 🔒 Run Ring 1 enforced coverage tests (blocking)
@@ -181,6 +181,10 @@ test-generate-all: ## 🚀 Complete test generation cycle (analyze + expand all 
 	$(PYTHON) test_generator.py --expand --ring 3
 	@echo "✅ Intelligent test generation complete - check tests/generated/"
 
+security-audit: ## 🔒 Run comprehensive security audit (dependencies, code, config)
+	@echo "🔒 Running comprehensive security audit..."
+	$(PYTHON) scripts/security_audit.py
+
 recreate-db: ## (Destructive) Remove Postgres volume and restart
 	docker compose down
 	docker volume rm Technical-Service-Assistant_pgvector_data || true
@@ -197,4 +201,4 @@ force-seed-rbac: ## Force re-run of RBAC seeding (permissions upsert, roles & ad
 	@docker exec reranker python /app/scripts/setup_rbac_data.py || (echo "❌ RBAC force seed failed" && exit 1)
 	@echo "✅ RBAC force seed finished"
 
-.PHONY: help venv install up down logs eval-sample lint-docs test recreate-db cleanup advanced-health end-of-day quality-track quality-analyze quality-report quality-check-regressions quality-full
+.PHONY: help venv install up down logs eval-sample lint-docs test recreate-db cleanup advanced-health end-of-day quality-track quality-analyze quality-report quality-check-regressions quality-full security-audit

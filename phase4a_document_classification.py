@@ -7,8 +7,8 @@ original file in the experiments namespace.
 """
 
 from experiments.phase4a_document_classification import (  # noqa: F401
-    ClassifiedDocument,
     ClassificationPersistenceManager,
+    ClassifiedDocument,
     ConfidenceCalibrator,
     DocumentFeatureExtractor,
     DocumentType,
@@ -17,8 +17,8 @@ from experiments.phase4a_document_classification import (  # noqa: F401
     PriorityScorer,
     QualityAssessor,
     TechnicalDomain,
-    monitor_performance_async,
     _quick_test,
+    monitor_performance_async,
 )
 
 __all__ = [

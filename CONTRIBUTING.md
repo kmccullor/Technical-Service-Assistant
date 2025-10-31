@@ -101,10 +101,10 @@ pytest
    ```bash
    # Unit tests (fast, isolated)
    tests/unit/test_your_feature.py
-   
+
    # Integration tests (component interaction)
    tests/integration/test_your_feature_integration.py
-   
+
    # E2E tests (complete workflows, if applicable)
    tests/e2e/test_your_feature_workflow.py
    ```
@@ -112,7 +112,7 @@ pytest
 4. **Performance Considerations**
    ```python
    from utils.monitoring import monitor_performance, performance_context
-   
+
    @monitor_performance("your_operation")
    def your_function():
        with performance_context("database_query"):
@@ -160,19 +160,19 @@ from unittest.mock import Mock, patch
 
 class TestYourFeature:
     """Test your feature functionality."""
-    
+
     @pytest.mark.unit
     def test_unit_functionality(self, mock_database):
         """Test isolated unit functionality."""
         # Fast, isolated test with mocks
         pass
-    
+
     @pytest.mark.integration
     def test_integration_workflow(self, test_client):
         """Test component integration."""
         # Test with real services but controlled environment
         pass
-    
+
     @pytest.mark.e2e
     @pytest.mark.slow
     def test_complete_workflow(self):
@@ -245,18 +245,18 @@ with PerformanceTimer("complex_operation"):
 ```python
 def process_document(file_path: str, chunk_size: int = 1000) -> List[DocumentChunk]:
     """Process a document and extract structured content.
-    
+
     Args:
         file_path: Absolute path to the document file
         chunk_size: Maximum characters per chunk
-        
+
     Returns:
         List of DocumentChunk objects with extracted content
-        
+
     Raises:
         PDFProcessingError: If document processing fails
         ValidationError: If file_path is invalid
-        
+
     Example:
         >>> chunks = process_document("/path/to/doc.pdf", 500)
         >>> print(f"Extracted {len(chunks)} chunks")

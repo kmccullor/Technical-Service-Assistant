@@ -1,13 +1,11 @@
 import asyncio
-import os
-from pathlib import Path
 
 import pandas as pd
 
 from phase4a_document_classification import (
+    ClassificationPersistenceManager,
     DocumentFeatureExtractor,
     IntelligentDocumentClassifier,
-    ClassificationPersistenceManager,
 )
 
 
@@ -25,9 +23,18 @@ def test_async_single_classification():
     async def run():
         clf = IntelligentDocumentClassifier()
         result = await clf.classify_document(
-            "docX", "Router Configuration Manual", "This guide covers router switch vlan configuration and latency optimization"
+            "docX",
+            "Router Configuration Manual",
+            "This guide covers router switch vlan configuration and latency optimization",
         )
-        assert result.predicted_domain.value in {"network", "electrical", "mechanical", "software", "chemical", "general"}
+        assert result.predicted_domain.value in {
+            "network",
+            "electrical",
+            "mechanical",
+            "software",
+            "chemical",
+            "general",
+        }
         assert 0 <= result.priority_score <= 1
         assert 0 <= result.quality_score <= 1
         assert 0 <= result.confidence <= 1

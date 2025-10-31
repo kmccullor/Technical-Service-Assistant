@@ -177,7 +177,7 @@ export default function AdminPage() {
                 {showCreateUser ? 'Cancel' : 'Add User'}
               </button>
             </div>
-            
+
             {showCreateUser && (
               <div className="mb-4 p-4 border rounded bg-muted/20">
                 <h3 className="text-md font-medium mb-3">Create New User</h3>
@@ -244,7 +244,7 @@ export default function AdminPage() {
                 </form>
               </div>
             )}
-            
+
             <div className="overflow-x-auto border rounded">
               <table className="min-w-full text-sm">
                 <thead className="bg-muted/50">

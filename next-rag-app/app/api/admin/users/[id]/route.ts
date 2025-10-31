@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const text = await r.text()
     let data: any = null
     try { data = JSON.parse(text) } catch(_) {}
-    
+
     if (r.ok && data) {
       // Transform backend response format to match frontend expectation
       const transformed = {
@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
       return NextResponse.json(transformed, { status: r.status })
     }
-    
+
     return NextResponse.json(data ?? { detail: text || 'Update user failed' }, { status: r.status })
   } catch (e:any) {
     return NextResponse.json({ detail: 'Update user proxy error', error: e?.message }, { status: 500 })

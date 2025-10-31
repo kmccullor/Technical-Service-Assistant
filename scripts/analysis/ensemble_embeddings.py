@@ -13,9 +13,9 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import requests
+from ollama_load_balancer import OllamaLoadBalancer
 
 from config import get_settings
-from ollama_load_balancer import OllamaLoadBalancer
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

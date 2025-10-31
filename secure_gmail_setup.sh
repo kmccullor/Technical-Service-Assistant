@@ -29,10 +29,10 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "✅ Password stored securely!"
     echo ""
-    
+
     echo "🧪 Testing secure email configuration..."
     python3 secure_email.py test kmccullor@gmail.com
-    
+
     echo ""
     echo "📋 Secure Email Commands:"
     echo "========================="
@@ -59,7 +59,7 @@ if [ $? -eq 0 ]; then
     echo "   ✅ No plain text storage"
     echo "   ✅ OS-level security integration"
     echo "   ✅ No environment variables needed"
-    
+
 else
     echo "❌ Failed to store password securely"
     exit 1

@@ -14,16 +14,16 @@ via the Phase 4A infrastructure.
 
 import asyncio
 import functools
+import json
 import math
 import re
 import time
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-import json
-from pathlib import Path
 import pandas as pd
 
 from utils.logging_config import get_logger
@@ -254,9 +254,7 @@ class IntelligentDocumentClassifier:
         predicted_domain = max(domain_probs.items(), key=lambda x: x[1])[0]
 
         doc_type_enum = (
-            DocumentType(predicted_type)
-            if predicted_type in DocumentType._value2member_map_
-            else DocumentType.UNKNOWN
+            DocumentType(predicted_type) if predicted_type in DocumentType._value2member_map_ else DocumentType.UNKNOWN
         )
         domain_enum = (
             TechnicalDomain(predicted_domain)
@@ -266,9 +264,7 @@ class IntelligentDocumentClassifier:
 
         quality_score = self.quality_assessor.assess(features)
         priority_score = self.priority_scorer.score(doc_type_enum, features)
-        confidence = self.confidence_calibrator.calibrate(
-            type_probs, quality_score, features.get("length", 0)
-        )
+        confidence = self.confidence_calibrator.calibrate(type_probs, quality_score, features.get("length", 0))
 
         return ClassifiedDocument(
             document_id=document_id,
@@ -416,16 +412,31 @@ class ClassificationPersistenceManager:
 async def _quick_test():  # pragma: no cover - demo harness
     classifier = IntelligentDocumentClassifier()
     sample_docs = [
-        ("doc1", "Network Infrastructure Guide", "This manual provides router and switch configuration steps with VLAN and security hardening."),
-        ("doc2", "Operational Amplifier Design Spec", "Specification of op-amp circuit parameters including voltage gain, bandwidth, and slew rate with tolerance values."),
-        ("doc3", "Maintenance Procedure", "Step 1: Disconnect power. Step 2: Inspect capacitor and resistor array. Step 3: Document measurements."),
+        (
+            "doc1",
+            "Network Infrastructure Guide",
+            "This manual provides router and switch configuration steps with VLAN and security hardening.",
+        ),
+        (
+            "doc2",
+            "Operational Amplifier Design Spec",
+            "Specification of op-amp circuit parameters including voltage gain, bandwidth, and slew rate with tolerance values.",
+        ),
+        (
+            "doc3",
+            "Maintenance Procedure",
+            "Step 1: Disconnect power. Step 2: Inspect capacitor and resistor array. Step 3: Document measurements.",
+        ),
     ]
     results = await classifier.batch_classify(sample_docs)
     stats = classifier.aggregate_statistics(results)
     return results, stats
 
+
 if __name__ == "__main__":  # pragma: no cover - manual demo execution
     res, st = asyncio.run(_quick_test())  # pragma: no cover
     for r in res:  # pragma: no cover
-        print(f"{r.document_id}: type={r.predicted_type.value} domain={r.predicted_domain.value} priority={r.priority_score} quality={r.quality_score} conf={r.confidence}")  # pragma: no cover
+        print(
+            f"{r.document_id}: type={r.predicted_type.value} domain={r.predicted_domain.value} priority={r.priority_score} quality={r.quality_score} conf={r.confidence}"
+        )  # pragma: no cover
     print("Stats:", st)  # pragma: no cover

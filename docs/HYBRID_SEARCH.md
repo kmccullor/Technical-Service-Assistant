@@ -79,7 +79,7 @@ The system uses an enhanced confidence calculation that considers:
 4. **Relevance Bonus**: Measures query-context term overlap
 
 ```python
-confidence = max(0.0, min(1.0, 
+confidence = max(0.0, min(1.0,
     base_confidence - uncertainty_penalty + length_bonus + relevance_bonus
 ))
 ```
@@ -193,7 +193,7 @@ SearXNG HTML search returned 5 results
 Based on testing with various query types:
 
 - **Technical Documentation**: 85% RAG, 15% Web
-- **General Knowledge**: 25% RAG, 75% Web  
+- **General Knowledge**: 25% RAG, 75% Web
 - **Current Events**: 5% RAG, 95% Web
 - **Code Examples**: 60% RAG, 40% Web
 

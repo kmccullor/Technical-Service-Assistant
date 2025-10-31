@@ -5,21 +5,21 @@ Test query expansion functionality for FlexNet/ESM product variations.
 
 # Product synonym mapping for query expansion
 PRODUCT_SYNONYMS = {
-    'flexnet': ['flexnet', 'flex net', 'flexlm', 'flex lm', 'license manager', 'licensing'],
-    'esm': ['esm', 'enterprise security manager', 'security manager', 'enterprise security'],
-    'rni': ['rni', 'radiant networking inc', 'radiant', 'networking'],
-    'multispeak': ['multispeak', 'multi speak', 'multi-speak', 'utility communication'],
-    'ppa': ['ppa', 'power plant automation', 'plant automation']
+    "flexnet": ["flexnet", "flex net", "flexlm", "flex lm", "license manager", "licensing"],
+    "esm": ["esm", "enterprise security manager", "security manager", "enterprise security"],
+    "rni": ["rni", "radiant networking inc", "radiant", "networking"],
+    "multispeak": ["multispeak", "multi speak", "multi-speak", "utility communication"],
+    "ppa": ["ppa", "power plant automation", "plant automation"],
 }
 
 # Domain-specific term expansion
 DOMAIN_EXPANSIONS = {
-    'install': ['install', 'installation', 'setup', 'deployment', 'configure', 'configuration'],
-    'license': ['license', 'licensing', 'activation', 'key', 'token'],
-    'security': ['security', 'authentication', 'authorization', 'encryption', 'certificate'],
-    'troubleshoot': ['troubleshoot', 'debug', 'error', 'issue', 'problem', 'fix'],
-    'upgrade': ['upgrade', 'update', 'migration', 'version'],
-    'guide': ['guide', 'manual', 'documentation', 'instructions', 'tutorial']
+    "install": ["install", "installation", "setup", "deployment", "configure", "configuration"],
+    "license": ["license", "licensing", "activation", "key", "token"],
+    "security": ["security", "authentication", "authorization", "encryption", "certificate"],
+    "troubleshoot": ["troubleshoot", "debug", "error", "issue", "problem", "fix"],
+    "upgrade": ["upgrade", "update", "migration", "version"],
+    "guide": ["guide", "manual", "documentation", "instructions", "tutorial"],
 }
 
 
@@ -33,23 +33,23 @@ def expand_query_with_synonyms(query: str) -> str:
     - Adaptive cap: base 6; long (>=12 tokens) reduce by 2; trigger adds +2 (max 8)
     """
     PROBLEM_TRIGGERS = {
-        'problems': ['troubleshoot', 'debug', 'error', 'issue', 'fix'],
-        'issues': ['troubleshoot', 'debug', 'error', 'problem', 'fix'],
-        'errors': ['troubleshoot', 'debug', 'issue', 'problem', 'fix'],
-        'failures': ['troubleshoot', 'debug', 'error', 'issue', 'fix'],
-        'fails': ['troubleshoot', 'debug', 'error', 'issue', 'fix'],
-        'trouble': ['troubleshoot', 'debug', 'error', 'issue', 'fix'],
-        'broken': ['troubleshoot', 'debug', 'error', 'issue', 'fix'],
+        "problems": ["troubleshoot", "debug", "error", "issue", "fix"],
+        "issues": ["troubleshoot", "debug", "error", "problem", "fix"],
+        "errors": ["troubleshoot", "debug", "issue", "problem", "fix"],
+        "failures": ["troubleshoot", "debug", "error", "issue", "fix"],
+        "fails": ["troubleshoot", "debug", "error", "issue", "fix"],
+        "trouble": ["troubleshoot", "debug", "error", "issue", "fix"],
+        "broken": ["troubleshoot", "debug", "error", "issue", "fix"],
     }
     CONTEXT_PATTERNS = {
-        'activation': {
-            'problem_context': ['licensing', 'key', 'troubleshoot', 'debug'],
-            'setup_context': ['installation', 'configuration']
+        "activation": {
+            "problem_context": ["licensing", "key", "troubleshoot", "debug"],
+            "setup_context": ["installation", "configuration"],
         },
-        'configuration': {
-            'problem_context': ['troubleshoot', 'debug', 'error', 'issue'],
-            'setup_context': ['installation', 'setup']
-        }
+        "configuration": {
+            "problem_context": ["troubleshoot", "debug", "error", "issue"],
+            "setup_context": ["installation", "setup"],
+        },
     }
     ql = query.lower()
     product_candidates = []
@@ -74,7 +74,7 @@ def expand_query_with_synonyms(query: str) -> str:
 
     for ctx_key, ctx_map in CONTEXT_PATTERNS.items():
         if ctx_key in ql:
-            selected = ctx_map['problem_context' if trigger_used else 'setup_context']
+            selected = ctx_map["problem_context" if trigger_used else "setup_context"]
             for term in selected[:2]:
                 if term not in ql and term not in context_candidates:
                     context_candidates.append(term)
@@ -113,49 +113,49 @@ def test_query_expansion():
 
     test_cases = [
         {
-            'query': 'FlexNet installation guide',
-            'expected_expansions': ['flexnet', 'installation'],
-            'description': 'FlexNet product with installation domain term'
+            "query": "FlexNet installation guide",
+            "expected_expansions": ["flexnet", "installation"],
+            "description": "FlexNet product with installation domain term",
         },
         {
-            'query': 'ESM security configuration',
-            'expected_expansions': ['esm', 'security'],
-            'description': 'ESM product with security domain term'
+            "query": "ESM security configuration",
+            "expected_expansions": ["esm", "security"],
+            "description": "ESM product with security domain term",
         },
         {
-            'query': 'license troubleshooting',
-            'expected_expansions': ['license', 'troubleshoot'],
-            'description': 'License and troubleshoot domain terms'
+            "query": "license troubleshooting",
+            "expected_expansions": ["license", "troubleshoot"],
+            "description": "License and troubleshoot domain terms",
         },
         {
-            'query': 'RNI upgrade procedures',
-            'expected_expansions': ['rni', 'upgrade'],
-            'description': 'RNI product with upgrade domain term'
+            "query": "RNI upgrade procedures",
+            "expected_expansions": ["rni", "upgrade"],
+            "description": "RNI product with upgrade domain term",
         },
         {
-            'query': 'how to install flex lm',
-            'expected_expansions': ['install', 'flexnet'],
-            'description': 'Alternative FlexNet naming with install term'
+            "query": "how to install flex lm",
+            "expected_expansions": ["install", "flexnet"],
+            "description": "Alternative FlexNet naming with install term",
         },
         {
-            'query': 'simple text query',
-            'expected_expansions': [],
-            'description': 'No expansions expected for generic terms'
+            "query": "simple text query",
+            "expected_expansions": [],
+            "description": "No expansions expected for generic terms",
         },
         {
-            'query': 'license activation problems',
-            'expected_expansions': ['licensing', 'troubleshoot', 'debug'],
-            'description': 'Previously failing troubleshooting expansion case'
+            "query": "license activation problems",
+            "expected_expansions": ["licensing", "troubleshoot", "debug"],
+            "description": "Previously failing troubleshooting expansion case",
         },
         {
-            'query': 'very long multi clause flexnet license server activation configuration guide reference problems',
-            'expected_expansions': ['flexnet', 'troubleshoot'],  # We expect adaptive cap applied (reduced)
-            'description': 'Long query triggers adaptive cap reduction'
+            "query": "very long multi clause flexnet license server activation configuration guide reference problems",
+            "expected_expansions": ["flexnet", "troubleshoot"],  # We expect adaptive cap applied (reduced)
+            "description": "Long query triggers adaptive cap reduction",
         },
         {
-            'query': 'esm configuration issues',
-            'expected_expansions': ['esm', 'troubleshoot', 'debug'],
-            'description': 'Problem trigger bonus adds troubleshooting terms'
+            "query": "esm configuration issues",
+            "expected_expansions": ["esm", "troubleshoot", "debug"],
+            "description": "Problem trigger bonus adds troubleshooting terms",
         },
     ]
 
@@ -163,12 +163,12 @@ def test_query_expansion():
         print(f"\nTest Case {i}: {test_case['description']}")
         print(f"Original: '{test_case['query']}'")
 
-        expanded = expand_query_with_synonyms(test_case['query'])
+        expanded = expand_query_with_synonyms(test_case["query"])
         expanded_lower = expanded.lower()
 
         # Check if expected expansions are present
         missing_expansions = []
-        for expected in test_case['expected_expansions']:
+        for expected in test_case["expected_expansions"]:
             found = False
             if expected in PRODUCT_SYNONYMS:
                 # Check if any synonym for this product is present
@@ -186,7 +186,7 @@ def test_query_expansion():
             if not found:
                 missing_expansions.append(expected)
 
-        if not missing_expansions and (test_case['expected_expansions'] or expanded == test_case['query']):
+        if not missing_expansions and (test_case["expected_expansions"] or expanded == test_case["query"]):
             print("✅ PASS: Query expansion working correctly")
         else:
             if missing_expansions:
@@ -206,7 +206,7 @@ def test_query_expansion():
         "ESM authentication guide",
         "flex lm troubleshooting",
         "enterprise security manager installation",
-        "license activation problems"
+        "license activation problems",
     ]
 
     for query in problem_queries:

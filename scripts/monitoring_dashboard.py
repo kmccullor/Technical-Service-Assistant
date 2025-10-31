@@ -5,11 +5,12 @@ Displays key performance metrics from the Prometheus metrics endpoint.
 """
 
 import os
-import requests
 import time
-import json
-from typing import Dict, List
 from datetime import datetime
+from typing import Dict, List
+
+import requests
+
 
 class MetricsDashboard:
     def __init__(self, metrics_url: str | None = None):
@@ -30,19 +31,19 @@ class MetricsDashboard:
             current_help = ""
             current_type = ""
 
-            for line in response.text.split('\n'):
+            for line in response.text.split("\n"):
                 line = line.strip()
-                if not line or line.startswith('#'):
-                    if line.startswith('# HELP'):
-                        current_help = line.replace('# HELP ', '')
-                    elif line.startswith('# TYPE'):
-                        current_type = line.replace('# TYPE ', '')
+                if not line or line.startswith("#"):
+                    if line.startswith("# HELP"):
+                        current_help = line.replace("# HELP ", "")
+                    elif line.startswith("# TYPE"):
+                        current_type = line.replace("# TYPE ", "")
                     continue
 
                 # Parse metric line
-                if ' ' in line:
-                    metric_part, value = line.rsplit(' ', 1)
-                    metric_name = metric_part.split('{')[0]
+                if " " in line:
+                    metric_part, value = line.rsplit(" ", 1)
+                    metric_name = metric_part.split("{")[0]
 
                     if metric_name not in metrics:
                         metrics[metric_name] = []
@@ -59,34 +60,36 @@ class MetricsDashboard:
         print("=" * 50)
 
         # Model requests
-        if 'model_requests_total' in metrics:
+        if "model_requests_total" in metrics:
             print("\n📊 Model Request Counts:")
-            for line in metrics['model_requests_total']:
-                if 'success' in line and not line.startswith('#'):
+            for line in metrics["model_requests_total"]:
+                if "success" in line and not line.startswith("#"):
                     # Parse the line to extract model, instance, question type
-                    parts = line.split('{')[1].split('}')[0]
-                    value = line.split(' ')[-1]
+                    parts = line.split("{")[1].split("}")[0]
+                    value = line.split(" ")[-1]
 
                     # Extract key info
                     info = {}
-                    for part in parts.split(','):
-                        key, val = part.split('=')
+                    for part in parts.split(","):
+                        key, val = part.split("=")
                         info[key] = val.strip('"')
 
-                    print(f"  • {info.get('model_name', 'unknown')} ({info.get('question_type', 'unknown')}) "
-                          f"on {info.get('instance', 'unknown')}: {value.strip()} requests")
+                    print(
+                        f"  • {info.get('model_name', 'unknown')} ({info.get('question_type', 'unknown')}) "
+                        f"on {info.get('instance', 'unknown')}: {value.strip()} requests"
+                    )
 
         # Request duration
-        if 'model_request_duration_seconds_sum' in metrics:
+        if "model_request_duration_seconds_sum" in metrics:
             print("\n⏱️  Model Response Times:")
-            for line in metrics['model_request_duration_seconds_sum']:
-                if not line.startswith('#'):
-                    parts = line.split('{')[1].split('}')[0]
-                    value = float(line.split(' ')[-1])
+            for line in metrics["model_request_duration_seconds_sum"]:
+                if not line.startswith("#"):
+                    parts = line.split("{")[1].split("}")[0]
+                    value = float(line.split(" ")[-1])
 
                     info = {}
-                    for part in parts.split(','):
-                        key, val = part.split('=')
+                    for part in parts.split(","):
+                        key, val = part.split("=")
                         info[key] = val.strip('"')
 
                     print(f"  • {info.get('model_name', 'unknown')}: {value:.3f}s total")
@@ -96,19 +99,19 @@ class MetricsDashboard:
         print("\n🏥 OLLAMA INSTANCE HEALTH")
         print("=" * 50)
 
-        if 'ollama_instance_health_status' in metrics:
-            for line in metrics['ollama_instance_health_status']:
-                if not line.startswith('#'):
-                    parts = line.split('{')[1].split('}')[0]
-                    value = float(line.split(' ')[-1])
+        if "ollama_instance_health_status" in metrics:
+            for line in metrics["ollama_instance_health_status"]:
+                if not line.startswith("#"):
+                    parts = line.split("{")[1].split("}")[0]
+                    value = float(line.split(" ")[-1])
 
                     info = {}
-                    for part in parts.split(','):
-                        key, val = part.split('=')
+                    for part in parts.split(","):
+                        key, val = part.split("=")
                         info[key] = val.strip('"')
 
                     status = "🟢 HEALTHY" if value == 1.0 else "🔴 UNHEALTHY"
-                    instance = info.get('instance_name', 'unknown').replace('ollama-server-', '')
+                    instance = info.get("instance_name", "unknown").replace("ollama-server-", "")
                     print(f"  • Instance {instance}: {status}")
 
     def display_system_resources(self, metrics: Dict[str, List[str]]):
@@ -117,17 +120,17 @@ class MetricsDashboard:
         print("=" * 50)
 
         # Memory usage
-        if 'system_memory_usage_percent' in metrics:
-            for line in metrics['system_memory_usage_percent']:
-                if not line.startswith('#'):
-                    value = float(line.split(' ')[-1])
+        if "system_memory_usage_percent" in metrics:
+            for line in metrics["system_memory_usage_percent"]:
+                if not line.startswith("#"):
+                    value = float(line.split(" ")[-1])
                     print(f"  • Memory Usage: {value:.1f}%")
 
         # CPU usage
-        if 'system_cpu_usage_percent' in metrics:
-            for line in metrics['system_cpu_usage_percent']:
-                if not line.startswith('#'):
-                    value = float(line.split(' ')[-1])
+        if "system_cpu_usage_percent" in metrics:
+            for line in metrics["system_cpu_usage_percent"]:
+                if not line.startswith("#"):
+                    value = float(line.split(" ")[-1])
                     print(f"  • CPU Usage: {value:.1f}%")
 
     def display_api_performance(self, metrics: Dict[str, List[str]]):
@@ -135,36 +138,36 @@ class MetricsDashboard:
         print("\n🌐 API PERFORMANCE")
         print("=" * 50)
 
-        if 'api_request_duration_seconds_sum' in metrics:
+        if "api_request_duration_seconds_sum" in metrics:
             endpoint_totals = {}
             endpoint_counts = {}
 
             # Sum up durations per endpoint
-            for line in metrics.get('api_request_duration_seconds_sum', []):
-                if not line.startswith('#'):
-                    parts = line.split('{')[1].split('}')[0]
-                    value = float(line.split(' ')[-1])
+            for line in metrics.get("api_request_duration_seconds_sum", []):
+                if not line.startswith("#"):
+                    parts = line.split("{")[1].split("}")[0]
+                    value = float(line.split(" ")[-1])
 
                     info = {}
-                    for part in parts.split(','):
-                        key, val = part.split('=')
+                    for part in parts.split(","):
+                        key, val = part.split("=")
                         info[key] = val.strip('"')
 
-                    endpoint = info.get('endpoint', 'unknown')
+                    endpoint = info.get("endpoint", "unknown")
                     endpoint_totals[endpoint] = endpoint_totals.get(endpoint, 0) + value
 
             # Get counts
-            for line in metrics.get('api_request_duration_seconds_count', []):
-                if not line.startswith('#'):
-                    parts = line.split('{')[1].split('}')[0]
-                    value = float(line.split(' ')[-1])
+            for line in metrics.get("api_request_duration_seconds_count", []):
+                if not line.startswith("#"):
+                    parts = line.split("{")[1].split("}")[0]
+                    value = float(line.split(" ")[-1])
 
                     info = {}
-                    for part in parts.split(','):
-                        key, val = part.split('=')
+                    for part in parts.split(","):
+                        key, val = part.split("=")
                         info[key] = val.strip('"')
 
-                    endpoint = info.get('endpoint', 'unknown')
+                    endpoint = info.get("endpoint", "unknown")
                     endpoint_counts[endpoint] = endpoint_counts.get(endpoint, 0) + value
 
             # Calculate averages
@@ -202,6 +205,7 @@ class MetricsDashboard:
 
         except KeyboardInterrupt:
             print("\n👋 Dashboard stopped")
+
 
 if __name__ == "__main__":
     dashboard = MetricsDashboard()

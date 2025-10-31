@@ -3,19 +3,22 @@
 
 Clean implementation of authentication and password management endpoints.
 """
-from typing import Any, Optional
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from utils.auth_system import (
-    AuthSystem, get_auth_manager,
-    AuthenticationError, ValidationError, get_current_user
-)
+from utils.auth_system import AuthenticationError, AuthSystem, ValidationError, get_auth_manager, get_current_user
 from utils.rbac_models import (
-    APIResponse, UserResponse, TokenResponse,
-    CreateUserRequest, LoginRequest, RefreshTokenRequest,
-    ResetPasswordRequest, ConfirmPasswordResetRequest
+    APIResponse,
+    ConfirmPasswordResetRequest,
+    CreateUserRequest,
+    LoginRequest,
+    RefreshTokenRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+    UserResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,14 +26,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 rbac_router = router
 
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     service: str = "auth"
+
 
 @router.get("/health")
 async def health(auth: AuthSystem = Depends(get_auth_manager)):
     result = await auth.health_check()
     return result
+
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_manager)) -> UserResponse:
@@ -49,9 +55,9 @@ async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_
             last_login=created.last_login,
             is_active=created.is_active,
             is_locked=created.is_locked,
-            password_change_required=getattr(created, 'password_change_required', True),
-            created_at=created.created_at or __import__('datetime').datetime.utcnow(),
-            updated_at=created.updated_at or __import__('datetime').datetime.utcnow(),
+            password_change_required=getattr(created, "password_change_required", True),
+            created_at=created.created_at or __import__("datetime").datetime.utcnow(),
+            updated_at=created.updated_at or __import__("datetime").datetime.utcnow(),
         )
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -59,15 +65,21 @@ async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_
         logger.exception("Registration failed for %s", getattr(user, "email", "<unknown>"))
         raise HTTPException(status_code=500, detail="Registration failed") from e
 
+
 @router.post("/login", response_model=TokenResponse)
-async def login(credentials: LoginRequest, request: Request, auth: AuthSystem = Depends(get_auth_manager)) -> TokenResponse:
+async def login(
+    credentials: LoginRequest, request: Request, auth: AuthSystem = Depends(get_auth_manager)
+) -> TokenResponse:
     try:
-        token_response = await auth.authenticate_user(credentials.email, credentials.password, request.client.host if request.client else None)
+        token_response = await auth.authenticate_user(
+            credentials.email, credentials.password, request.client.host if request.client else None
+        )
         return token_response
     except AuthenticationError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Login failed") from e
+
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(req: RefreshTokenRequest, auth: AuthSystem = Depends(get_auth_manager)) -> TokenResponse:
@@ -82,13 +94,16 @@ async def refresh_token(req: RefreshTokenRequest, auth: AuthSystem = Depends(get
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Token refresh failed") from e
 
+
 class VerifyEmailRequest(BaseModel):
     token: str = Field(..., min_length=8)
+
 
 class VerifyEmailResponse(BaseModel):
     success: bool
     message: str
     verified: bool
+
 
 @router.post("/verify-email", response_model=VerifyEmailResponse)
 async def verify_email(req: VerifyEmailRequest, auth: AuthSystem = Depends(get_auth_manager)) -> VerifyEmailResponse:
@@ -102,14 +117,17 @@ async def verify_email(req: VerifyEmailRequest, auth: AuthSystem = Depends(get_a
         if result:
             return VerifyEmailResponse(success=True, message="Email verified", verified=True)
         # result False means token used or already verified
-        return VerifyEmailResponse(success=True, message="Token already consumed or user already verified", verified=True)
+        return VerifyEmailResponse(
+            success=True, message="Token already consumed or user already verified", verified=True
+        )
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Verification failed") from e
 
+
 @router.get("/me", response_model=UserResponse)
-async def me(current_user = Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> UserResponse:  # type: ignore
+async def me(current_user=Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> UserResponse:  # type: ignore
     """Return the current authenticated user's profile.
 
     Uses the JWT via get_current_user dependency. Augments with role name if available.
@@ -143,8 +161,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: Optional[str] = None
 
+
 @router.post("/change-password", response_model=APIResponse)
-async def change_password(payload: ChangePasswordRequest, current_user = Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
+async def change_password(
+    payload: ChangePasswordRequest, current_user=Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)
+) -> APIResponse:
     try:
         if payload.confirm_password and payload.new_password != payload.confirm_password:
             raise HTTPException(status_code=400, detail="Passwords do not match")
@@ -160,13 +181,17 @@ async def change_password(payload: ChangePasswordRequest, current_user = Depends
         raise HTTPException(status_code=500, detail="Password change failed") from e
 
 
-
 class ForceChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: Optional[str] = None
 
+
 @router.post("/force-change-password", response_model=APIResponse)
-async def force_change_password(payload: ForceChangePasswordRequest, current_user = Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
+async def force_change_password(
+    payload: ForceChangePasswordRequest,
+    current_user=Depends(get_current_user),
+    auth: AuthSystem = Depends(get_auth_manager),
+) -> APIResponse:
     try:
         if not current_user.password_change_required:
             # Idempotent: treat as success so clients/tests can re-run safely
@@ -197,7 +222,9 @@ async def forgot_password(payload: ResetPasswordRequest, auth: AuthSystem = Depe
 
 
 @router.post("/reset-password", response_model=APIResponse)
-async def reset_password(payload: ConfirmPasswordResetRequest, auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
+async def reset_password(
+    payload: ConfirmPasswordResetRequest, auth: AuthSystem = Depends(get_auth_manager)
+) -> APIResponse:
     """Complete password reset using a previously issued token."""
     try:
         await auth.confirm_password_reset(payload.token, payload.new_password)
@@ -215,23 +242,29 @@ class AdminResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
     rotate: bool = Field(True)
 
+
 class AdminResetPasswordResponse(APIResponse):
     rotated: bool = False
     target_user_id: int = 0
 
+
 @router.post("/admin-reset", response_model=AdminResetPasswordResponse)
-async def admin_reset_password(payload: AdminResetPasswordRequest, current_user = Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> AdminResetPasswordResponse:
+async def admin_reset_password(
+    payload: AdminResetPasswordRequest,
+    current_user=Depends(get_current_user),
+    auth: AuthSystem = Depends(get_auth_manager),
+) -> AdminResetPasswordResponse:
     try:
         # Verify admin
         role_name = await auth.get_role_name(current_user.role_id)
-        if role_name != 'admin':
+        if role_name != "admin":
             raise HTTPException(status_code=403, detail="Admin privileges required")
         # Perform reset
-        reset_method = getattr(auth, 'admin_reset_password', None)
+        reset_method = getattr(auth, "admin_reset_password", None)
         success = False
         if callable(reset_method):
             result = reset_method(payload.user_id, payload.new_password, force_change=payload.rotate)
-            if hasattr(result, '__await__'):
+            if hasattr(result, "__await__"):
                 success = await result  # type: ignore
             else:
                 success = bool(result)
@@ -241,7 +274,9 @@ async def admin_reset_password(payload: AdminResetPasswordRequest, current_user 
                 await auth.set_password_change_required(payload.user_id, True)
         if not success:
             raise HTTPException(status_code=400, detail="Password reset failed")
-        return AdminResetPasswordResponse(success=True, message="Password reset", rotated=payload.rotate, target_user_id=payload.user_id)
+        return AdminResetPasswordResponse(
+            success=True, message="Password reset", rotated=payload.rotate, target_user_id=payload.user_id
+        )
     except HTTPException:
         raise
     except ValidationError as e:

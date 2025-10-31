@@ -43,11 +43,11 @@ main() {
     # Get current processes/models
     local status_response
     status_response=$(get_status)
-    
+
     # Check if any models are currently loaded
     local model_count
     model_count=$(echo "$status_response" | grep -o '"name"' | wc -l 2>/dev/null || echo "0")
-    
+
     if [ "$model_count" -gt 0 ]; then
         # Extract model name if available
         local model_name
@@ -56,7 +56,7 @@ main() {
     else
         echo "server:idle"
     fi
-    
+
     exit 0
 }
 

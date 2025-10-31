@@ -3,24 +3,25 @@ Data Dictionary API Endpoints
 Manages database schema information for MSSQL and PostgreSQL databases by RNI version
 """
 
-import logging
-from typing import List, Optional, Dict, Any
-from datetime import datetime, date
-from fastapi import APIRouter, HTTPException, Depends, Query, Form, File, UploadFile
-from pydantic import BaseModel, Field
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import json
 import csv
+import logging
+from datetime import date, datetime
 from io import StringIO
+from typing import Any, Dict, List, Optional
+
+import psycopg2
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from psycopg2.extras import RealDictCursor
+from pydantic import BaseModel, Field
+from schema_extraction_utils import extract_and_import_schema
 
 from config import get_settings
-from schema_extraction_utils import extract_and_import_schema
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/api/data-dictionary", tags=["data-dictionary"])
+
 
 # Pydantic models for API requests/responses
 class RNIVersion(BaseModel):
@@ -30,6 +31,7 @@ class RNIVersion(BaseModel):
     description: Optional[str] = None
     release_date: Optional[date] = None
     is_active: bool = True
+
 
 class DatabaseInstance(BaseModel):
     id: Optional[int] = None
@@ -42,12 +44,14 @@ class DatabaseInstance(BaseModel):
     connection_string_template: Optional[str] = None
     is_active: bool = True
 
+
 class DatabaseSchema(BaseModel):
     id: Optional[int] = None
     database_instance_id: int
     schema_name: str
     description: Optional[str] = None
     owner_name: Optional[str] = None
+
 
 class DatabaseTable(BaseModel):
     id: Optional[int] = None
@@ -61,6 +65,7 @@ class DatabaseTable(BaseModel):
     created_date: Optional[datetime] = None
     modified_date: Optional[datetime] = None
     is_active: bool = True
+
 
 class DatabaseColumn(BaseModel):
     id: Optional[int] = None
@@ -78,6 +83,7 @@ class DatabaseColumn(BaseModel):
     default_value: Optional[str] = None
     description: Optional[str] = None
 
+
 class TableConstraint(BaseModel):
     id: Optional[int] = None
     table_id: int
@@ -88,6 +94,7 @@ class TableConstraint(BaseModel):
     referenced_column_names: Optional[List[str]] = None
     check_clause: Optional[str] = None
     is_active: bool = True
+
 
 class TableIndex(BaseModel):
     id: Optional[int] = None
@@ -100,6 +107,7 @@ class TableIndex(BaseModel):
     filter_condition: Optional[str] = None
     size_bytes: Optional[int] = None
 
+
 class DatabaseObject(BaseModel):
     id: Optional[int] = None
     schema_id: int
@@ -110,6 +118,7 @@ class DatabaseObject(BaseModel):
     return_type: Optional[str] = None
     description: Optional[str] = None
     is_active: bool = True
+
 
 class SchemaChangeLog(BaseModel):
     id: Optional[int] = None
@@ -124,6 +133,7 @@ class SchemaChangeLog(BaseModel):
     impact_level: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
     created_by: Optional[str] = None
 
+
 class SchemaOverview(BaseModel):
     version_number: str
     version_name: Optional[str]
@@ -136,6 +146,7 @@ class SchemaOverview(BaseModel):
     row_count: Optional[int]
     column_count: int
     table_created_at: Optional[datetime]
+
 
 class ColumnDetails(BaseModel):
     version_number: str
@@ -156,6 +167,7 @@ class ColumnDetails(BaseModel):
     default_value: Optional[str]
     description: Optional[str]
 
+
 def get_db_connection():
     """Get database connection with proper error handling."""
     try:
@@ -165,11 +177,12 @@ def get_db_connection():
             database=settings.db_name,
             user=settings.db_user,
             password=settings.db_password,
-            cursor_factory=RealDictCursor
+            cursor_factory=RealDictCursor,
         )
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
+
 
 # RNI Version Management
 @router.get("/rni-versions", response_model=List[RNIVersion])
@@ -189,17 +202,21 @@ async def get_rni_versions(active_only: bool = Query(False, description="Filter 
     finally:
         conn.close()
 
+
 @router.post("/rni-versions", response_model=RNIVersion)
 async def create_rni_version(version: RNIVersion):
     """Create a new RNI version."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO rni_versions (version_number, version_name, description, release_date, is_active)
                 VALUES (%(version_number)s, %(version_name)s, %(description)s, %(release_date)s, %(is_active)s)
                 RETURNING *
-            """, version.dict(exclude={'id'}))
+            """,
+                version.dict(exclude={"id"}),
+            )
             result = cursor.fetchone()
             conn.commit()
             return RNIVersion(**result)
@@ -209,20 +226,24 @@ async def create_rni_version(version: RNIVersion):
     finally:
         conn.close()
 
+
 @router.put("/rni-versions/{version_id}", response_model=RNIVersion)
 async def update_rni_version(version_id: int, version: RNIVersion):
     """Update an existing RNI version."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE rni_versions
                 SET version_number = %(version_number)s, version_name = %(version_name)s,
                     description = %(description)s, release_date = %(release_date)s,
                     is_active = %(is_active)s
                 WHERE id = %(id)s
                 RETURNING *
-            """, {**version.dict(exclude={'id'}), 'id': version_id})
+            """,
+                {**version.dict(exclude={"id"}), "id": version_id},
+            )
             result = cursor.fetchone()
             if not result:
                 raise HTTPException(status_code=404, detail="RNI version not found")
@@ -230,6 +251,7 @@ async def update_rni_version(version_id: int, version: RNIVersion):
             return RNIVersion(**result)
     finally:
         conn.close()
+
 
 # Database Instance Management
 @router.get("/database-instances", response_model=List[DatabaseInstance])
@@ -243,7 +265,7 @@ async def get_database_instances(rni_version_id: Optional[int] = Query(None, des
 
             if rni_version_id:
                 query += " WHERE rni_version_id = %(rni_version_id)s"
-                params['rni_version_id'] = rni_version_id
+                params["rni_version_id"] = rni_version_id
 
             query += " ORDER BY database_name"
 
@@ -253,19 +275,23 @@ async def get_database_instances(rni_version_id: Optional[int] = Query(None, des
     finally:
         conn.close()
 
+
 @router.post("/database-instances", response_model=DatabaseInstance)
 async def create_database_instance(instance: DatabaseInstance):
     """Create a new database instance."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO database_instances
                 (rni_version_id, database_name, database_type, server_name, port, description, connection_string_template, is_active)
                 VALUES (%(rni_version_id)s, %(database_name)s, %(database_type)s, %(server_name)s,
                         %(port)s, %(description)s, %(connection_string_template)s, %(is_active)s)
                 RETURNING *
-            """, instance.dict(exclude={'id'}))
+            """,
+                instance.dict(exclude={"id"}),
+            )
             result = cursor.fetchone()
             conn.commit()
             return DatabaseInstance(**result)
@@ -275,12 +301,13 @@ async def create_database_instance(instance: DatabaseInstance):
     finally:
         conn.close()
 
+
 # Schema Overview Endpoints
 @router.get("/schema-overview", response_model=List[SchemaOverview])
 async def get_schema_overview(
     version_number: Optional[str] = Query(None, description="Filter by version number"),
     database_name: Optional[str] = Query(None, description="Filter by database name"),
-    schema_name: Optional[str] = Query(None, description="Filter by schema name")
+    schema_name: Optional[str] = Query(None, description="Filter by schema name"),
 ):
     """Get comprehensive schema overview with filtering options."""
     conn = get_db_connection()
@@ -291,13 +318,13 @@ async def get_schema_overview(
 
             if version_number:
                 query += " AND version_number = %(version_number)s"
-                params['version_number'] = version_number
+                params["version_number"] = version_number
             if database_name:
                 query += " AND database_name = %(database_name)s"
-                params['database_name'] = database_name
+                params["database_name"] = database_name
             if schema_name:
                 query += " AND schema_name = %(schema_name)s"
-                params['schema_name'] = schema_name
+                params["schema_name"] = schema_name
 
             cursor.execute(query, params)
             results = cursor.fetchall()
@@ -305,12 +332,13 @@ async def get_schema_overview(
     finally:
         conn.close()
 
+
 @router.get("/column-details", response_model=List[ColumnDetails])
 async def get_column_details(
     version_number: Optional[str] = Query(None, description="Filter by version number"),
     database_name: Optional[str] = Query(None, description="Filter by database name"),
     schema_name: Optional[str] = Query(None, description="Filter by schema name"),
-    table_name: Optional[str] = Query(None, description="Filter by table name")
+    table_name: Optional[str] = Query(None, description="Filter by table name"),
 ):
     """Get detailed column information with filtering options."""
     conn = get_db_connection()
@@ -321,22 +349,23 @@ async def get_column_details(
 
             if version_number:
                 query += " AND version_number = %(version_number)s"
-                params['version_number'] = version_number
+                params["version_number"] = version_number
             if database_name:
                 query += " AND database_name = %(database_name)s"
-                params['database_name'] = database_name
+                params["database_name"] = database_name
             if schema_name:
                 query += " AND schema_name = %(schema_name)s"
-                params['schema_name'] = schema_name
+                params["schema_name"] = schema_name
             if table_name:
                 query += " AND table_name = %(table_name)s"
-                params['table_name'] = table_name
+                params["table_name"] = table_name
 
             cursor.execute(query, params)
             results = cursor.fetchall()
             return [ColumnDetails(**row) for row in results]
     finally:
         conn.close()
+
 
 # Database Tables Management
 @router.get("/tables", response_model=List[DatabaseTable])
@@ -350,7 +379,7 @@ async def get_tables(schema_id: Optional[int] = Query(None, description="Filter 
 
             if schema_id:
                 query += " WHERE schema_id = %(schema_id)s"
-                params['schema_id'] = schema_id
+                params["schema_id"] = schema_id
 
             query += " ORDER BY table_name"
 
@@ -360,13 +389,15 @@ async def get_tables(schema_id: Optional[int] = Query(None, description="Filter 
     finally:
         conn.close()
 
+
 @router.post("/tables", response_model=DatabaseTable)
 async def create_table(table: DatabaseTable):
     """Create a new database table record."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO database_tables
                 (schema_id, table_name, table_type, description, row_count, size_bytes,
                  owner_name, created_date, modified_date, is_active)
@@ -374,7 +405,9 @@ async def create_table(table: DatabaseTable):
                         %(row_count)s, %(size_bytes)s, %(owner_name)s, %(created_date)s,
                         %(modified_date)s, %(is_active)s)
                 RETURNING *
-            """, table.dict(exclude={'id'}))
+            """,
+                table.dict(exclude={"id"}),
+            )
             result = cursor.fetchone()
             conn.commit()
             return DatabaseTable(**result)
@@ -384,6 +417,7 @@ async def create_table(table: DatabaseTable):
     finally:
         conn.close()
 
+
 # Columns Management
 @router.get("/columns", response_model=List[DatabaseColumn])
 async def get_columns(table_id: int = Query(..., description="Table ID to get columns for")):
@@ -391,14 +425,12 @@ async def get_columns(table_id: int = Query(..., description="Table ID to get co
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT * FROM database_columns WHERE table_id = %s ORDER BY ordinal_position",
-                (table_id,)
-            )
+            cursor.execute("SELECT * FROM database_columns WHERE table_id = %s ORDER BY ordinal_position", (table_id,))
             results = cursor.fetchall()
             return [DatabaseColumn(**row) for row in results]
     finally:
         conn.close()
+
 
 @router.post("/columns", response_model=DatabaseColumn)
 async def create_column(column: DatabaseColumn):
@@ -406,7 +438,8 @@ async def create_column(column: DatabaseColumn):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO database_columns
                 (table_id, column_name, ordinal_position, data_type, max_length, precision_value,
                  scale_value, is_nullable, is_primary_key, is_foreign_key, is_identity,
@@ -416,7 +449,9 @@ async def create_column(column: DatabaseColumn):
                         %(is_primary_key)s, %(is_foreign_key)s, %(is_identity)s,
                         %(default_value)s, %(description)s)
                 RETURNING *
-            """, column.dict(exclude={'id'}))
+            """,
+                column.dict(exclude={"id"}),
+            )
             result = cursor.fetchone()
             conn.commit()
             return DatabaseColumn(**result)
@@ -426,11 +461,12 @@ async def create_column(column: DatabaseColumn):
     finally:
         conn.close()
 
+
 # Schema Change Log
 @router.get("/change-log", response_model=List[SchemaChangeLog])
 async def get_change_log(
     rni_version_id: Optional[int] = Query(None, description="Filter by RNI version"),
-    limit: int = Query(100, ge=1, le=1000, description="Limit number of results")
+    limit: int = Query(100, ge=1, le=1000, description="Limit number of results"),
 ):
     """Get schema change log entries."""
     conn = get_db_connection()
@@ -441,10 +477,10 @@ async def get_change_log(
 
             if rni_version_id:
                 query += " WHERE rni_version_id = %(rni_version_id)s"
-                params['rni_version_id'] = rni_version_id
+                params["rni_version_id"] = rni_version_id
 
             query += " ORDER BY created_at DESC LIMIT %(limit)s"
-            params['limit'] = limit
+            params["limit"] = limit
 
             cursor.execute(query, params)
             results = cursor.fetchall()
@@ -452,13 +488,15 @@ async def get_change_log(
     finally:
         conn.close()
 
+
 @router.post("/change-log", response_model=SchemaChangeLog)
 async def create_change_log_entry(log_entry: SchemaChangeLog):
     """Create a new schema change log entry."""
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO schema_change_log
                 (rni_version_id, database_instance_id, change_type, object_type, object_name,
                  schema_name, change_description, sql_statement, impact_level, created_by)
@@ -466,19 +504,22 @@ async def create_change_log_entry(log_entry: SchemaChangeLog):
                         %(object_type)s, %(object_name)s, %(schema_name)s, %(change_description)s,
                         %(sql_statement)s, %(impact_level)s, %(created_by)s)
                 RETURNING *
-            """, log_entry.dict(exclude={'id'}))
+            """,
+                log_entry.dict(exclude={"id"}),
+            )
             result = cursor.fetchone()
             conn.commit()
             return SchemaChangeLog(**result)
     finally:
         conn.close()
 
+
 # Schema Comparison
 @router.get("/compare-schemas")
 async def compare_schemas(
     version1: str = Query(..., description="First version number to compare"),
     version2: str = Query(..., description="Second version number to compare"),
-    database_name: Optional[str] = Query(None, description="Filter by database name")
+    database_name: Optional[str] = Query(None, description="Filter by database name"),
 ):
     """Compare database schemas between two RNI versions."""
     conn = get_db_connection()
@@ -529,21 +570,13 @@ async def compare_schemas(
                 ORDER BY schema_name, table_name, column_name
             """
 
-            cursor.execute(query, {
-                'version1': version1,
-                'version2': version2,
-                'database_name': database_name
-            })
+            cursor.execute(query, {"version1": version1, "version2": version2, "database_name": database_name})
             results = cursor.fetchall()
 
-            return {
-                'version1': version1,
-                'version2': version2,
-                'database_name': database_name,
-                'changes': results
-            }
+            return {"version1": version1, "version2": version2, "database_name": database_name, "changes": results}
     finally:
         conn.close()
+
 
 # Schema Extraction Endpoints
 class SchemaExtractionRequest(BaseModel):
@@ -556,6 +589,7 @@ class SchemaExtractionRequest(BaseModel):
     password: str
     schema_name: Optional[str] = None
     created_by: Optional[str] = None
+
 
 @router.post("/extract-schema")
 async def extract_schema(extraction_request: SchemaExtractionRequest):
@@ -570,24 +604,25 @@ async def extract_schema(extraction_request: SchemaExtractionRequest):
             username=extraction_request.username,
             password=extraction_request.password,
             schema_name=extraction_request.schema_name,
-            created_by=extraction_request.created_by
+            created_by=extraction_request.created_by,
         )
 
-        if result['status'] == 'success':
+        if result["status"] == "success":
             return {
                 "status": "success",
                 "message": f"Schema extracted and imported successfully from {extraction_request.server}/{extraction_request.database}",
-                "extraction_time": result['extraction_time'],
-                "import_time": result['import_time'],
-                "duration_seconds": result['duration_seconds'],
-                "statistics": result['statistics']
+                "extraction_time": result["extraction_time"],
+                "import_time": result["import_time"],
+                "duration_seconds": result["duration_seconds"],
+                "statistics": result["statistics"],
             }
         else:
-            raise HTTPException(status_code=500, detail=result['error'])
+            raise HTTPException(status_code=500, detail=result["error"])
 
     except Exception as e:
         logger.error(f"Schema extraction failed: {e}")
         raise HTTPException(status_code=500, detail=f"Schema extraction failed: {str(e)}")
+
 
 @router.get("/extraction-status/{rni_version_id}")
 async def get_extraction_status(rni_version_id: int):
@@ -596,7 +631,8 @@ async def get_extraction_status(rni_version_id: int):
     try:
         with conn.cursor() as cursor:
             # Get database instances for this RNI version
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     di.*,
                     COUNT(DISTINCT ds.id) as schema_count,
@@ -610,17 +646,22 @@ async def get_extraction_status(rni_version_id: int):
                 WHERE di.rni_version_id = %s
                 GROUP BY di.id
                 ORDER BY di.database_name
-            """, (rni_version_id,))
+            """,
+                (rni_version_id,),
+            )
 
             instances = cursor.fetchall()
 
             # Get recent change log entries
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM schema_change_log
                 WHERE rni_version_id = %s
                 ORDER BY created_at DESC
                 LIMIT 10
-            """, (rni_version_id,))
+            """,
+                (rni_version_id,),
+            )
 
             recent_changes = cursor.fetchall()
 
@@ -629,10 +670,11 @@ async def get_extraction_status(rni_version_id: int):
                 "database_instances": instances,
                 "recent_changes": recent_changes,
                 "total_instances": len(instances),
-                "timestamp": datetime.now()
+                "timestamp": datetime.now(),
             }
     finally:
         conn.close()
+
 
 # Bulk Operations
 @router.post("/bulk-extract")
@@ -651,29 +693,28 @@ async def bulk_extract_schemas(extraction_requests: List[SchemaExtractionRequest
                 username=request.username,
                 password=request.password,
                 schema_name=request.schema_name,
-                created_by=request.created_by
+                created_by=request.created_by,
             )
 
-            results.append({
-                "database": f"{request.server}/{request.database}",
-                "status": result['status'],
-                "statistics": result.get('statistics', {}),
-                "error": result.get('error', None)
-            })
+            results.append(
+                {
+                    "database": f"{request.server}/{request.database}",
+                    "status": result["status"],
+                    "statistics": result.get("statistics", {}),
+                    "error": result.get("error", None),
+                }
+            )
 
         except Exception as e:
-            results.append({
-                "database": f"{request.server}/{request.database}",
-                "status": "error",
-                "error": str(e)
-            })
+            results.append({"database": f"{request.server}/{request.database}", "status": "error", "error": str(e)})
 
     return {
         "total_requests": len(extraction_requests),
-        "successful": len([r for r in results if r['status'] == 'success']),
-        "failed": len([r for r in results if r['status'] == 'error']),
-        "results": results
+        "successful": len([r for r in results if r["status"] == "success"]),
+        "failed": len([r for r in results if r["status"] == "error"]),
+        "results": results,
     }
+
 
 # Health check for data dictionary
 @router.get("/health")
@@ -684,11 +725,7 @@ async def health_check():
         with conn.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) as version_count FROM rni_versions")
             result = cursor.fetchone()
-            return {
-                "status": "healthy",
-                "rni_versions_count": result['version_count'],
-                "timestamp": datetime.now()
-            }
+            return {"status": "healthy", "rni_versions_count": result["version_count"], "timestamp": datetime.now()}
     finally:
         conn.close()
 
@@ -701,39 +738,41 @@ async def query_assistance(request: dict):
     Checks if data dictionary exists for requested RNI version/database.
     If not available, provides extraction query to get schema information.
     """
-    rni_version = request.get('rni_version')
-    database_name = request.get('database_name')
+    rni_version = request.get("rni_version")
+    database_name = request.get("database_name")
 
     if not rni_version:
-        raise HTTPException(status_code=400, detail="RNI version is required. Please specify which version (e.g., 2.1.0, 2.0.0, etc.)")
+        raise HTTPException(
+            status_code=400, detail="RNI version is required. Please specify which version (e.g., 2.1.0, 2.0.0, etc.)"
+        )
 
     if not database_name:
-        raise HTTPException(status_code=400, detail="Database name is required. Supported: FlexnetDB (MSSQL), AMDS, Router, FWDL (PostgreSQL)")
+        raise HTTPException(
+            status_code=400,
+            detail="Database name is required. Supported: FlexnetDB (MSSQL), AMDS, Router, FWDL (PostgreSQL)",
+        )
 
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             # Check if RNI version exists
-            cursor.execute(
-                "SELECT id FROM rni_versions WHERE version_number = %s",
-                (rni_version,)
-            )
+            cursor.execute("SELECT id FROM rni_versions WHERE version_number = %s", (rni_version,))
             version_row = cursor.fetchone()
             if not version_row:
                 return {
                     "status": "rni_version_not_found",
                     "message": f"RNI version {rni_version} not found. Available versions can be retrieved from /api/data-dictionary/rni-versions",
-                    "available_versions_endpoint": "/api/data-dictionary/rni-versions"
+                    "available_versions_endpoint": "/api/data-dictionary/rni-versions",
                 }
 
-            rni_version_id = version_row['id']
+            rni_version_id = version_row["id"]
 
             # Check if database instance exists for this RNI version
             cursor.execute(
                 """SELECT di.id, di.database_type, di.server_name, di.port
                    FROM database_instances di
                    WHERE di.rni_version_id = %s AND di.database_name = %s""",
-                (rni_version_id, database_name)
+                (rni_version_id, database_name),
             )
             instance_row = cursor.fetchone()
 
@@ -742,7 +781,7 @@ async def query_assistance(request: dict):
                     "status": "database_not_configured",
                     "message": f"Database {database_name} not configured for RNI version {rni_version}",
                     "recommended_action": "Add database instance first using /api/data-dictionary/database-instances",
-                    "extraction_needed": True
+                    "extraction_needed": True,
                 }
 
             # Check if we have schema information for this database
@@ -750,19 +789,19 @@ async def query_assistance(request: dict):
                 """SELECT COUNT(*) as schema_count
                    FROM database_schemas ds
                    WHERE ds.database_instance_id = %s""",
-                (instance_row['id'],)
+                (instance_row["id"],),
             )
-            schema_count = cursor.fetchone()['schema_count']
+            schema_count = cursor.fetchone()["schema_count"]
 
             if schema_count == 0:
                 # Generate extraction query based on database type
-                extraction_query = generate_extraction_query(instance_row['database_type'], database_name)
+                extraction_query = generate_extraction_query(instance_row["database_type"], database_name)
                 return {
                     "status": "schema_extraction_needed",
                     "message": f"No schema information available for {database_name} on RNI version {rni_version}",
-                    "database_type": instance_row['database_type'],
+                    "database_type": instance_row["database_type"],
                     "extraction_query": extraction_query,
-                    "instructions": "Run the extraction query on your database and use /api/data-dictionary/extract-schema to import the results"
+                    "instructions": "Run the extraction query on your database and use /api/data-dictionary/extract-schema to import the results",
                 }
 
             # Schema exists - provide summary
@@ -772,16 +811,18 @@ async def query_assistance(request: dict):
                    LEFT JOIN database_tables dt ON ds.id = dt.schema_id
                    WHERE ds.database_instance_id = %s
                    GROUP BY ds.id, ds.schema_name""",
-                (instance_row['id'],)
+                (instance_row["id"],),
             )
             schemas = cursor.fetchall()
 
             return {
                 "status": "data_dictionary_available",
                 "message": f"Data dictionary available for {database_name} on RNI version {rni_version}",
-                "database_type": instance_row['database_type'],
-                "schemas_available": [{"schema_name": s['schema_name'], "table_count": s['table_count']} for s in schemas],
-                "query_endpoint": f"/api/data-dictionary/database-schemas?database_instance_id={instance_row['id']}"
+                "database_type": instance_row["database_type"],
+                "schemas_available": [
+                    {"schema_name": s["schema_name"], "table_count": s["table_count"]} for s in schemas
+                ],
+                "query_endpoint": f"/api/data-dictionary/database-schemas?database_instance_id={instance_row['id']}",
             }
 
     finally:
@@ -873,23 +914,23 @@ async def upload_schema(
     database_type: str = Form(...),
     database_name: str = Form(...),
     created_by: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
 ):
     """
     Upload a CSV file containing database schema information.
     """
     # Validate file type
-    if not file.filename or not file.filename.endswith('.csv'):
+    if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a CSV file")
 
     # Validate database_type
-    if database_type not in ['MSSQL', 'PostgreSQL']:
+    if database_type not in ["MSSQL", "PostgreSQL"]:
         raise HTTPException(status_code=400, detail="Database type must be MSSQL or PostgreSQL")
 
     try:
         # Read CSV content
         content = await file.read()
-        csv_content = content.decode('utf-8')
+        csv_content = content.decode("utf-8")
 
         # Parse CSV
         csv_reader = csv.DictReader(StringIO(csv_content))
@@ -899,17 +940,11 @@ async def upload_schema(
             raise HTTPException(status_code=400, detail="CSV file is empty")
 
         # Validate required columns
-        required_columns = {
-            'schema_name', 'table_name', 'column_name', 'data_type',
-            'is_nullable', 'is_primary_key'
-        }
+        required_columns = {"schema_name", "table_name", "column_name", "data_type", "is_nullable", "is_primary_key"}
 
         if not required_columns.issubset(set(rows[0].keys())):
             missing_columns = required_columns - set(rows[0].keys())
-            raise HTTPException(
-                status_code=400,
-                detail=f"CSV missing required columns: {', '.join(missing_columns)}"
-            )
+            raise HTTPException(status_code=400, detail=f"CSV missing required columns: {', '.join(missing_columns)}")
 
         # Process the data using schema extraction utils
         from schema_extraction_utils import SchemaImporter
@@ -920,7 +955,7 @@ async def upload_schema(
             database_name=database_name,
             database_type=database_type,
             csv_data=rows,
-            created_by=created_by
+            created_by=created_by,
         )
 
         return {
@@ -929,8 +964,8 @@ async def upload_schema(
             "statistics": {
                 "tables": result.get("tables_imported", 0),
                 "columns": result.get("columns_imported", 0),
-                "schemas": result.get("schemas_imported", 0)
-            }
+                "schemas": result.get("schemas_imported", 0),
+            },
         }
 
     except UnicodeDecodeError:

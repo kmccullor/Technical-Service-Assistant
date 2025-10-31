@@ -20,7 +20,7 @@ Successfully consolidated Ollama containers into 4 specialized containers based 
 ### Thinking Container (11435)
 - `steamdj/llama3.1-cpu-only:latest` - Optimized for CPU-based thinking tasks
 
-### Reasoning Container (11436)  
+### Reasoning Container (11436)
 - `DeepSeek-R1:8B` - Advanced reasoning capabilities
 - `DeepSeek-R1:7B` - Smaller reasoning model
 
@@ -53,7 +53,7 @@ docker compose up -d
 # Thinking tasks
 curl localhost:11435/api/generate -d '{"model": "steamdj/llama3.1-cpu-only:latest", "prompt": "..."}'
 
-# Reasoning tasks  
+# Reasoning tasks
 curl localhost:11436/api/generate -d '{"model": "DeepSeek-R1:8B", "prompt": "..."}'
 
 # Coding tasks

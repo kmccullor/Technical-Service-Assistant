@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
@@ -224,7 +222,6 @@ class SemanticChunker:
 
             # Check if adding this sentence would exceed max size
             if current_length + sentence_length + context_length > self.max_chunk_size and current_chunk:
-
                 # Create chunk from current sentences
                 chunk_text = context_prefix + " ".join(current_chunk)
 
@@ -400,7 +397,7 @@ RNI 4.16 System Security User Guide
 1. Introduction
 
 This document provides comprehensive security configuration guidelines for RNI 4.16 systems.
-The Radio Network Interface (RNI) requires specific security measures to ensure proper operation.
+The Regional Network Interface (RNI) requires specific security measures to ensure proper operation.
 
 1.1 System Requirements
 

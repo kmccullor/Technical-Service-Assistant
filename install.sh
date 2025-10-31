@@ -76,7 +76,7 @@ EOF
 # System requirements check
 check_system_requirements() {
     log_step "Checking System Requirements"
-    
+
     # Check OS
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         log_success "Linux OS detected"
@@ -84,7 +84,7 @@ check_system_requirements() {
         log_error "This installer requires Linux. Current OS: $OSTYPE"
         exit 1
     fi
-    
+
     # Check architecture
     ARCH=$(uname -m)
     if [[ "$ARCH" == "x86_64" ]] || [[ "$ARCH" == "amd64" ]]; then
@@ -92,7 +92,7 @@ check_system_requirements() {
     else
         log_warning "Unsupported architecture: $ARCH. Installation may fail."
     fi
-    
+
     # Check available memory (minimum 4GB recommended)
     MEMORY_GB=$(free -g | awk 'NR==2{printf "%.0f", $7}')
     if [[ $MEMORY_GB -lt 4 ]]; then
@@ -100,7 +100,7 @@ check_system_requirements() {
     else
         log_success "Memory check passed: ${MEMORY_GB}GB available"
     fi
-    
+
     # Check disk space (minimum 10GB recommended)
     DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
     if [[ $DISK_GB -lt 10 ]]; then
@@ -114,7 +114,7 @@ check_system_requirements() {
 # Install system dependencies
 install_system_dependencies() {
     log_step "Installing System Dependencies"
-    
+
     # Detect package manager
     if command -v apt-get &> /dev/null; then
         PKG_MANAGER="apt"
@@ -132,13 +132,13 @@ install_system_dependencies() {
         log_error "Unsupported package manager. Please install dependencies manually."
         exit 1
     fi
-    
+
     log_info "Using package manager: $PKG_MANAGER"
-    
+
     # Update package list
     log_info "Updating package list..."
     sudo $UPDATE_CMD
-    
+
     # Install base dependencies
     log_info "Installing base dependencies..."
     sudo $INSTALL_CMD \
@@ -155,36 +155,36 @@ install_system_dependencies() {
         supervisor \
         htop \
         jq
-    
+
     log_success "System dependencies installed"
 }
 
 # Install Docker
 install_docker() {
     log_step "Installing Docker"
-    
+
     if command -v docker &> /dev/null; then
         log_info "Docker already installed: $(docker --version)"
         return
     fi
-    
+
     # Install Docker using official script
     log_info "Installing Docker..."
     curl -fsSL https://get.docker.com | sudo sh
-    
+
     # Add current user to docker group
     sudo usermod -aG docker $USER
-    
+
     # Install Docker Compose
     log_info "Installing Docker Compose..."
     sudo curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
         -o /usr/local/bin/docker-compose
     sudo chmod +x /usr/local/bin/docker-compose
-    
+
     # Start Docker service
     sudo systemctl enable docker
     sudo systemctl start docker
-    
+
     log_success "Docker installed successfully"
     log_warning "Please log out and back in to use Docker without sudo"
 }
@@ -192,7 +192,7 @@ install_docker() {
 # Create TSA user and directories
 setup_user_and_directories() {
     log_step "Setting up User and Directories"
-    
+
     # Create TSA user if not exists
     if ! id "$TSA_USER" &>/dev/null; then
         log_info "Creating TSA user: $TSA_USER"
@@ -201,13 +201,13 @@ setup_user_and_directories() {
     else
         log_info "TSA user already exists: $TSA_USER"
     fi
-    
+
     # Create directories
     log_info "Creating application directories..."
     sudo mkdir -p "$TSA_HOME"/{logs,uploads,data,config,backups}
     sudo chown -R "$TSA_USER:$TSA_USER" "$TSA_HOME"
     sudo chmod 755 "$TSA_HOME"
-    
+
     log_success "User and directories configured"
 }
 
@@ -241,7 +241,7 @@ prompt_customization() {
 
 download_application() {
     log_step "Downloading Application"
-    
+
     # For now, assume we're running from the source directory
     # In production, this would download from a release URL
     if [[ -f "docker-compose.yml" ]]; then
@@ -252,27 +252,27 @@ download_application() {
         log_error "Cannot find application files. Please run from the TSA source directory."
         exit 1
     fi
-    
+
     log_success "Application files copied"
 }
 
 # Configure environment
 configure_environment() {
     log_step "Configuring Environment"
-    
+
     # Copy environment template
     sudo -u "$TSA_USER" cp "$TSA_HOME/app/.env.example" "$TSA_HOME/config/.env"
-    
+
     # Generate random passwords and keys
     DB_PASSWORD=$(openssl rand -base64 32)
     API_KEY=$(openssl rand -base64 32)
     JWT_SECRET=$(openssl rand -base64 64)
-    
+
     # Update environment file
     sudo -u "$TSA_USER" sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD/" "$TSA_HOME/config/.env"
     sudo -u "$TSA_USER" sed -i "s/API_KEY=.*/API_KEY=$API_KEY/" "$TSA_HOME/config/.env"
     sudo -u "$TSA_USER" sed -i "s/JWT_SECRET_KEY=.*/JWT_SECRET_KEY=$JWT_SECRET/" "$TSA_HOME/config/.env"
-    
+
     # Append customization variables
     {
         echo "DEPARTMENT_NAME=\"${DEPARTMENT_NAME}\""
@@ -281,7 +281,7 @@ configure_environment() {
 
     # Create symlink for application
     sudo -u "$TSA_USER" ln -sf "$TSA_HOME/config/.env" "$TSA_HOME/app/.env"
-    
+
     log_success "Environment configured"
     log_info "Database password: $DB_PASSWORD"
     log_info "API key: $API_KEY"
@@ -291,7 +291,7 @@ configure_environment() {
 # Setup systemd services
 setup_systemd_services() {
     log_step "Setting up Systemd Services"
-    
+
     # TSA Docker Compose service
     sudo tee /etc/systemd/system/technical-service-assistant.service > /dev/null << EOF
 [Unit]
@@ -311,18 +311,18 @@ Group=$TSA_USER
 [Install]
 WantedBy=multi-user.target
 EOF
-    
+
     # Reload systemd and enable service
     sudo systemctl daemon-reload
     sudo systemctl enable technical-service-assistant.service
-    
+
     log_success "Systemd services configured"
 }
 
 # Setup nginx reverse proxy
 setup_nginx() {
     log_step "Configuring Nginx Reverse Proxy"
-    
+
     # Create nginx config
     sudo tee /etc/nginx/sites-available/technical-service-assistant > /dev/null << 'EOF'
 server {
@@ -361,33 +361,33 @@ server {
     }
 }
 EOF
-    
+
     # Enable site
     sudo ln -sf /etc/nginx/sites-available/technical-service-assistant /etc/nginx/sites-enabled/
     sudo rm -f /etc/nginx/sites-enabled/default
-    
+
     # Test nginx config
     sudo nginx -t
-    
+
     # Restart nginx
     sudo systemctl restart nginx
     sudo systemctl enable nginx
-    
+
     log_success "Nginx configured"
 }
 
 # Start services
 start_services() {
     log_step "Starting Services"
-    
+
     # Start TSA services
     log_info "Starting Technical Service Assistant..."
     sudo systemctl start technical-service-assistant.service
-    
+
     # Wait for services to be ready
     log_info "Waiting for services to start..."
     sleep 30
-    
+
     # Check service status
     if sudo systemctl is-active --quiet technical-service-assistant.service; then
         log_success "Technical Service Assistant is running"
@@ -396,28 +396,28 @@ start_services() {
         sudo systemctl status technical-service-assistant.service
         exit 1
     fi
-    
+
     log_success "All services started"
 }
 
 # Health check
 perform_health_check() {
     log_step "Performing Health Check"
-    
+
     # Check web interface
     if curl -f http://localhost:8080 &>/dev/null; then
         log_success "Web interface is accessible"
     else
         log_warning "Web interface not yet accessible"
     fi
-    
+
     # Check API
     if curl -f http://localhost:8008/health &>/dev/null; then
         log_success "API is responding"
     else
         log_warning "API not yet responding"
     fi
-    
+
     # Check database
     if sudo -u "$TSA_USER" docker-compose -f "$TSA_HOME/app/docker-compose.yml" exec -T pgvector pg_isready -U postgres &>/dev/null; then
         log_success "Database is ready"
@@ -429,7 +429,7 @@ perform_health_check() {
 # Print summary
 print_summary() {
     log_step "Installation Summary"
-    
+
     echo -e "${GREEN}✅ ${ASSISTANT_NAME} installed successfully!${NC}"
     echo ""
     echo "🏢 Department: ${DEPARTMENT_NAME}"
@@ -454,16 +454,16 @@ print_summary() {
 # Main installation function
 main() {
     print_banner
-    
+
     # Check if running as root for system setup
     if [[ $EUID -ne 0 ]]; then
         log_error "This script must be run as root (use sudo)"
         echo "Usage: sudo $0"
         exit 1
     fi
-    
+
     log_info "Starting ${ASSISTANT_NAME:-Technical Service Assistant} installation..."
-    
+
     check_system_requirements
     prompt_customization
     install_system_dependencies
@@ -476,7 +476,7 @@ main() {
     start_services
     perform_health_check
     print_summary
-    
+
     log_success "Installation completed successfully!"
 }
 

@@ -41,7 +41,7 @@ make logs-today
 ## End-of-Day Reporting
 
 ### Automated EOD System
-**Schedule**: Daily at 8:00 PM  
+**Schedule**: Daily at 8:00 PM
 **Recipients**: Configured via Gmail integration
 
 #### Report Contents

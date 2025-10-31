@@ -1,9 +1,9 @@
 #!/bin/bash
 # DEPRECATED: Use automated_daily_email.sh instead
-# This script is maintained for compatibility but automated_daily_email.sh 
+# This script is maintained for compatibility but automated_daily_email.sh
 # provides enhanced functionality with:
 # - Gmail auto-detection
-# - Test mode support  
+# - Test mode support
 # - Improved error handling
 # - Better cron integration
 #

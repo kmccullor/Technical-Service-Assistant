@@ -69,14 +69,14 @@ print_status "Verifying required models..."
 for port in "${OLLAMA_PORTS[@]}"; do
     if curl -s --max-time 5 "http://localhost:${port}/api/tags" > /dev/null; then
         available_models=$(curl -s "http://localhost:${port}/api/tags" | jq -r '.models[]?.name // empty' 2>/dev/null)
-        
+
         missing_models=()
         for required_model in "${REQUIRED_MODELS[@]}"; do
             if ! echo "${available_models}" | grep -q "${required_model%:*}"; then
                 missing_models+=("${required_model}")
             fi
         done
-        
+
         if [ ${#missing_models[@]} -eq 0 ]; then
             print_success "All required models available on port ${port}"
         else
@@ -112,7 +112,7 @@ print_status "Testing load balancer and system integration..."
 if [ -f "package.json" ]; then
     print_status "Installing/updating dependencies..."
     npm install --silent
-    
+
     print_status "Building application..."
     npm run build 2>/dev/null || {
         print_warning "Build failed, but continuing with existing build"
@@ -123,11 +123,11 @@ fi
 print_status "Running system validation tests..."
 if command -v npx > /dev/null && [ -f "testing/test-ollama-cluster.ts" ]; then
     print_status "Executing cluster validation test..."
-    
+
     # Run test with timeout
     timeout ${DEPLOYMENT_TIMEOUT} npx tsx testing/test-ollama-cluster.ts > test-results.log 2>&1 &
     test_pid=$!
-    
+
     # Wait for test completion
     wait_time=0
     while kill -0 ${test_pid} 2>/dev/null; do
@@ -141,12 +141,12 @@ if command -v npx > /dev/null && [ -f "testing/test-ollama-cluster.ts" ]; then
         echo -n "."
     done
     echo ""
-    
+
     # Check test results
     if [ -f "test-results.log" ]; then
         success_rate=$(grep "Success Rate:" test-results.log | grep -o "[0-9.]*%" | head -1)
         cluster_status=$(grep "Cluster Status:" test-results.log | head -1)
-        
+
         if [[ "${success_rate}" =~ ^[0-9]+\.[0-9]+%$ ]]; then
             success_number=$(echo "${success_rate}" | sed 's/%//')
             if (( $(echo "${success_number} >= 85" | bc -l) )); then
@@ -155,7 +155,7 @@ if command -v npx > /dev/null && [ -f "testing/test-ollama-cluster.ts" ]; then
                 print_warning "System validation marginal with ${success_rate} success rate"
             fi
         fi
-        
+
         # Show cluster status
         if [ -n "${cluster_status}" ]; then
             echo -e "${BLUE}${cluster_status}${NC}"
@@ -163,7 +163,7 @@ if command -v npx > /dev/null && [ -f "testing/test-ollama-cluster.ts" ]; then
     fi
 else
     print_warning "Cluster test not available - running basic connectivity tests"
-    
+
     # Basic connectivity test
     working_instances=0
     for port in "${OLLAMA_PORTS[@]}"; do
@@ -171,7 +171,7 @@ else
             ((working_instances++))
         fi
     done
-    
+
     print_status "Basic connectivity: ${working_instances}/4 instances responding"
 fi
 
@@ -222,7 +222,7 @@ print_success "🎉 Production Deployment Validation Complete!"
 echo ""
 echo "📊 System Configuration:"
 echo "  • Ollama Cluster: ${healthy_containers}/4 containers healthy"
-echo "  • Load Balancing: Advanced routing with health monitoring"  
+echo "  • Load Balancing: Advanced routing with health monitoring"
 echo "  • Caching: Multi-layer with semantic similarity matching"
 echo "  • Performance: Optimized for 66.7% faster response times"
 echo "  • Reliability: 100% success rate with failover protection"
@@ -237,7 +237,7 @@ echo "  4. Access application: http://localhost:3000"
 echo ""
 echo "📚 Key Endpoints:"
 echo "  • Main Application: http://localhost:3000"
-echo "  • System Health: http://localhost:3000/api/system" 
+echo "  • System Health: http://localhost:3000/api/system"
 echo "  • Ollama Instances: http://localhost:11434-11437"
 echo "  • PostgreSQL: localhost:5432"
 echo "  • Redis Cache: localhost:6379"

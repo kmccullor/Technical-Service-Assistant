@@ -44,7 +44,7 @@ if [ $? -eq 0 ]; then
     if [[ "$response" =~ ^[Yy]$ ]]; then
         echo "📧 Sending enhanced EOD report with live monitoring data..."
         EOD_SENDER_PASSWORD="$GMAIL_APP_PASSWORD" python email_eod_report.py kmccullor@gmail.com
-        
+
         if [ $? -eq 0 ]; then
             echo "🎉 Success! Check your Gmail for the enhanced report"
             echo "   Report includes: System health, monitoring metrics, documentation stats"

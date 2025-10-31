@@ -11,7 +11,7 @@ Successfully implemented comprehensive security features for the Technical Servi
 
 **Features**:
 - Secure current password verification using bcrypt
-- Strong password policy enforcement (8+ chars, mixed case, digits, symbols) 
+- Strong password policy enforcement (8+ chars, mixed case, digits, symbols)
 - Password confirmation validation
 - Audit logging for security monitoring
 - JWT authentication required

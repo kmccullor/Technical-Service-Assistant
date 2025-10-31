@@ -6,22 +6,24 @@ Use this script to get the correct database connection command
 instead of guessing database names.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import get_settings
 
+
 def main():
     settings = get_settings()
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'connect':
+    if len(sys.argv) > 1 and sys.argv[1] == "connect":
         # Print the connection command
         print(f"docker exec -it {settings.db_host} psql -U {settings.db_user} -d {settings.db_name}")
-    elif len(sys.argv) > 1 and sys.argv[1] == 'tables':
+    elif len(sys.argv) > 1 and sys.argv[1] == "tables":
         # Print command to list tables
         print(f'docker exec -it {settings.db_host} psql -U {settings.db_user} -d {settings.db_name} -c "\\dt"')
-    elif len(sys.argv) > 1 and sys.argv[1] == 'users':
+    elif len(sys.argv) > 1 and sys.argv[1] == "users":
         # Print command to query users
         query = (
             "SELECT u.id, u.email, u.first_name, u.last_name, u.role_id, "
@@ -29,10 +31,7 @@ def main():
             "FROM users u LEFT JOIN roles r ON u.role_id = r.id "
             "ORDER BY u.id;"
         )
-        cmd = (
-            f"docker exec -it {settings.db_host} psql -U {settings.db_user} "
-            f"-d {settings.db_name} -c \"{query}\""
-        )
+        cmd = f"docker exec -it {settings.db_host} psql -U {settings.db_user} " f'-d {settings.db_name} -c "{query}"'
         print(cmd)
     else:
         print("Database Helper Commands:")
@@ -46,6 +45,7 @@ def main():
         print()
         print("Quick copy-paste commands:")
         print(f"  docker exec -it {settings.db_host} psql -U {settings.db_user} -d {settings.db_name}")
+
 
 if __name__ == "__main__":
     main()

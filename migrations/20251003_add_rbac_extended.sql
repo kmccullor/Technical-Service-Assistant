@@ -61,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_security_events_created_at ON security_events(cre
 -- Insert default permissions
 INSERT INTO permissions (name, description, resource, action) VALUES
     ('read', 'Read access to resources', 'general', 'read'),
-    ('write', 'Write access to resources', 'general', 'write'), 
+    ('write', 'Write access to resources', 'general', 'write'),
     ('delete', 'Delete access to resources', 'general', 'delete'),
     ('admin', 'Full administrative access', 'system', 'admin'),
     ('manage_users', 'Manage user accounts', 'users', 'admin'),

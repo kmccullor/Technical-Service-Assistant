@@ -10,24 +10,23 @@ Focuses on uncovered branches/lines in:
  - KnowledgeExtractor persistence snapshot path
 """
 
-import asyncio
-import os
-from pathlib import Path
 import json
+from pathlib import Path
+
 import pytest
 
 from phase4a_document_classification import (
-    IntelligentDocumentClassifier,
     ClassificationPersistenceManager,
     ClassifiedDocument,
-    DocumentType,
-    TechnicalDomain,
     ConfidenceCalibrator,
+    DocumentType,
+    IntelligentDocumentClassifier,
     PriorityScorer,
     QualityAssessor,
+    TechnicalDomain,
     _quick_test,
 )
-from phase4a_knowledge_extraction import KnowledgeExtractor, SpecificationMiner, ProcessDiscovery, RelationExtractor
+from phase4a_knowledge_extraction import KnowledgeExtractor, ProcessDiscovery, RelationExtractor, SpecificationMiner
 
 
 @pytest.mark.unit
@@ -109,30 +108,25 @@ def test_spec_miner_parentheses_fallback_and_range():
     assert "speed" in names
     # Check range mean parsing (10-14 => 12)
     torque = next(s for s in specs if "torque" in s.name)
-    assert torque.numeric_value and abs(torque.numeric_value - 12) < 0.01, f"Unexpected torque numeric: {torque.numeric_value}; specs={[ (s.name,s.raw_value) for s in specs]}"
+    assert (
+        torque.numeric_value and abs(torque.numeric_value - 12) < 0.01
+    ), f"Unexpected torque numeric: {torque.numeric_value}; specs={[ (s.name,s.raw_value) for s in specs]}"
     speed = next(s for s in specs if s.name == "speed")
     assert speed.unit == "rpm"
 
 
 @pytest.mark.unit
 def test_process_discovery_hybrid_and_relation_absence():
+    from phase4a_knowledge_extraction import Entity
+
     proc = ProcessDiscovery()
     rel_extractor = RelationExtractor()
     # Text with inline steps and verbs but only one entity to avoid relation creation
-    text = (
-        "Step 1: Disconnect power. Step 2: Install bearing. Then tighten using tool."
-    )
+    text = "Step 1: Do A. Step 1: Do B. Step 2: Do C."
     steps = proc.extract(text)
     assert len(steps) >= 2
     # Provide a single entity so no pair relation can form
-    class DummyEntity:
-        def __init__(self, entity_id, start, end):
-            self.entity_id = entity_id
-            self.start = start
-            self.end = end
-            self.type = "component"
-
-    entities = [DummyEntity("e1", 10, 18)]
+    entities = [Entity(entity_id="e1", text="Do A", type="component", start=10, end=18, confidence=0.9)]
     rels = rel_extractor.extract(text, entities)
     assert rels == []
 
@@ -140,9 +134,7 @@ def test_process_discovery_hybrid_and_relation_absence():
 @pytest.mark.unit
 def test_knowledge_extractor_snapshot_persistence(tmp_path: Path):
     ke = KnowledgeExtractor(base_path=str(tmp_path / "ke"))
-    text = (
-        "Step 1: Disconnect power. Measure voltage: 5V. Connect resistor to capacitor."
-    )
+    text = "Step 1: Disconnect power. Measure voltage: 5V. Connect resistor to capacitor."
     snap = ke.extract_all("docZ", text)
     paths = ke.persist_snapshot(snap)
     # Ensure all category files + snapshot written
@@ -276,6 +268,7 @@ def test_process_discovery_duplicate_indices_normalization():
 @pytest.mark.unit
 def test_relation_extractor_positive_path():
     from phase4a_knowledge_extraction import Entity, RelationExtractor
+
     text = "The resistor is connected to the capacitor near the amplifier."  # multiple entities & verb
     # Minimal entities with spans covering words
     entities = [
@@ -287,6 +280,62 @@ def test_relation_extractor_positive_path():
     rels = extractor.extract(text, entities)
     assert rels, "Expected at least one relation"
     assert rels[0].type == "connectivity"
+
+
+@pytest.mark.unit
+def test_roundtrip_validation_error_paths(tmp_path: Path):
+    """Test roundtrip validation error handling paths."""
+    pm = ClassificationPersistenceManager(base_path=str(tmp_path / "error_test"))
+
+    # Test with no records (should return False)
+    assert pm.roundtrip_validate(sample=1) is False
+
+    # Create a record but corrupt the parquet creation to trigger exception
+    doc = ClassifiedDocument(
+        document_id="error_test",
+        title="Test",
+        content="content",
+        predicted_type=DocumentType.MANUAL,
+        predicted_domain=TechnicalDomain.GENERAL,
+        priority_score=0.5,
+        quality_score=0.5,
+        confidence=0.5,
+        type_probabilities={"manual": 1.0},
+        domain_probabilities={"general": 1.0},
+        metadata={"length": 1, "section_count": 0},
+    )
+    pm.save_jsonl([doc], append=False)
+
+    # Mock pandas to raise an exception during parquet read
+    import pandas as pd
+
+    original_read_parquet = pd.read_parquet
+
+    def mock_read_parquet(*args, **kwargs):
+        raise Exception("Mock parquet read error")
+
+    pd.read_parquet = mock_read_parquet
+    try:
+        # This should catch the exception and return False
+        result = pm.roundtrip_validate(sample=1)
+        assert result is False
+    finally:
+        pd.read_parquet = original_read_parquet
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_monitor_performance_exception_handling():
+    """Test async monitor_performance decorator exception handling."""
+    from experiments.phase4a_document_classification import monitor_performance_async
+
+    @monitor_performance_async("test_operation")
+    async def failing_function():
+        raise ValueError("Test exception")
+
+    # This should not raise the exception but should log it
+    with pytest.raises(ValueError):
+        await failing_function()
 
 
 @pytest.mark.unit

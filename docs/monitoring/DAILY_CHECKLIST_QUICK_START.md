@@ -10,7 +10,7 @@ make morning
 
 This single command will:
 1. ✅ Check all Docker containers are running
-2. 🔍 Scan logs for critical errors (last 24 hours)  
+2. 🔍 Scan logs for critical errors (last 24 hours)
 3. 🧪 Test all functionality end-to-end
 4. 📊 Monitor system performance and resources
 5. 📋 Generate a detailed status report

@@ -13,15 +13,22 @@ Advanced reasoning capabilities for the Technical Service Assistant including:
 __version__ = "0.4.0"
 
 # Chain-of-thought reasoning
-from .chain_of_thought import (ChainOfThoughtReasoner,
-                               is_complex_reasoning_query)
+from .chain_of_thought import ChainOfThoughtReasoner, is_complex_reasoning_query
+
 # Main orchestrator
 from .orchestrator import ReasoningOrchestrator
+
 # Core reasoning types and utilities
-from .reasoning_types import (ChainOfThoughtRequest, ComplexityLevel,
-                              ReasoningQuery, ReasoningResponse, ReasoningStep,
-                              ReasoningType, classify_reasoning_type,
-                              estimate_complexity)
+from .reasoning_types import (
+    ChainOfThoughtRequest,
+    ComplexityLevel,
+    ReasoningQuery,
+    ReasoningResponse,
+    ReasoningStep,
+    ReasoningType,
+    classify_reasoning_type,
+    estimate_complexity,
+)
 
 # Knowledge synthesis capabilities
 
@@ -63,13 +70,18 @@ __all__ = [
     "ConsensusResult",
 ]
 
-from .chain_of_thought import (ChainOfThoughtReasoner, create_reasoning_engine,
-                               is_complex_reasoning_query)
+from .chain_of_thought import ChainOfThoughtReasoner, create_reasoning_engine, is_complex_reasoning_query
 from .orchestrator import ReasoningOrchestrator, create_reasoning_orchestrator
-from .reasoning_types import (ChainOfThoughtRequest, ComplexityLevel,
-                              ReasoningQuery, ReasoningResponse, ReasoningStep,
-                              ReasoningType, classify_reasoning_type,
-                              estimate_complexity)
+from .reasoning_types import (
+    ChainOfThoughtRequest,
+    ComplexityLevel,
+    ReasoningQuery,
+    ReasoningResponse,
+    ReasoningStep,
+    ReasoningType,
+    classify_reasoning_type,
+    estimate_complexity,
+)
 
 __all__ = [
     "ReasoningType",

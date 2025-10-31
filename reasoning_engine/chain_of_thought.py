@@ -10,9 +10,15 @@ import re
 import time
 from typing import Any, Dict, List
 
-from reasoning_types import (ChainOfThoughtRequest, ComplexityLevel,
-                             ReasoningResponse, ReasoningStep, ReasoningType,
-                             classify_reasoning_type, estimate_complexity)
+from reasoning_types import (
+    ChainOfThoughtRequest,
+    ComplexityLevel,
+    ReasoningResponse,
+    ReasoningStep,
+    ReasoningType,
+    classify_reasoning_type,
+    estimate_complexity,
+)
 
 logger = logging.getLogger(__name__)
 

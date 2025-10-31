@@ -1,12 +1,12 @@
 # Advanced Monitoring - Phase 2B Implementation
 
-This document describes the comprehensive Prometheus and Grafana monitoring system for the Technical Service Assistant. 
+This document describes the comprehensive Prometheus and Grafana monitoring system for the Technical Service Assistant.
 
 ## 🎯 Overview
 
 The monitoring system provides real-time visibility into:
 - **System Health**: Service availability and health checks
-- **Performance Metrics**: Response times, throughput, and resource utilization  
+- **Performance Metrics**: Response times, throughput, and resource utilization
 - **Intelligent Routing**: Model selection accuracy and distribution
 - **Database Performance**: Connection pools, query performance, cache hit rates
 - **Search Operations**: Vector search performance and embedding generation
@@ -18,7 +18,7 @@ The monitoring system provides real-time visibility into:
 - **Grafana** (`:3001`): Visualization dashboards and analytics
 - **Exporters**: Specialized metrics collectors for each service
   - `postgres-exporter` (`:9187`): PostgreSQL metrics
-  - `redis-exporter` (`:9121`): Redis cache metrics  
+  - `redis-exporter` (`:9121`): Redis cache metrics
   - `node-exporter` (`:9100`): Host system metrics
   - `cadvisor` (`:8081`): Container metrics
 
@@ -43,7 +43,7 @@ docker logs grafana
 
 ### 2. Access Dashboards
 - **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090  
+- **Prometheus**: http://localhost:9090
 - **cAdvisor**: http://localhost:8081
 
 ### 3. Import Dashboards
@@ -55,7 +55,7 @@ Pre-configured dashboards are automatically loaded:
 ## 📊 Dashboard Guide
 
 ### System Overview Dashboard
-**Purpose**: High-level system health monitoring  
+**Purpose**: High-level system health monitoring
 **Key Metrics**:
 - Service availability status (UP/DOWN indicators)
 - Request rate trends (requests/minute)
@@ -68,11 +68,11 @@ Pre-configured dashboards are automatically loaded:
 - Response Time > 5s (Warning)
 - Service Down > 30s (Critical)
 
-### Routing Analytics Dashboard  
-**Purpose**: Intelligent routing performance analysis  
+### Routing Analytics Dashboard
+**Purpose**: Intelligent routing performance analysis
 **Key Metrics**:
 - Model selection distribution (pie chart)
-- Instance utilization breakdown  
+- Instance utilization breakdown
 - Routing accuracy over time
 - Ollama instance health heatmap
 - Question classification breakdown
@@ -83,7 +83,7 @@ Pre-configured dashboards are automatically loaded:
 - Instance health failures affect availability
 
 ### Database Performance Dashboard
-**Purpose**: Database and search performance monitoring  
+**Purpose**: Database and search performance monitoring
 **Key Metrics**:
 - PostgreSQL connection pool usage
 - Database operation rates (selects, inserts, updates)
@@ -108,9 +108,9 @@ Pre-configured dashboards are automatically loaded:
     severity: critical
 ```
 
-### Performance Alerts  
+### Performance Alerts
 ```yaml
-# High response time > 5 seconds  
+# High response time > 5 seconds
 - alert: RerankerHighResponseTime
   expr: reranker_request_duration_seconds > 5.0
   for: 2m
@@ -118,7 +118,7 @@ Pre-configured dashboards are automatically loaded:
     severity: warning
 
 # Error rate > 10%
-- alert: RerankerErrorRate  
+- alert: RerankerErrorRate
   expr: rate(reranker_requests_total{status=~"4..|5.."}[5m]) > 0.1
   for: 1m
   labels:
@@ -146,7 +146,7 @@ REQUEST_COUNT = Counter('reranker_requests_total', 'Total requests', ['method', 
 REQUEST_DURATION = Histogram('reranker_request_duration_seconds', 'Request duration', ['method', 'endpoint'])
 ACTIVE_REQUESTS = Gauge('reranker_active_requests', 'Active requests')
 
-# Routing metrics  
+# Routing metrics
 ROUTING_ACCURACY = Gauge('reranker_routing_accuracy', 'Intelligent routing accuracy')
 MODEL_SELECTION_COUNT = Counter('reranker_model_selection_total', 'Model selection count', ['model', 'instance'])
 OLLAMA_HEALTH = Gauge('reranker_ollama_health', 'Ollama instance health', ['instance'])
@@ -166,11 +166,11 @@ DATABASE_OPERATIONS = Counter('reranker_database_operations_total', 'Database op
 ### Prometheus Configuration
 Located in `monitoring/prometheus/prometheus.yml`:
 - Scrape intervals optimized per service type
-- Service discovery for dynamic containers  
+- Service discovery for dynamic containers
 - Alert rule integration
 - Retention policies (200h default)
 
-### Grafana Configuration  
+### Grafana Configuration
 Located in `monitoring/grafana/`:
 - Datasource provisioning (automatic Prometheus connection)
 - Dashboard provisioning (automatic import)
@@ -182,7 +182,7 @@ Located in `monitoring/grafana/`:
 GF_SECURITY_ADMIN_PASSWORD=admin
 GF_USERS_ALLOW_SIGN_UP=false
 
-# Exporters  
+# Exporters
 DATA_SOURCE_NAME=postgresql://postgres:postgres@pgvector:5432/vector_db
 REDIS_ADDR=redis://redis:6379
 ```
@@ -232,7 +232,7 @@ curl http://localhost:9090/api/v1/alerts
 - job_name: 'reranker'
   scrape_interval: 5s
 
-# Lower frequency for system metrics  
+# Lower frequency for system metrics
 - job_name: 'node'
   scrape_interval: 15s
 ```
@@ -248,7 +248,7 @@ curl http://localhost:9090/api/v1/alerts
 
 ### Regular Tasks
 1. **Weekly**: Review dashboard performance, check for metric anomalies
-2. **Monthly**: Update Grafana plugins, review alert thresholds  
+2. **Monthly**: Update Grafana plugins, review alert thresholds
 3. **Quarterly**: Analyze storage usage, optimize scrape intervals
 
 ### Backup Procedures
@@ -268,7 +268,7 @@ tar -czf monitoring-config-backup.tar.gz monitoring/
 ### Phase 2C Integration
 The monitoring system is designed to support Phase 2C accuracy improvements:
 - Enhanced retrieval pipeline metrics
-- Hybrid search performance tracking  
+- Hybrid search performance tracking
 - Quality evaluation dashboards
 
 ### Advanced Features

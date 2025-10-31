@@ -12,13 +12,13 @@ export async function GET() {
   }
   try {
     // Get document count
-    const docCount = await db.select({ 
-      count: sql<number>`count(*)::int` 
+    const docCount = await db.select({
+      count: sql<number>`count(*)::int`
     }).from(documents)
 
     // Get chunk count
-    const chunkCount = await db.select({ 
-      count: sql<number>`count(*)::int` 
+    const chunkCount = await db.select({
+      count: sql<number>`count(*)::int`
     }).from(documentChunks)
 
     return NextResponse.json({

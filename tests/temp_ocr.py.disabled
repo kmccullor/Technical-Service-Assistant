@@ -1,7 +1,7 @@
 """Ring 2 bootstrap: OCR functionality tests.
 
-These tests validate the perform_image_ocr function with proper mocking of 
-pytesseract and PIL dependencies. Tests include noise filtering, page number 
+These tests validate the perform_image_ocr function with proper mocking of
+pytesseract and PIL dependencies. Tests include noise filtering, page number
 extraction, and error handling. They are NOT yet part of enforced coverage gating.
 
 Run standalone (without coverage gate) via:
@@ -25,13 +25,13 @@ def test_perform_image_ocr_success(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     # Mock tesseract output
     mock_pytesseract.image_to_string.return_value = "This is clean OCR text.\nSecond line of text."
-    
+
     image_paths = ["/tmp/doc_page1_img1.png"]
     result = perform_image_ocr(image_paths)
-    
+
     assert len(result) == 1
     chunk = result[0]
     assert chunk['text'] == "This is clean OCR text.\nSecond line of text."
@@ -50,7 +50,7 @@ def test_perform_image_ocr_noise_filtering(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     # Mock noisy tesseract output
     noisy_text = """Good text line here.
 ++++++++++++++++
@@ -58,19 +58,19 @@ Another good line.
 ===_____===___===
 --------
 Final good line."""
-    
+
     mock_pytesseract.image_to_string.return_value = noisy_text
-    
+
     result = perform_image_ocr(["/tmp/test.png"])
-    
+
     assert len(result) == 1
     cleaned_text = result[0]['text']
-    
+
     # Should keep good lines
     assert "Good text line here." in cleaned_text
     assert "Another good line." in cleaned_text
     assert "Final good line." in cleaned_text
-    
+
     # Should remove noise lines
     assert "++++++++++++++++" not in cleaned_text
     assert "===_____===___===" not in cleaned_text
@@ -85,22 +85,22 @@ def test_perform_image_ocr_low_alphanumeric_density(mock_image, mock_pytesseract
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     # Mock text with low alphanumeric density
     noisy_text = """Good alphanumeric content here.
 !@#$%^&*()_+{}|:"<>?[]\\;',./ symbols only here very long line
 Another good line with normal text."""
-    
+
     mock_pytesseract.image_to_string.return_value = noisy_text
-    
+
     result = perform_image_ocr(["/tmp/test.png"])
-    
+
     cleaned_text = result[0]['text']
-    
+
     # Should keep good lines
     assert "Good alphanumeric content here." in cleaned_text
     assert "Another good line with normal text." in cleaned_text
-    
+
     # Should remove line with low alphanumeric density
     assert "symbols only here very long line" not in cleaned_text
 
@@ -113,9 +113,9 @@ def test_perform_image_ocr_page_number_extraction(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     mock_pytesseract.image_to_string.return_value = "Test text."
-    
+
     # Test various filename patterns
     test_cases = [
         ("/path/doc_page5_img1.png", 5),
@@ -124,7 +124,7 @@ def test_perform_image_ocr_page_number_extraction(mock_image, mock_pytesseract):
         ("/path/no_page_pattern.png", 0),  # No pattern, default to 0
         ("/path/page_invalid_img1.png", 0),  # Invalid page number
     ]
-    
+
     for img_path, expected_page in test_cases:
         result = perform_image_ocr([img_path])
         assert len(result) == 1
@@ -139,27 +139,27 @@ def test_perform_image_ocr_multiple_images(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     # Different OCR results for each image
     mock_pytesseract.image_to_string.side_effect = [
         "First image text.",
         "Second image content here.",
         "Third image result."
     ]
-    
+
     image_paths = [
         "/tmp/doc_page1_img1.png",
-        "/tmp/doc_page2_img1.png", 
+        "/tmp/doc_page2_img1.png",
         "/tmp/doc_page3_img1.png"
     ]
-    
+
     result = perform_image_ocr(image_paths)
-    
+
     assert len(result) == 3
     assert result[0]['text'] == "First image text."
     assert result[1]['text'] == "Second image content here."
     assert result[2]['text'] == "Third image result."
-    
+
     # Check page numbers
     assert result[0]['page_number'] == 1
     assert result[1]['page_number'] == 2
@@ -174,11 +174,11 @@ def test_perform_image_ocr_empty_text(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     mock_pytesseract.image_to_string.return_value = ""  # No text
-    
+
     result = perform_image_ocr(["/tmp/empty.png"])
-    
+
     assert result == []  # Should skip empty OCR results
 
 
@@ -190,12 +190,12 @@ def test_perform_image_ocr_very_short_text(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
-    # Text that becomes too short after cleaning 
+
+    # Text that becomes too short after cleaning
     mock_pytesseract.image_to_string.return_value = "AB\n++++\n--"
-    
+
     result = perform_image_ocr(["/tmp/short.png"])
-    
+
     assert result == []  # Should skip very short results
 
 
@@ -206,9 +206,9 @@ def test_perform_image_ocr_image_open_error(mock_image, mock_pytesseract):
     """Test OCR handles image opening errors gracefully."""
     # Mock PIL Image.open to raise exception
     mock_image.open.side_effect = Exception("Cannot open image")
-    
+
     result = perform_image_ocr(["/tmp/bad_image.png"])
-    
+
     assert result == []  # Should handle error and return empty list
     mock_pytesseract.image_to_string.assert_not_called()
 
@@ -221,12 +221,12 @@ def test_perform_image_ocr_tesseract_error(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     # Mock tesseract to raise exception
     mock_pytesseract.image_to_string.side_effect = Exception("Tesseract failed")
-    
+
     result = perform_image_ocr(["/tmp/test.png"])
-    
+
     assert result == []  # Should handle error and return empty list
 
 
@@ -246,16 +246,16 @@ def test_perform_image_ocr_metadata_completeness(mock_image, mock_pytesseract):
     mock_img = Mock()
     mock_image.open.return_value.__enter__ = Mock(return_value=mock_img)
     mock_image.open.return_value.__exit__ = Mock(return_value=False)
-    
+
     raw_text = "Original text with some noise\n+++++"
     cleaned_text = "Original text with some noise"
     mock_pytesseract.image_to_string.return_value = raw_text
-    
+
     result = perform_image_ocr(["/tmp/doc_page7_img2.png"])
-    
+
     assert len(result) == 1
     chunk = result[0]
-    
+
     # Check all metadata fields
     metadata = chunk['metadata']
     assert metadata['type'] == 'image_ocr'
@@ -263,7 +263,7 @@ def test_perform_image_ocr_metadata_completeness(mock_image, mock_pytesseract):
     assert metadata['ocr_engine'] == 'tesseract'
     assert metadata['raw_length'] == len(raw_text)
     assert metadata['clean_length'] == len(cleaned_text)
-    
+
     # Check chunk structure
     assert chunk['text'] == cleaned_text
     assert chunk['page_number'] == 7
@@ -276,7 +276,7 @@ def test_perform_image_ocr_metadata_completeness(mock_image, mock_pytesseract):
 def test_perform_image_ocr_empty_input(mock_image, mock_pytesseract):
     """Test OCR with empty image path list."""
     result = perform_image_ocr([])
-    
+
     assert result == []
     mock_image.open.assert_not_called()
     mock_pytesseract.image_to_string.assert_not_called()

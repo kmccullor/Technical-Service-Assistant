@@ -23,7 +23,7 @@ check-logs:
 	@echo "🔍 Recent Error Logs (Last 24 Hours)..."
 	@echo "=== PDF Processor ==="
 	@docker logs --since="24h" pdf_processor 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"
-	@echo "=== Reranker ==="  
+	@echo "=== Reranker ==="
 	@docker logs --since="24h" reranker 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"
 	@echo "=== Database ==="
 	@docker logs --since="24h" pgvector 2>/dev/null | grep -E "(ERROR|FATAL|Exception)" | tail -5 || echo "No critical errors"

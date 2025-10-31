@@ -4,7 +4,7 @@
 
 ### **RNI** - Regional Network Interface
 **Definition**: The core network interface system referenced throughout the documentation
-- **Document References**: 
+- **Document References**:
   - RNI 4.16.1 Release Notes
   - RNI 4.16 Base Station Security User Guide
   - RNI 4.16 ESM User Guide

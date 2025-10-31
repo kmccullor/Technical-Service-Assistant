@@ -113,12 +113,12 @@ With the rise of AI applications, vector databases have become important:
 
 async function seedDatabase() {
   console.log('🌱 Starting database seeding...')
-  
+
   try {
     // Insert sample documents
     for (const doc of SAMPLE_DOCUMENTS) {
       console.log(`📄 Processing document: ${doc.title}`)
-      
+
       // Insert document
       const [insertedDoc] = await db.insert(documents).values({
         fileName: doc.title,
@@ -131,10 +131,10 @@ async function seedDatabase() {
 
       // Create chunks from content
       const chunks = chunkText(doc.content)
-      
+
       // Generate embeddings for chunks
       const embeddings = await generateEmbeddings(chunks.map(c => c.content))
-      
+
       // Insert chunks for this document
       const chunkInserts = chunks.map((chunk, index) => ({
         documentId: insertedDoc.id,

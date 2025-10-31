@@ -4,23 +4,21 @@ Test script for AI-powered document categorization functionality.
 """
 
 import json
-import sys
 import os
+import sys
+
 sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
 
 # Set environment variables to avoid app directory issues
-os.environ['UPLOADS_DIR'] = '/home/kmccullor/Projects/Technical-Service-Assistant/uploads'
-os.environ['ARCHIVE_DIR'] = '/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive'
+os.environ["UPLOADS_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads"
+os.environ["ARCHIVE_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
 
 # Create logs directory if it doesn't exist
 logs_dir = "/home/kmccullor/Projects/Technical-Service-Assistant/logs"
 os.makedirs(logs_dir, exist_ok=True)
 
-from pdf_processor.pdf_utils import (
-    classify_document_with_ai,
-    get_db_connection,
-    insert_document_with_categorization
-)
+from pdf_processor.pdf_utils import classify_document_with_ai, get_db_connection, insert_document_with_categorization
+
 
 def test_ai_classification():
     """Test AI classification with sample document text."""
@@ -74,18 +72,19 @@ def test_ai_classification():
         # Test database insertion
         print("\nTesting database insertion...")
         conn = get_db_connection()
-        document_id = insert_document_with_categorization(
-            conn, "test_ai_classification.pdf", "public", classification
-        )
+        document_id = insert_document_with_categorization(conn, "test_ai_classification.pdf", "public", classification)
         print(f"Created document record with ID: {document_id}")
 
         # Verify the record was created correctly
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT file_name, document_type, product_name, product_version,
                        classification_confidence, ai_metadata
                 FROM pdf_documents WHERE id = %s;
-            """, (document_id,))
+            """,
+                (document_id,),
+            )
             result = cur.fetchone()
 
             if result:
@@ -109,8 +108,10 @@ def test_ai_classification():
     except Exception as e:
         print(f"AI Categorization Test: FAILED - {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = test_ai_classification()

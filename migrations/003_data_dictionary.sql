@@ -171,8 +171,8 @@ CREATE INDEX IF NOT EXISTS idx_schema_change_log_version ON schema_change_log(rn
 CREATE INDEX IF NOT EXISTS idx_data_dictionary_metadata_object ON data_dictionary_metadata(object_type, object_id);
 
 -- Insert some sample RNI versions
-INSERT INTO rni_versions (version_number, version_name, description, release_date, is_active) 
-VALUES 
+INSERT INTO rni_versions (version_number, version_name, description, release_date, is_active)
+VALUES
     ('1.0.0', 'Initial Release', 'First version of RNI system with basic AMI functionality', '2023-01-15', false),
     ('1.1.0', 'Enhanced AMI', 'Added advanced meter reading capabilities and reporting', '2023-06-20', false),
     ('2.0.0', 'Major Upgrade', 'Complete system overhaul with new architecture', '2024-01-30', false),
@@ -202,7 +202,7 @@ CREATE TRIGGER update_data_dictionary_metadata_updated_at BEFORE UPDATE ON data_
 
 -- View for complete schema overview
 CREATE OR REPLACE VIEW v_schema_overview AS
-SELECT 
+SELECT
     rv.version_number,
     rv.version_name,
     di.database_name,
@@ -216,17 +216,17 @@ SELECT
     dt.created_at as table_created_at
 FROM rni_versions rv
 JOIN database_instances di ON rv.id = di.rni_version_id
-JOIN database_schemas ds ON di.id = ds.database_instance_id  
+JOIN database_schemas ds ON di.id = ds.database_instance_id
 JOIN database_tables dt ON ds.id = dt.schema_id
 LEFT JOIN database_columns dc ON dt.id = dc.table_id
 WHERE rv.is_active = true AND di.is_active = true AND dt.is_active = true
-GROUP BY rv.version_number, rv.version_name, di.database_name, di.database_type, 
+GROUP BY rv.version_number, rv.version_name, di.database_name, di.database_type,
          ds.schema_name, dt.table_name, dt.table_type, dt.description, dt.row_count, dt.created_at
 ORDER BY rv.version_number, di.database_name, ds.schema_name, dt.table_name;
 
 -- View for detailed column information
 CREATE OR REPLACE VIEW v_column_details AS
-SELECT 
+SELECT
     rv.version_number,
     di.database_name,
     di.database_type,
@@ -246,7 +246,7 @@ SELECT
     dc.description
 FROM rni_versions rv
 JOIN database_instances di ON rv.id = di.rni_version_id
-JOIN database_schemas ds ON di.id = ds.database_instance_id  
+JOIN database_schemas ds ON di.id = ds.database_instance_id
 JOIN database_tables dt ON ds.id = dt.schema_id
 JOIN database_columns dc ON dt.id = dc.table_id
 WHERE rv.is_active = true AND di.is_active = true AND dt.is_active = true

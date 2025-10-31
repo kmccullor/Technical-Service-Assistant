@@ -18,7 +18,7 @@ prompt_input() {
     local prompt="$1"
     local var_name="$2"
     local current_value="${!var_name}"
-    
+
     if [[ -n "$current_value" ]]; then
         read -p "$prompt [$current_value]: " input
         if [[ -z "$input" ]]; then
@@ -27,7 +27,7 @@ prompt_input() {
     else
         read -p "$prompt: " input
     fi
-    
+
     eval "$var_name=\"$input\""
 }
 
@@ -101,7 +101,7 @@ if python email_eod_report.py --test "$CURRENT_RECIPIENT"; then
     echo ""
     echo "✅ Email test successful!"
     echo ""
-    
+
     # Generate environment setup
     echo "🔧 Environment Setup:"
     echo "Add these lines to your ~/.bashrc or crontab:"
@@ -116,7 +116,7 @@ if python email_eod_report.py --test "$CURRENT_RECIPIENT"; then
         echo "export SMTP_PORT=\"$CURRENT_SMTP_PORT\""
     fi
     echo ""
-    
+
     # Generate crontab example
     echo "📅 Crontab Example (with email):"
     echo ""
@@ -134,7 +134,7 @@ if python email_eod_report.py --test "$CURRENT_RECIPIENT"; then
     echo "# Daily end-of-day report with email (Monday-Friday at 5 PM)"
     echo "0 17 * * 1-5 $(pwd)/scripts/end_of_day.sh"
     echo ""
-    
+
     # Offer to save configuration
     read -p "Save configuration to .env file? (y/n): " save_env
     if [[ "$save_env" == "y" || "$save_env" == "Y" ]]; then
@@ -150,15 +150,15 @@ EOF
         if [[ "$CURRENT_SMTP_PORT" != "587" ]]; then
             echo "SMTP_PORT=\"$CURRENT_SMTP_PORT\"" >> .env
         fi
-        
+
         echo "✅ Configuration saved to .env file"
         echo "   Source it with: source .env"
     fi
-    
+
     echo ""
     echo "🎉 Email configuration complete!"
     echo "   Test sending a report: python email_eod_report.py $CURRENT_RECIPIENT"
-    
+
 else
     echo ""
     echo "❌ Email test failed. Please check your configuration."

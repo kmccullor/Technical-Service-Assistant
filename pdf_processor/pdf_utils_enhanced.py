@@ -1,5 +1,5 @@
-import json
 import hashlib
+import json
 import os
 import random
 import re
@@ -13,6 +13,7 @@ import requests
 
 sys.path.append("/app")
 from typing import Any, Dict, List, Optional, Tuple
+
 from config import get_settings
 from utils.logging_config import setup_logging
 
@@ -32,80 +33,64 @@ the advanced keyed structure below. Removed to avoid accidental overwrites."""
 
 # Enhanced classification patterns for security documents
 SECURITY_DOCUMENT_PATTERNS = {
-    'hardware_security_module': {
-        'filename_patterns': [
-            r'hardware\s+security\s+module.*installation',
-            r'hsm.*installation.*guide',
-            r'security\s+module.*installation'
+    "hardware_security_module": {
+        "filename_patterns": [
+            r"hardware\s+security\s+module.*installation",
+            r"hsm.*installation.*guide",
+            r"security\s+module.*installation",
         ],
-        'content_patterns': [
-            r'hardware security module',
-            r'hsm installation',
-            r'security module setup'
-        ],
-        'override_type': 'security_guide',
-        'confidence': 0.92
+        "content_patterns": [r"hardware security module", r"hsm installation", r"security module setup"],
+        "override_type": "security_guide",
+        "confidence": 0.92,
     },
-    'system_security_user_guide': {
-        'filename_patterns': [
-            r'system\s+security.*user\s+guide',
-            r'security.*user\s+guide'
-        ],
-        'content_patterns': [
-            r'system security',
-            r'security configuration',
-            r'security administration'
-        ],
-        'override_type': 'security_guide',
-        'confidence': 0.90
+    "system_security_user_guide": {
+        "filename_patterns": [r"system\s+security.*user\s+guide", r"security.*user\s+guide"],
+        "content_patterns": [r"system security", r"security configuration", r"security administration"],
+        "override_type": "security_guide",
+        "confidence": 0.90,
     },
-    'base_station_security': {
-        'filename_patterns': [
-            r'base\s+station\s+security.*user\s+guide'
-        ],
-        'content_patterns': [
-            r'base station security',
-            r'field device security'
-        ],
-        'override_type': 'security_guide',
-        'confidence': 0.88
+    "base_station_security": {
+        "filename_patterns": [r"base\s+station\s+security.*user\s+guide"],
+        "content_patterns": [r"base station security", r"field device security"],
+        "override_type": "security_guide",
+        "confidence": 0.88,
     },
-    'compliance_and_governance': {
-        'filename_patterns': [
-            r'compliance\s+audit.*',
-            r'regulatory\s+requirements.*',
-            r'security\s+standards.*',
-            r'security\s+policy.*',
-            r'privacy\s+controls?.*'
+    "compliance_and_governance": {
+        "filename_patterns": [
+            r"compliance\s+audit.*",
+            r"regulatory\s+requirements.*",
+            r"security\s+standards.*",
+            r"security\s+policy.*",
+            r"privacy\s+controls?.*",
         ],
-        'content_patterns': [
-            r'regulatory\s+compliance',
-            r'security\s+framework',
-            r'security\s+governance',
-            r'compliance\s+assessment',
-            r'gdpr|hipaa'
+        "content_patterns": [
+            r"regulatory\s+compliance",
+            r"security\s+framework",
+            r"security\s+governance",
+            r"compliance\s+assessment",
+            r"gdpr|hipaa",
         ],
-        'override_type': 'security_guide',
-        'confidence': 0.90
+        "override_type": "security_guide",
+        "confidence": 0.90,
     },
-    'threat_and_risk': {
-        'filename_patterns': [
-            r'threat\s+assessment.*',
-            r'risk\s+analysis.*',
-            r'vulnerability\s+scan.*',
-            r'incident\s+response.*',
-            r'penetration\s+test.*'
+    "threat_and_risk": {
+        "filename_patterns": [
+            r"threat\s+assessment.*",
+            r"risk\s+analysis.*",
+            r"vulnerability\s+scan.*",
+            r"incident\s+response.*",
+            r"penetration\s+test.*",
         ],
-        'content_patterns': [
-            r'threat\s+modeling',
-            r'risk\s+assessment',
-            r'security\s+incident',
-            r'vulnerability\s+assessment',
-            r'penetration\s+testing'
+        "content_patterns": [
+            r"threat\s+modeling",
+            r"risk\s+assessment",
+            r"security\s+incident",
+            r"vulnerability\s+assessment",
+            r"penetration\s+testing",
         ],
-        'override_type': 'security_guide',
-        'confidence': 0.91
-    }
+        "override_type": "security_guide",
+        "confidence": 0.91,
+    },
 }
 
 
@@ -128,13 +113,28 @@ def extract_text(pdf_path: str) -> str:
 
         text = ""
         for page_num in range(len(doc)):
-            page_text = doc[page_num].get_text()
-            text += page_text
-            logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+            try:
+                page_text = doc[page_num].get_text()
+                if page_text and len(page_text.strip()) > 0:
+                    text += page_text
+                    logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+                else:
+                    logger.warning(f"Page {page_num + 1}: no text extracted or empty page")
+            except Exception as page_error:
+                logger.error(f"Failed to extract text from page {page_num + 1}: {page_error}")
+                # Continue with other pages instead of failing completely
 
         doc.close()
         extraction_time = time.time() - start_time
         logger.info(f"Text extraction completed. Total characters: {len(text)}, Time: {extraction_time:.2f}s")
+
+        # Validate that we got meaningful text
+        if not text or len(text.strip()) < 10:
+            logger.warning(
+                f"Extracted text is too short or empty ({len(text)} chars), PDF may be image-based or corrupted"
+            )
+            return text  # Return what we have, but log the issue
+
         return text
 
     except Exception as e:
@@ -213,7 +213,7 @@ def detect_confidentiality(text: str) -> str:
     """
     if not text or not text.strip():
         logger.debug("Empty text provided for confidentiality detection, defaulting to public")
-        return 'public'
+        return "public"
 
     # Convert to lowercase for case-insensitive matching
     text_lower = text.lower()
@@ -221,59 +221,74 @@ def detect_confidentiality(text: str) -> str:
     # Define confidentiality keywords and patterns
     confidentiality_keywords = [
         # Direct privacy indicators
-        'confidential', 'private', 'restricted', 'classified',
-        'proprietary', 'internal', 'sensitive', 'privileged',
-
+        "confidential",
+        "private",
+        "restricted",
+        "classified",
+        "proprietary",
+        "internal",
+        "sensitive",
+        "privileged",
         # Legal/compliance terms
-        'attorney-client', 'attorney client', 'work product',
-        'trade secret', 'proprietary information',
-
+        "attorney-client",
+        "attorney client",
+        "work product",
+        "trade secret",
+        "proprietary information",
         # Business sensitivity
-        'do not distribute', 'internal use only', 'not for distribution',
-        'for internal use', 'company confidential',
-
+        "do not distribute",
+        "internal use only",
+        "not for distribution",
+        "for internal use",
+        "company confidential",
         # Personal information indicators
-        'personally identifiable', 'pii', 'personal information',
-        'social security number', 'ssn', 'credit card',
-
+        "personally identifiable",
+        "pii",
+        "personal information",
+        "social security number",
+        "ssn",
+        "credit card",
         # Data classification
-        'top secret', 'secret', 'eyes only', 'need to know'
+        "top secret",
+        "secret",
+        "eyes only",
+        "need to know",
     ]
 
     # Check for exact keyword matches
     for keyword in confidentiality_keywords:
         if keyword in text_lower:
             logger.info(f"Confidentiality keyword detected: '{keyword}' - classifying as private")
-            return 'private'
+            return "private"
 
     # Check for common confidentiality patterns with regex
     confidentiality_patterns = [
-        r'\bconfidential\b.*\bdocument\b',  # "confidential document"
-        r'\bdo\s+not\s+(share|distribute|disclose)\b',  # "do not share/distribute"
-        r'\bfor\s+internal\s+use\s+only\b',  # "for internal use only"
-        r'\bnot\s+for\s+(public|external)\b',  # "not for public/external"
-        r'\b(strictly|highly)\s+confidential\b',  # "strictly/highly confidential"
-        r'\bclassification\s*:\s*(private|confidential|restricted)\b'  # "classification: private"
+        r"\bconfidential\b.*\bdocument\b",  # "confidential document"
+        r"\bdo\s+not\s+(share|distribute|disclose)\b",  # "do not share/distribute"
+        r"\bfor\s+internal\s+use\s+only\b",  # "for internal use only"
+        r"\bnot\s+for\s+(public|external)\b",  # "not for public/external"
+        r"\b(strictly|highly)\s+confidential\b",  # "strictly/highly confidential"
+        r"\bclassification\s*:\s*(private|confidential|restricted)\b",  # "classification: private"
     ]
 
     for pattern in confidentiality_patterns:
         if re.search(pattern, text_lower):
             logger.info(f"Confidentiality pattern detected: '{pattern}' - classifying as private")
-            return 'private'
+            return "private"
 
     # Check document headers/footers for classification markings
     # Split into lines and check first/last few lines for headers/footers
-    lines = text.split('\n')
+    lines = text.split("\n")
     header_footer_lines = lines[:5] + lines[-5:]  # First and last 5 lines
 
     for line in header_footer_lines:
         line_lower = line.lower().strip()
-        if any(keyword in line_lower for keyword in ['confidential', 'private', 'restricted']):
+        if any(keyword in line_lower for keyword in ["confidential", "private", "restricted"]):
             logger.info(f"Confidentiality marking in header/footer: '{line.strip()}' - classifying as private")
-            return 'private'
+            return "private"
 
     logger.debug("No confidentiality indicators detected - classifying as public")
-    return 'public'
+    return "public"
 
 
 def extract_pdf_structure_metadata(pdf_path: str) -> Dict[str, Any]:
@@ -288,6 +303,7 @@ def extract_pdf_structure_metadata(pdf_path: str) -> Dict[str, Any]:
     """
     try:
         import fitz
+
         doc = fitz.open(pdf_path)
 
         # Get PDF metadata
@@ -296,22 +312,24 @@ def extract_pdf_structure_metadata(pdf_path: str) -> Dict[str, Any]:
         metadata = {}
 
         # Extract title from PDF properties with improved validation
-        if pdf_metadata.get('title'):
-            title = pdf_metadata['title'].strip()
+        if pdf_metadata.get("title"):
+            title = pdf_metadata["title"].strip()
             # Improved title validation - remove common non-title patterns
-            if (len(title) > 5 and
-                not title.lower().startswith(('untitled', 'document', 'page')) and
-                not re.match(r'^\d+$', title)):  # Not just numbers
-                metadata['title'] = title
+            if (
+                len(title) > 5
+                and not title.lower().startswith(("untitled", "document", "page"))
+                and not re.match(r"^\d+$", title)
+            ):  # Not just numbers
+                metadata["title"] = title
 
         # Extract creator/publisher
-        if pdf_metadata.get('creator'):
-            metadata['publisher'] = pdf_metadata['creator'].strip()
-        elif pdf_metadata.get('producer'):
-            metadata['publisher'] = pdf_metadata['producer'].strip()
+        if pdf_metadata.get("creator"):
+            metadata["publisher"] = pdf_metadata["creator"].strip()
+        elif pdf_metadata.get("producer"):
+            metadata["publisher"] = pdf_metadata["producer"].strip()
 
         # Enhanced first page analysis for title if not in metadata
-        if not metadata.get('title') and len(doc) > 0:
+        if not metadata.get("title") and len(doc) > 0:
             first_page = doc[0]
             blocks = first_page.get_text("dict")["blocks"]
 
@@ -323,53 +341,57 @@ def extract_pdf_structure_metadata(pdf_path: str) -> Dict[str, Any]:
                         for span in line["spans"]:
                             text = span["text"].strip()
                             if text and len(text) > 5:
-                                text_blocks.append({
-                                    'text': text,
-                                    'size': span["size"],
-                                    'flags': span["flags"],
-                                    'bbox': span["bbox"],
-                                    'font': span.get("font", ""),
-                                    'y_position': span["bbox"][1]  # Top Y coordinate
-                                })
+                                text_blocks.append(
+                                    {
+                                        "text": text,
+                                        "size": span["size"],
+                                        "flags": span["flags"],
+                                        "bbox": span["bbox"],
+                                        "font": span.get("font", ""),
+                                        "y_position": span["bbox"][1],  # Top Y coordinate
+                                    }
+                                )
 
             # Enhanced title detection logic
             if text_blocks:
                 # Sort by position (top first) and size
-                text_blocks.sort(key=lambda x: (x['y_position'], -x['size']))
+                text_blocks.sort(key=lambda x: (x["y_position"], -x["size"]))
 
                 # Look for title patterns in top portion of first page
-                top_blocks = [b for b in text_blocks if b['y_position'] < 200]  # Top 200 points
+                top_blocks = [b for b in text_blocks if b["y_position"] < 200]  # Top 200 points
 
                 # Filter for large text that could be titles
                 title_candidates = []
                 for block in top_blocks:
-                    if (block['size'] >= 12 and
-                        len(block['text']) >= 10 and
-                        len(block['text']) <= 150 and
-                        not block['text'].lower().startswith(('page', 'copyright', '©', 'confidential')) and
-                        not re.match(r'^\d+$', block['text']) and
-                        not block['text'].count('.') > 3):  # Not file paths
+                    if (
+                        block["size"] >= 12
+                        and len(block["text"]) >= 10
+                        and len(block["text"]) <= 150
+                        and not block["text"].lower().startswith(("page", "copyright", "©", "confidential"))
+                        and not re.match(r"^\d+$", block["text"])
+                        and not block["text"].count(".") > 3
+                    ):  # Not file paths
                         title_candidates.append(block)
 
                 if title_candidates:
                     # Prefer largest font size in top area
-                    best_title = max(title_candidates, key=lambda x: x['size'])
-                    metadata['title'] = best_title['text']
+                    best_title = max(title_candidates, key=lambda x: x["size"])
+                    metadata["title"] = best_title["text"]
                     logger.debug(f"Extracted title from structure: {best_title['text']}")
 
         # Extract additional metadata from document info
-        if pdf_metadata.get('subject'):
-            metadata['subject'] = pdf_metadata['subject'].strip()
+        if pdf_metadata.get("subject"):
+            metadata["subject"] = pdf_metadata["subject"].strip()
 
-        if pdf_metadata.get('keywords'):
-            metadata['keywords'] = pdf_metadata['keywords'].strip()
+        if pdf_metadata.get("keywords"):
+            metadata["keywords"] = pdf_metadata["keywords"].strip()
 
         # Extract creation/modification dates
-        if pdf_metadata.get('creationDate'):
-            metadata['creation_date'] = pdf_metadata['creationDate']
+        if pdf_metadata.get("creationDate"):
+            metadata["creation_date"] = pdf_metadata["creationDate"]
 
-        if pdf_metadata.get('modDate'):
-            metadata['modification_date'] = pdf_metadata['modDate']
+        if pdf_metadata.get("modDate"):
+            metadata["modification_date"] = pdf_metadata["modDate"]
 
         doc.close()
         logger.debug(f"PDF structure metadata extracted: {len(metadata)} fields")
@@ -395,105 +417,105 @@ def extract_document_metadata(text: str, filename: str) -> Dict[str, Any]:
 
     # Initialize metadata structure
     metadata = {
-        'title': None,
-        'version': None,
-        'doc_number': None,
-        'ga_date': None,
-        'publisher': None,
-        'copyright_year': None,
-        'product_family': [],
-        'service_lines': [],
-        'audiences': []
+        "title": None,
+        "version": None,
+        "doc_number": None,
+        "ga_date": None,
+        "publisher": None,
+        "copyright_year": None,
+        "product_family": [],
+        "service_lines": [],
+        "audiences": [],
     }
 
     # Extract title from first few lines
-    lines = text.split('\n')[:10]
+    lines = text.split("\n")[:10]
     for line in lines:
         line = line.strip()
-        if line and len(line) > 10 and not line.lower().startswith(('page', 'copyright', '©')):
-            if not metadata['title']:
-                metadata['title'] = line
+        if line and len(line) > 10 and not line.lower().startswith(("page", "copyright", "©")):
+            if not metadata["title"]:
+                metadata["title"] = line
                 break
 
     # Extract version patterns (e.g., "4.16", "v1.2.3")
     version_patterns = [
-        r'version\s+(\d+\.\d+(?:\.\d+)?)',
-        r'v(\d+\.\d+(?:\.\d+)?)',
-        r'(\d+\.\d+)\s+(?:user|installation|reference)',
-        r'release\s+(\d+\.\d+(?:\.\d+)?)'
+        r"version\s+(\d+\.\d+(?:\.\d+)?)",
+        r"v(\d+\.\d+(?:\.\d+)?)",
+        r"(\d+\.\d+)\s+(?:user|installation|reference)",
+        r"release\s+(\d+\.\d+(?:\.\d+)?)",
     ]
 
     for pattern in version_patterns:
         match = re.search(pattern, text.lower())
         if match:
-            metadata['version'] = match.group(1)
+            metadata["version"] = match.group(1)
             break
 
     # Extract document number (e.g., ARN-10003-01)
-    doc_number_pattern = r'([A-Z]{2,4}-\d{4,6}-\d{1,3})'
+    doc_number_pattern = r"([A-Z]{2,4}-\d{4,6}-\d{1,3})"
     doc_match = re.search(doc_number_pattern, text)
     if doc_match:
-        metadata['doc_number'] = doc_match.group(1)
+        metadata["doc_number"] = doc_match.group(1)
 
     # Extract GA date patterns
     date_patterns = [
-        r'ga\s+date[:\s]+(\w+\s+\d{1,2},?\s+\d{4})',
-        r'general\s+availability[:\s]+(\w+\s+\d{1,2},?\s+\d{4})'
+        r"ga\s+date[:\s]+(\w+\s+\d{1,2},?\s+\d{4})",
+        r"general\s+availability[:\s]+(\w+\s+\d{1,2},?\s+\d{4})",
     ]
 
     for pattern in date_patterns:
         match = re.search(pattern, text.lower())
         if match:
-            metadata['ga_date'] = match.group(1)
+            metadata["ga_date"] = match.group(1)
             break
 
     # Extract copyright year
-    copyright_match = re.search(r'©?\s*(?:copyright\s+)?(\d{4})', text.lower())
+    copyright_match = re.search(r"©?\s*(?:copyright\s+)?(\d{4})", text.lower())
     if copyright_match:
-        metadata['copyright_year'] = int(copyright_match.group(1))
+        metadata["copyright_year"] = int(copyright_match.group(1))
 
     # Extract publisher (common patterns)
-    if 'aclara' in text.lower():
-        metadata['publisher'] = 'Aclara Technologies'
-    elif 'sensus' in text.lower():
-        metadata['publisher'] = 'Sensus'
+    if "aclara" in text.lower():
+        metadata["publisher"] = "Aclara Technologies"
+    elif "sensus" in text.lower():
+        metadata["publisher"] = "Sensus"
 
     # Extract product families
     product_keywords = {
-        'RNI': ['rni', 'regional network interface'],
-        'FlexNet': ['flexnet', 'flex net'],
-        'ESM': ['esm', 'endpoint service manager'],
-        'MultiSpeak': ['multispeak', 'multi speak']
+        "RNI": ["rni", "regional network interface"],
+        "FlexNet": ["flexnet", "flex net"],
+        "ESM": ["esm", "endpoint service manager"],
+        "MultiSpeak": ["multispeak", "multi speak"],
     }
 
     for product, keywords in product_keywords.items():
         if any(keyword in text.lower() for keyword in keywords):
-            metadata['product_family'].append(product)
+            metadata["product_family"].append(product)
 
     # Extract service lines
     service_keywords = {
-        'Electric': ['electric', 'electricity', 'power', 'meter reading'],
-        'Gas': ['gas', 'natural gas'],
-        'Water': ['water', 'h2o'],
-        'Common': ['communication', 'protocol', 'interface']
+        "Electric": ["electric", "electricity", "power", "meter reading"],
+        "Gas": ["gas", "natural gas"],
+        "Water": ["water", "h2o"],
+        "Common": ["communication", "protocol", "interface"],
     }
 
     for service, keywords in service_keywords.items():
         if any(keyword in text.lower() for keyword in keywords):
-            metadata['service_lines'].append(service)
+            metadata["service_lines"].append(service)
 
     # Extract target audiences
     audience_keywords = {
-        'RNI administrators': ['administrator', 'admin', 'system admin'],
-        'Utility operations': ['utility', 'operations', 'operator'],
-        'Technical support': ['support', 'troubleshooting', 'maintenance'],
-        'Developers': ['developer', 'api', 'integration', 'programming'],
-        'End users': ['user guide', 'end user', 'customer']
+        "RNI administrators": ["administrator", "admin", "system admin"],
+        "Utility operations": ["utility", "operations", "operator"],
+        "Technical support": ["support", "troubleshooting", "maintenance"],
+        "Developers": ["developer", "api", "integration", "programming"],
+        "End users": ["user guide", "end user", "customer"],
     }
 
     for audience, keywords in audience_keywords.items():
         if any(keyword in text.lower() for keyword in keywords):
-            metadata['audiences'].append(audience)
+            metadata["audiences"].append(audience)
 
     logger.info(f"Extracted metadata - Title: {metadata['title'][:50] if metadata['title'] else 'None'}...")
     return metadata
@@ -517,63 +539,57 @@ def apply_security_classification_overrides(text: str, filename: str) -> Optiona
     text_lower = text.lower()
 
     # Check filename patterns first
-    for pattern in SECURITY_DOCUMENT_PATTERNS['filename_patterns']:
+    for pattern in SECURITY_DOCUMENT_PATTERNS["filename_patterns"]:
         if re.search(pattern, filename_lower):
             logger.info(f"Security filename pattern matched: {pattern} in {filename}")
 
             # Extract product information from filename/content
-            product_name = 'unknown'
-            if 'rni' in filename_lower or 'rni' in text_lower:
-                product_name = 'RNI'
-            elif 'flexnet' in filename_lower or 'flexnet' in text_lower:
-                product_name = 'FlexNet'
-            elif 'esm' in filename_lower or 'esm' in text_lower:
-                product_name = 'ESM'
+            product_name = "unknown"
+            if "rni" in filename_lower or "rni" in text_lower:
+                product_name = "RNI"
+            elif "flexnet" in filename_lower or "flexnet" in text_lower:
+                product_name = "FlexNet"
+            elif "esm" in filename_lower or "esm" in text_lower:
+                product_name = "ESM"
 
             # Extract version if available
-            version_match = re.search(r'(\d+\.\d+(?:\.\d+)?)', filename)
-            product_version = version_match.group(1) if version_match else 'unknown'
+            version_match = re.search(r"(\d+\.\d+(?:\.\d+)?)", filename)
+            product_version = version_match.group(1) if version_match else "unknown"
 
             return {
-                'document_type': 'security_guide',
-                'product_name': product_name,
-                'product_version': product_version,
-                'document_category': 'security',
-                'confidence': 0.95,
-                'metadata': {
-                    'classification_source': 'security_override',
-                    'matched_pattern': pattern
-                }
+                "document_type": "security_guide",
+                "product_name": product_name,
+                "product_version": product_version,
+                "document_category": "security",
+                "confidence": 0.95,
+                "metadata": {"classification_source": "security_override", "matched_pattern": pattern},
             }
 
     # Check content patterns if filename didn't match
-    for pattern in SECURITY_DOCUMENT_PATTERNS['content_patterns']:
+    for pattern in SECURITY_DOCUMENT_PATTERNS["content_patterns"]:
         if re.search(pattern, text_lower):
             logger.info(f"Security content pattern matched: {pattern}")
 
             # Extract product information
-            product_name = 'unknown'
-            if 'rni' in text_lower:
-                product_name = 'RNI'
-            elif 'flexnet' in text_lower:
-                product_name = 'FlexNet'
-            elif 'esm' in text_lower:
-                product_name = 'ESM'
+            product_name = "unknown"
+            if "rni" in text_lower:
+                product_name = "RNI"
+            elif "flexnet" in text_lower:
+                product_name = "FlexNet"
+            elif "esm" in text_lower:
+                product_name = "ESM"
 
             # Extract version from content
-            version_match = re.search(r'version\s+(\d+\.\d+(?:\.\d+)?)', text_lower)
-            product_version = version_match.group(1) if version_match else 'unknown'
+            version_match = re.search(r"version\s+(\d+\.\d+(?:\.\d+)?)", text_lower)
+            product_version = version_match.group(1) if version_match else "unknown"
 
             return {
-                'document_type': 'security_guide',
-                'product_name': product_name,
-                'product_version': product_version,
-                'document_category': 'security',
-                'confidence': 0.90,
-                'metadata': {
-                    'classification_source': 'security_override',
-                    'matched_pattern': pattern
-                }
+                "document_type": "security_guide",
+                "product_name": product_name,
+                "product_version": product_version,
+                "document_category": "security",
+                "confidence": 0.90,
+                "metadata": {"classification_source": "security_override", "matched_pattern": pattern},
             }
 
     return None
@@ -581,7 +597,8 @@ def apply_security_classification_overrides(text: str, filename: str) -> Optiona
 
 def classify_document_with_ai(text: str, filename: str = "") -> Dict[str, Any]:
     from config import get_settings
-    settings = get_settings()
+
+    get_settings()
     """
     Use AI to classify document type, extract product information, and categorize content.
 
@@ -606,12 +623,12 @@ def classify_document_with_ai(text: str, filename: str = "") -> Dict[str, Any]:
     if not text or not text.strip():
         logger.debug("Empty text provided for AI classification, returning defaults")
         return {
-            'document_type': 'unknown',
-            'product_name': 'unknown',
-            'product_version': 'unknown',
-            'document_category': 'documentation',
-            'confidence': 0.0,
-            'metadata': {}
+            "document_type": "unknown",
+            "product_name": "unknown",
+            "product_version": "unknown",
+            "document_category": "documentation",
+            "confidence": 0.0,
+            "metadata": {},
         }
 
     logger.info(f"Starting AI classification for document: {filename}")
@@ -701,17 +718,17 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
                     "options": {
                         "temperature": 0.1,  # Low temperature for consistent classification
                         "top_p": 0.9,
-                        "num_predict": 200   # Shorter response for JSON only
-                    }
+                        "num_predict": 200,  # Shorter response for JSON only
+                    },
                 },
-                timeout=settings.embedding_timeout_seconds  # Configurable timeout
+                timeout=settings.embedding_timeout_seconds,  # Configurable timeout
             )
             response.raise_for_status()
 
             # Parse AI response
             ai_response = response.json()
-            if 'response' in ai_response:
-                raw_response = ai_response['response'].strip()
+            if "response" in ai_response:
+                raw_response = ai_response["response"].strip()
 
                 # Try to extract JSON from response
                 classification_data = parse_ai_classification_response(raw_response)
@@ -747,30 +764,30 @@ def parse_ai_classification_response(response: str) -> Optional[Dict[str, Any]]:
     """
     try:
         # Try direct JSON parsing first
-        if response.startswith('{') and response.endswith('}'):
+        if response.startswith("{") and response.endswith("}"):
             return json.loads(response)
 
         # Extract JSON from response text
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+        json_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", response, re.DOTALL)
         if json_match:
             json_str = json_match.group(0)
             return json.loads(json_str)
 
         # Try to find JSON-like structure
-        lines = response.split('\n')
+        lines = response.split("\n")
         json_lines = []
         in_json = False
 
         for line in lines:
-            if line.strip().startswith('{'):
+            if line.strip().startswith("{"):
                 in_json = True
             if in_json:
                 json_lines.append(line)
-            if in_json and line.strip().endswith('}'):
+            if in_json and line.strip().endswith("}"):
                 break
 
         if json_lines:
-            json_str = '\n'.join(json_lines)
+            json_str = "\n".join(json_lines)
             return json.loads(json_str)
 
     except json.JSONDecodeError as e:
@@ -796,17 +813,17 @@ def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
 
     # Initialize default classification
     result = {
-        'document_type': 'unknown',
-        'product_name': 'unknown',
-        'product_version': 'unknown',
-        'document_category': 'documentation',
-        'confidence': 0.5,  # Medium confidence for rule-based
-        'metadata': {
-            'classification_method': 'rule_based_fallback',
-            'key_topics': [],
-            'target_audience': 'technical',
-            'document_purpose': 'technical documentation'
-        }
+        "document_type": "unknown",
+        "product_name": "unknown",
+        "product_version": "unknown",
+        "document_category": "documentation",
+        "confidence": 0.5,  # Medium confidence for rule-based
+        "metadata": {
+            "classification_method": "rule_based_fallback",
+            "key_topics": [],
+            "target_audience": "technical",
+            "document_purpose": "technical documentation",
+        },
     }
 
     filename_lower = filename.lower()
@@ -814,48 +831,48 @@ def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
 
     # Extract product name and version from filename patterns
     # Pattern: RNI 4.16 Document Type.pdf
-    product_match = re.search(r'(rni|flexnet|esm|multispeak|ppa)\s*(\d+\.\d+(?:\.\d+)?)', filename_lower)
+    product_match = re.search(r"(rni|flexnet|esm|multispeak|ppa)\s*(\d+\.\d+(?:\.\d+)?)", filename_lower)
     if product_match:
-        result['product_name'] = product_match.group(1).upper()
-        result['product_version'] = product_match.group(2)
-        result['confidence'] = 0.8
+        result["product_name"] = product_match.group(1).upper()
+        result["product_version"] = product_match.group(2)
+        result["confidence"] = 0.8
 
     # Classify document type based on filename keywords
     doc_type_patterns = {
-        'user_guide': ['user guide', 'user manual'],
-        'installation_guide': ['installation guide', 'install guide'],
-        'reference_manual': ['reference manual', 'reference guide'],
-        'release_notes': ['release notes', 'release note'],
-        'integration_guide': ['integration guide'],
-        'security_guide': ['security guide', 'security user guide'],
-        'administration_guide': ['administration guide', 'admin guide', 'system admin'],
-        'technical_specification': ['tech note', 'specification', 'specs'],
-        'api_documentation': ['api guide', 'api documentation']
+        "user_guide": ["user guide", "user manual"],
+        "installation_guide": ["installation guide", "install guide"],
+        "reference_manual": ["reference manual", "reference guide"],
+        "release_notes": ["release notes", "release note"],
+        "integration_guide": ["integration guide"],
+        "security_guide": ["security guide", "security user guide"],
+        "administration_guide": ["administration guide", "admin guide", "system admin"],
+        "technical_specification": ["tech note", "specification", "specs"],
+        "api_documentation": ["api guide", "api documentation"],
     }
 
     for doc_type, patterns in doc_type_patterns.items():
         if any(pattern in filename_lower for pattern in patterns):
-            result['document_type'] = doc_type
-            result['confidence'] = min(result['confidence'] + 0.2, 0.9)
+            result["document_type"] = doc_type
+            result["confidence"] = min(result["confidence"] + 0.2, 0.9)
             break
 
     # Determine document category
-    if result['document_type'] in ['user_guide', 'installation_guide', 'integration_guide']:
-        result['document_category'] = 'guide'
-    elif result['document_type'] in ['reference_manual', 'technical_specification']:
-        result['document_category'] = 'reference'
-    elif result['document_type'] in ['security_guide', 'administration_guide']:
-        result['document_category'] = 'administration'
-    elif result['document_type'] == 'release_notes':
-        result['document_category'] = 'notes'
+    if result["document_type"] in ["user_guide", "installation_guide", "integration_guide"]:
+        result["document_category"] = "guide"
+    elif result["document_type"] in ["reference_manual", "technical_specification"]:
+        result["document_category"] = "reference"
+    elif result["document_type"] in ["security_guide", "administration_guide"]:
+        result["document_category"] = "administration"
+    elif result["document_type"] == "release_notes":
+        result["document_category"] = "notes"
 
     # Extract key topics from content (simple keyword analysis)
     topic_keywords = {
-        'security': ['security', 'encryption', 'authentication', 'certificate'],
-        'installation': ['install', 'setup', 'configure', 'deployment'],
-        'integration': ['integration', 'api', 'interface', 'protocol'],
-        'administration': ['admin', 'management', 'configuration', 'settings'],
-        'networking': ['network', 'connection', 'communication', 'protocol']
+        "security": ["security", "encryption", "authentication", "certificate"],
+        "installation": ["install", "setup", "configure", "deployment"],
+        "integration": ["integration", "api", "interface", "protocol"],
+        "administration": ["admin", "management", "configuration", "settings"],
+        "networking": ["network", "connection", "communication", "protocol"],
     }
 
     detected_topics = []
@@ -863,7 +880,7 @@ def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
         if any(keyword in text_lower for keyword in keywords):
             detected_topics.append(topic)
 
-    result['metadata']['key_topics'] = detected_topics[:5]  # Limit to top 5 topics
+    result["metadata"]["key_topics"] = detected_topics[:5]  # Limit to top 5 topics
 
     # Apply security document overrides before returning
     security_override = apply_security_classification_overrides(text, filename)
@@ -871,8 +888,88 @@ def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
         logger.info("Applied security classification override in fallback")
         return security_override
 
-    logger.info(f"Enhanced fallback classification: {result['document_type']} for {result['product_name']} {result['product_version']} (confidence: {result['confidence']:.2f})")
+    logger.info(
+        f"Enhanced fallback classification: {result['document_type']} for {result['product_name']} {result['product_version']} (confidence: {result['confidence']:.2f})"
+    )
     return result
+
+
+def validate_chunk_quality(chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Validate the quality of generated chunks for issues like truncation."""
+    issues = []
+    stats = {
+        "total_chunks": len(chunks),
+        "empty_chunks": 0,
+        "truncated_chunks": 0,
+        "incomplete_sentences": 0,
+        "avg_chunk_length": 0,
+        "min_chunk_length": float("inf"),
+        "max_chunk_length": 0,
+    }
+
+    total_length = 0
+    for i, chunk in enumerate(chunks):
+        content = chunk.get("content", "").strip()
+
+        if not content:
+            stats["empty_chunks"] += 1
+            issues.append(f"Chunk {i}: Empty content")
+            continue
+
+        length = len(content)
+        total_length += length
+        stats["min_chunk_length"] = min(stats["min_chunk_length"], length)
+        stats["max_chunk_length"] = max(stats["max_chunk_length"], length)
+
+        # Check for incomplete sentences (doesn't end with proper punctuation)
+        if not content[-1] in ".!?" and i < len(chunks) - 1:  # Not the last chunk
+            stats["incomplete_sentences"] += 1
+            issues.append(f"Chunk {i}: May be truncated mid-sentence: '{content[-50:]}'")
+
+        # Check for obvious truncation patterns
+        if content.endswith(
+            (
+                "is",
+                "are",
+                "was",
+                "were",
+                "has",
+                "have",
+                "can",
+                "will",
+                "would",
+                "should",
+                "could",
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+            )
+        ):
+            # These are common words that might indicate truncation
+            stats["truncated_chunks"] += 1
+            issues.append(f"Chunk {i}: Ends with common word, possible truncation: '{content[-20:]}'")
+
+    if chunks:
+        stats["avg_chunk_length"] = total_length / len(chunks)
+    else:
+        stats["min_chunk_length"] = 0
+
+    return {
+        "stats": stats,
+        "issues": issues,
+        "quality_score": max(0, 100 - (stats["incomplete_sentences"] + stats["truncated_chunks"]) * 10),
+    }
 
 
 def chunk_text_semantic(text: str, document_name: str = "", max_chunk_size: int = 1000) -> List[Dict[str, Any]]:
@@ -882,7 +979,7 @@ def chunk_text_semantic(text: str, document_name: str = "", max_chunk_size: int 
     """
     try:
         import nltk
-        from nltk.tokenize import sent_tokenize, word_tokenize
+        from nltk.tokenize import sent_tokenize
     except Exception:
         raise RuntimeError("NLTK and the punkt tokenizer are required for chunk_text_semantic")
 
@@ -934,20 +1031,38 @@ def chunk_text_semantic(text: str, document_name: str = "", max_chunk_size: int 
                     # Generate content hash for deduplication
                     content_hash = hashlib.sha256(current_chunk.encode()).hexdigest()[:16]
 
-                    chunks.append({
-                        "content": chunk_content,
-                        "content_hash": content_hash,
-                        "chunk_index": chunk_index,
-                        "page_number": para_idx + 1,  # Use paragraph as proxy for page
-                        "section_title": None,  # Could be enhanced with header detection
-                        "chunk_type": "text",
-                        "metadata": {
-                            "document": document_name,
-                            "paragraph_index": para_idx,
-                            "sentence_count": len(current_sentences),
-                            "char_count": len(current_chunk)
+                    # Validate chunk content - ensure it ends with proper sentence termination
+                    cleaned_content = chunk_content.strip()
+                    if not cleaned_content:
+                        logger.warning(f"Skipping empty chunk at paragraph {para_idx}")
+                        continue
+
+                    # Ensure chunk ends with sentence-ending punctuation if it's not the last part
+                    if not cleaned_content[-1] in ".!?" and sent_idx < len(sentences) - 1:
+                        logger.warning(f"Chunk may be cut off mid-sentence: {cleaned_content[-50:]}")
+                        # Try to find a better break point
+                        last_sentence_end = max(
+                            cleaned_content.rfind("."), cleaned_content.rfind("!"), cleaned_content.rfind("?")
+                        )
+                        if last_sentence_end > len(cleaned_content) * 0.5:  # If we can keep at least half
+                            cleaned_content = cleaned_content[: last_sentence_end + 1]
+
+                    chunks.append(
+                        {
+                            "content": cleaned_content,
+                            "content_hash": content_hash,
+                            "chunk_index": chunk_index,
+                            "page_number": para_idx + 1,  # Use paragraph as proxy for page
+                            "section_title": None,  # Could be enhanced with header detection
+                            "chunk_type": "text",
+                            "metadata": {
+                                "document": document_name,
+                                "paragraph_index": para_idx,
+                                "sentence_count": len(current_sentences),
+                                "char_count": len(cleaned_content),
+                            },
                         }
-                    })
+                    )
                     chunk_index += 1
 
                 # Start new chunk with current sentence
@@ -964,23 +1079,40 @@ def chunk_text_semantic(text: str, document_name: str = "", max_chunk_size: int 
             chunk_content = overlap_text + current_chunk
             content_hash = hashlib.sha256(current_chunk.encode()).hexdigest()[:16]
 
-            chunks.append({
-                "content": chunk_content,
-                "content_hash": content_hash,
-                "chunk_index": chunk_index,
-                "page_number": para_idx + 1,
-                "section_title": None,
-                "chunk_type": "text",
-                "metadata": {
-                    "document": document_name,
-                    "paragraph_index": para_idx,
-                    "sentence_count": len(current_sentences),
-                    "char_count": len(current_chunk)
+            chunks.append(
+                {
+                    "content": chunk_content,
+                    "content_hash": content_hash,
+                    "chunk_index": chunk_index,
+                    "page_number": para_idx + 1,
+                    "section_title": None,
+                    "chunk_type": "text",
+                    "metadata": {
+                        "document": document_name,
+                        "paragraph_index": para_idx,
+                        "sentence_count": len(current_sentences),
+                        "char_count": len(current_chunk),
+                    },
                 }
-            })
+            )
             chunk_index += 1
 
     logger.info(f"Semantic chunking completed: {len(chunks)} chunks created")
+
+    # Validate chunk quality
+    quality_report = validate_chunk_quality(chunks)
+    if quality_report["issues"]:
+        logger.warning(f"Chunk quality issues found: {len(quality_report['issues'])} issues")
+        for issue in quality_report["issues"][:5]:  # Log first 5 issues
+            logger.warning(f"  {issue}")
+        if len(quality_report["issues"]) > 5:
+            logger.warning(f"  ... and {len(quality_report['issues']) - 5} more issues")
+
+    logger.info(
+        f"Chunk quality score: {quality_report['quality_score']:.1f}/100 "
+        f"(avg length: {quality_report['stats']['avg_chunk_length']:.1f} chars)"
+    )
+
     return chunks
 
 
@@ -1043,8 +1175,9 @@ def chunk_images(
 def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[str] = None) -> List[float]:
     """Get embedding using intelligent routing across multiple Ollama instances with detailed logging."""
     from config import get_settings
+
     settings = get_settings()
-    
+
     start_time = time.time()
     text_length = len(text)
     model = model or settings.embedding_model
@@ -1073,7 +1206,9 @@ def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[s
     for attempt, url in enumerate(urls_to_try, 1):
         try:
             logger.debug(f"Attempt {attempt}/{len(urls_to_try)}: Calling {url}")
-            response = requests.post(url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds)
+            response = requests.post(
+                url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds
+            )
             response.raise_for_status()
 
             embedding = response.json().get("embeddings", [None])[0]
@@ -1145,7 +1280,9 @@ def remove_existing_document(conn, file_hash: str, file_name: str = "") -> Optio
                 deleted_rows = cur.rowcount
 
                 if deleted_rows > 0:
-                    logger.info(f"Successfully removed existing document '{existing_filename}' and {chunk_count} chunks")
+                    logger.info(
+                        f"Successfully removed existing document '{existing_filename}' and {chunk_count} chunks"
+                    )
                     return document_id
                 else:
                     logger.warning(f"No rows deleted for document '{existing_filename}'")
@@ -1161,11 +1298,7 @@ def remove_existing_document(conn, file_hash: str, file_name: str = "") -> Optio
 
 
 def insert_document_comprehensive(
-    conn,
-    file_path: str,
-    privacy_level: str,
-    classification: Dict[str, Any],
-    extracted_metadata: Dict[str, Any]
+    conn, file_path: str, privacy_level: str, classification: Dict[str, Any], extracted_metadata: Dict[str, Any]
 ) -> int:
     """
     Insert comprehensive document record with full metadata using new pgvector schema.
@@ -1190,7 +1323,9 @@ def insert_document_comprehensive(
     logger.info(f"Creating comprehensive document record: {file_name}")
     logger.info(f"  Privacy: {privacy_level}")
     logger.info(f"  Type: {classification.get('document_type', 'unknown')}")
-    logger.info(f"  Product: {classification.get('product_name', 'unknown')} {classification.get('product_version', 'unknown')}")
+    logger.info(
+        f"  Product: {classification.get('product_name', 'unknown')} {classification.get('product_version', 'unknown')}"
+    )
     logger.info(f"  Confidence: {classification.get('confidence', 0.0):.2f}")
 
     try:
@@ -1206,38 +1341,39 @@ def insert_document_comprehensive(
 
             # Prepare comprehensive document data
             document_data = {
-                'file_name': file_name,
-                'original_path': file_path,
-                'file_hash': file_hash,
-                'file_size': file_size,
-                'mime_type': 'application/pdf',
-                'title': extracted_metadata.get('title'),
-                'version': extracted_metadata.get('version') or classification.get('product_version'),
-                'doc_number': extracted_metadata.get('doc_number'),
-                'ga_date': extracted_metadata.get('ga_date'),
-                'publisher': extracted_metadata.get('publisher'),
-                'copyright_year': extracted_metadata.get('copyright_year'),
-                'product_family': extracted_metadata.get('product_family', []),
-                'product_name': classification.get('product_name', 'unknown'),
-                'product_version': classification.get('product_version', 'unknown'),
-                'document_type': classification.get('document_type', 'unknown'),
-                'document_category': classification.get('document_category', 'documentation'),
-                'service_lines': extracted_metadata.get('service_lines', []),
-                'audiences': extracted_metadata.get('audiences', []),
-                'privacy_level': privacy_level,
-                'classification_confidence': classification.get('confidence', 0.0),
-                'classification_method': classification.get('metadata', {}).get('classification_method', 'ai'),
-                'processing_status': 'processing',
-                'metadata': {
-                    **classification.get('metadata', {}),
+                "file_name": file_name,
+                "original_path": file_path,
+                "file_hash": file_hash,
+                "file_size": file_size,
+                "mime_type": "application/pdf",
+                "title": extracted_metadata.get("title"),
+                "version": extracted_metadata.get("version") or classification.get("product_version"),
+                "doc_number": extracted_metadata.get("doc_number"),
+                "ga_date": extracted_metadata.get("ga_date"),
+                "publisher": extracted_metadata.get("publisher"),
+                "copyright_year": extracted_metadata.get("copyright_year"),
+                "product_family": extracted_metadata.get("product_family", []),
+                "product_name": classification.get("product_name", "unknown"),
+                "product_version": classification.get("product_version", "unknown"),
+                "document_type": classification.get("document_type", "unknown"),
+                "document_category": classification.get("document_category", "documentation"),
+                "service_lines": extracted_metadata.get("service_lines", []),
+                "audiences": extracted_metadata.get("audiences", []),
+                "privacy_level": privacy_level,
+                "classification_confidence": classification.get("confidence", 0.0),
+                "classification_method": classification.get("metadata", {}).get("classification_method", "ai"),
+                "processing_status": "processing",
+                "metadata": {
+                    **classification.get("metadata", {}),
                     **extracted_metadata,
-                    'extraction_timestamp': datetime.now().isoformat(),
-                    'embedding_model': settings.embedding_model
-                }
+                    "extraction_timestamp": datetime.now().isoformat(),
+                    "embedding_model": settings.embedding_model,
+                },
             }
 
             # Create new comprehensive document record
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO documents (
                     file_name, original_path, file_hash, file_size, mime_type,
                     title, version, doc_number, ga_date, publisher, copyright_year,
@@ -1248,18 +1384,33 @@ def insert_document_comprehensive(
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id;
-            """, (
-                document_data['file_name'], document_data['original_path'],
-                document_data['file_hash'], document_data['file_size'], document_data['mime_type'],
-                document_data['title'], document_data['version'], document_data['doc_number'],
-                document_data['ga_date'], document_data['publisher'], document_data['copyright_year'],
-                document_data['product_family'], document_data['product_name'], document_data['product_version'],
-                document_data['document_type'], document_data['document_category'],
-                document_data['service_lines'], document_data['audiences'],
-                document_data['privacy_level'], document_data['classification_confidence'],
-                document_data['classification_method'], document_data['processing_status'],
-                json.dumps(document_data['metadata'])
-            ))
+            """,
+                (
+                    document_data["file_name"],
+                    document_data["original_path"],
+                    document_data["file_hash"],
+                    document_data["file_size"],
+                    document_data["mime_type"],
+                    document_data["title"],
+                    document_data["version"],
+                    document_data["doc_number"],
+                    document_data["ga_date"],
+                    document_data["publisher"],
+                    document_data["copyright_year"],
+                    document_data["product_family"],
+                    document_data["product_name"],
+                    document_data["product_version"],
+                    document_data["document_type"],
+                    document_data["document_category"],
+                    document_data["service_lines"],
+                    document_data["audiences"],
+                    document_data["privacy_level"],
+                    document_data["classification_confidence"],
+                    document_data["classification_method"],
+                    document_data["processing_status"],
+                    json.dumps(document_data["metadata"]),
+                ),
+            )
 
             result = cur.fetchone()
             document_id = result[0] if result else None
@@ -1285,11 +1436,7 @@ def insert_document_comprehensive(
         raise
 
 
-def insert_document_chunks_comprehensive(
-    conn,
-    chunks: List[Dict[str, Any]],
-    document_id: int
-) -> None:
+def insert_document_chunks_comprehensive(conn, chunks: List[Dict[str, Any]], document_id: int) -> None:
     """
     Insert document chunks with enhanced metadata using new pgvector schema.
 
@@ -1311,12 +1458,12 @@ def insert_document_chunks_comprehensive(
             for i, chunk in enumerate(chunks):
                 try:
                     # Get required chunk fields
-                    chunk_content = chunk.get('content', '')
-                    content_hash = chunk.get('content_hash', hashlib.sha256(chunk_content.encode()).hexdigest()[:16])
-                    chunk_index = chunk.get('chunk_index', i)
-                    page_number = chunk.get('page_number', 1)
-                    section_title = chunk.get('section_title')
-                    chunk_type = chunk.get('chunk_type', 'text')
+                    chunk_content = chunk.get("content", "")
+                    content_hash = chunk.get("content_hash", hashlib.sha256(chunk_content.encode()).hexdigest()[:16])
+                    chunk_index = chunk.get("chunk_index", i)
+                    page_number = chunk.get("page_number", 1)
+                    section_title = chunk.get("section_title")
+                    chunk_type = chunk.get("chunk_type", "text")
 
                     # Generate embedding for this chunk
                     chunk_embedding = get_embedding(chunk_content)
@@ -1329,26 +1476,28 @@ def insert_document_chunks_comprehensive(
 
                     # Prepare chunk metadata
                     chunk_metadata = {
-                        **chunk.get('metadata', {}),
-                        'content_length': content_length,
-                        'embedding_model': settings.embedding_model,
-                        'chunk_created_at': datetime.now().isoformat()
+                        **chunk.get("metadata", {}),
+                        "content_length": content_length,
+                        "embedding_model": settings.embedding_model,
+                        "chunk_created_at": datetime.now().isoformat(),
                     }
 
-                    batch_data.append((
-                        document_id,
-                        chunk_index,
-                        page_number,
-                        section_title,
-                        chunk_type,
-                        chunk_content,
-                        content_hash,
-                        content_length,
-                        chunk_embedding,
-                        'en',  # Default language
-                        len(chunk_content.split()),  # Token count approximation
-                        json.dumps(chunk_metadata)
-                    ))
+                    batch_data.append(
+                        (
+                            document_id,
+                            chunk_index,
+                            page_number,
+                            section_title,
+                            chunk_type,
+                            chunk_content,
+                            content_hash,
+                            content_length,
+                            chunk_embedding,
+                            "en",  # Default language
+                            len(chunk_content.split()),  # Token count approximation
+                            json.dumps(chunk_metadata),
+                        )
+                    )
                     successful_chunks += 1
 
                 except Exception as e:
@@ -1357,22 +1506,28 @@ def insert_document_chunks_comprehensive(
 
             if batch_data:
                 # Batch insert for performance
-                cur.executemany("""
+                cur.executemany(
+                    """
                     INSERT INTO document_chunks (
                         document_id, chunk_index, page_number, section_title, chunk_type,
                         content, content_hash, content_length, embedding,
                         language, tokens, metadata
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-                """, batch_data)
+                """,
+                    batch_data,
+                )
 
                 logger.info(f"Successfully inserted {successful_chunks}/{len(chunks)} chunks")
 
                 # Update document processing status
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE documents
                     SET processing_status = 'completed', processed_at = NOW()
                     WHERE id = %s;
-                """, (document_id,))
+                """,
+                    (document_id,),
+                )
 
                 # Explicitly commit the transaction
                 conn.commit()
@@ -1392,21 +1547,25 @@ def insert_document_chunks_comprehensive(
 
 
 # Legacy functions for backward compatibility
-def insert_document_with_categorization(conn, document_name: str, privacy_level: str, classification: Dict[str, Any]) -> int:
+def insert_document_with_categorization(
+    conn, document_name: str, privacy_level: str, classification: Dict[str, Any]
+) -> int:
     """Legacy wrapper for comprehensive document insertion."""
-    logger.warning("Using legacy insert_document_with_categorization - consider updating to insert_document_comprehensive")
+    logger.warning(
+        "Using legacy insert_document_with_categorization - consider updating to insert_document_comprehensive"
+    )
 
     # Create minimal extracted metadata for compatibility
     extracted_metadata = {
-        'title': None,
-        'version': None,
-        'doc_number': None,
-        'ga_date': None,
-        'publisher': None,
-        'copyright_year': None,
-        'product_family': [],
-        'service_lines': [],
-        'audiences': []
+        "title": None,
+        "version": None,
+        "doc_number": None,
+        "ga_date": None,
+        "publisher": None,
+        "copyright_year": None,
+        "product_family": [],
+        "service_lines": [],
+        "audiences": [],
     }
 
     # Use document name as file path for legacy calls
@@ -1419,21 +1578,23 @@ def insert_document_chunks_with_categorization(
     document_id: int,
     privacy_level: str,
     classification: Dict[str, Any],
-    embedding_model: str
+    embedding_model: str,
 ) -> None:
     """Legacy wrapper for comprehensive chunk insertion."""
-    logger.warning("Using legacy insert_document_chunks_with_categorization - consider updating to insert_document_chunks_comprehensive")
+    logger.warning(
+        "Using legacy insert_document_chunks_with_categorization - consider updating to insert_document_chunks_comprehensive"
+    )
 
     # Convert legacy chunk format to new format
     converted_chunks = []
     for i, chunk in enumerate(chunks):
         converted_chunk = {
-            'content': chunk.get('text', ''),
-            'chunk_index': chunk.get('chunk_index', i),
-            'page_number': chunk.get('page_number', 1),
-            'section_title': None,
-            'chunk_type': chunk.get('metadata', {}).get('type', 'text'),
-            'metadata': chunk.get('metadata', {})
+            "content": chunk.get("text", ""),
+            "chunk_index": chunk.get("chunk_index", i),
+            "page_number": chunk.get("page_number", 1),
+            "section_title": None,
+            "chunk_type": chunk.get("metadata", {}).get("type", "text"),
+            "metadata": chunk.get("metadata", {}),
         }
         converted_chunks.append(converted_chunk)
 
@@ -1466,10 +1627,7 @@ def insert_document_chunks_with_privacy(conn, document_name: str, privacy_level:
             if result:
                 document_id = result[0]
                 # Update privacy level if document exists
-                cur.execute(
-                    "UPDATE documents SET privacy_level = %s WHERE id = %s;",
-                    (privacy_level, document_id)
-                )
+                cur.execute("UPDATE documents SET privacy_level = %s WHERE id = %s;", (privacy_level, document_id))
                 logger.info(f"Updated existing document ID {document_id} with privacy level: {privacy_level}")
             else:
                 # Create minimal document record with privacy level (legacy support)
@@ -1480,7 +1638,7 @@ def insert_document_chunks_with_privacy(conn, document_name: str, privacy_level:
                     VALUES (%s, %s, %s, %s)
                     RETURNING id;
                     """,
-                    (document_name, file_hash, privacy_level, 'pending'),
+                    (document_name, file_hash, privacy_level, "pending"),
                 )
                 result = cur.fetchone()
                 document_id = result[0] if result else None
@@ -1495,7 +1653,9 @@ def insert_document_chunks_with_privacy(conn, document_name: str, privacy_level:
         raise
 
 
-def insert_chunk_and_embedding(conn, chunk: Dict[str, Any], embedding: List[float], model_name: str, privacy_level: str = 'public'):
+def insert_chunk_and_embedding(
+    conn, chunk: Dict[str, Any], embedding: List[float], model_name: str, privacy_level: str = "public"
+):
     """Insert chunk and embedding into unified schema with comprehensive logging."""
     start_time = time.time()
     document_name = chunk["metadata"]["document"]
@@ -1527,7 +1687,7 @@ def insert_chunk_and_embedding(conn, chunk: Dict[str, Any], embedding: List[floa
                     VALUES (%s, %s, %s, %s)
                     RETURNING id;
                 """,
-                    (document_name, file_hash, privacy_level, 'processing'),
+                    (document_name, file_hash, privacy_level, "processing"),
                 )
                 result = cur.fetchone()
                 document_id = result[0] if result else None
@@ -1553,10 +1713,17 @@ def insert_chunk_and_embedding(conn, chunk: Dict[str, Any], embedding: List[floa
                 RETURNING id;
             """,
                 (
-                    document_id, page_number, page_number, chunk_type,
-                    content, content_hash, len(content), embedding,
-                    'en', len(content.split()),
-                    json.dumps(chunk.get("metadata", {}))
+                    document_id,
+                    page_number,
+                    page_number,
+                    chunk_type,
+                    content,
+                    content_hash,
+                    len(content),
+                    embedding,
+                    "en",
+                    len(content.split()),
+                    json.dumps(chunk.get("metadata", {})),
                 ),
             )
 

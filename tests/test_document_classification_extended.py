@@ -1,10 +1,11 @@
 import asyncio
+
 import pandas as pd
 
 from phase4a_document_classification import (
-    IntelligentDocumentClassifier,
     ClassificationPersistenceManager,
     DocumentFeatureExtractor,
+    IntelligentDocumentClassifier,
 )
 
 

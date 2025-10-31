@@ -6,11 +6,11 @@ This script demonstrates and tests the confidentiality detection functionality
 by processing sample documents and showing the classification results.
 """
 
-import sys
 import os
+import sys
 
 # Add app path for imports
-sys.path.append('/app')
+sys.path.append("/app")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pdf_processor.pdf_utils import detect_confidentiality
@@ -36,7 +36,7 @@ def test_privacy_classification():
 
             Our revenue increased by 15% compared to the previous year.
             """,
-            "expected": "public"
+            "expected": "public",
         },
         {
             "name": "Confidential Business Plan",
@@ -47,7 +47,7 @@ def test_privacy_classification():
             product launch strategy. The contents are strictly confidential
             and should not be shared outside the executive team.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Internal Memo",
@@ -60,7 +60,7 @@ def test_privacy_classification():
             restructuring. Please do not distribute this information
             outside the company.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Legal Document",
@@ -73,7 +73,7 @@ def test_privacy_classification():
             merger with ABC Corporation. This document is protected by
             attorney-client privilege.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Trade Secret Documentation",
@@ -84,7 +84,7 @@ def test_privacy_classification():
             proprietary manufacturing process. Unauthorized disclosure
             would cause significant competitive harm.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Employee Handbook (Public Section)",
@@ -97,7 +97,7 @@ def test_privacy_classification():
             Our mission is to provide excellent service to our customers
             while maintaining the highest ethical standards.
             """,
-            "expected": "public"
+            "expected": "public",
         },
         {
             "name": "HR Personnel File",
@@ -111,7 +111,7 @@ def test_privacy_classification():
             and sensitive personnel records. Access is restricted
             to authorized HR personnel only.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Research Paper Draft",
@@ -122,7 +122,7 @@ def test_privacy_classification():
             The research methodology and findings will be published in an
             upcoming academic journal.
             """,
-            "expected": "public"
+            "expected": "public",
         },
         {
             "name": "Board Meeting Minutes",
@@ -134,7 +134,7 @@ def test_privacy_classification():
             compensation and strategic planning. Distribution is limited
             to board members only.
             """,
-            "expected": "private"
+            "expected": "private",
         },
         {
             "name": "Press Release",
@@ -147,8 +147,8 @@ def test_privacy_classification():
             new product line. This press release may be freely distributed
             to media outlets and the public.
             """,
-            "expected": "public"
-        }
+            "expected": "public",
+        },
     ]
 
     # Run tests and collect results
@@ -160,13 +160,13 @@ def test_privacy_classification():
         print("-" * 40)
 
         # Show sample of the text (first 100 characters)
-        trimmed_text = test_case['text'].strip()
+        trimmed_text = test_case["text"].strip()
         sample_text = trimmed_text[:100] + "..." if len(trimmed_text) > 100 else trimmed_text
         print(f"Sample: {sample_text}")
 
         # Classify the document
-        result = detect_confidentiality(test_case['text'])
-        expected = test_case['expected']
+        result = detect_confidentiality(test_case["text"])
+        expected = test_case["expected"]
 
         # Check result
         if result == expected:
@@ -201,18 +201,30 @@ def test_keyword_detection():
 
     # Test specific keywords
     confidential_keywords = [
-        'confidential', 'private', 'restricted', 'classified',
-        'proprietary', 'internal', 'sensitive', 'privileged',
-        'attorney-client', 'trade secret', 'do not distribute',
-        'internal use only', 'not for distribution', 'personally identifiable',
-        'pii', 'social security number', 'top secret'
+        "confidential",
+        "private",
+        "restricted",
+        "classified",
+        "proprietary",
+        "internal",
+        "sensitive",
+        "privileged",
+        "attorney-client",
+        "trade secret",
+        "do not distribute",
+        "internal use only",
+        "not for distribution",
+        "personally identifiable",
+        "pii",
+        "social security number",
+        "top secret",
     ]
 
     for keyword in confidential_keywords:
         test_text = f"This document contains {keyword} information."
         result = detect_confidentiality(test_text)
 
-        if result == 'private':
+        if result == "private":
             print(f"✅ '{keyword}' -> {result}")
         else:
             print(f"❌ '{keyword}' -> {result} (expected 'private')")
@@ -254,13 +266,13 @@ def interactive_test():
             print("-" * 40)
             text = input("Enter document text: ")
 
-            if text.lower().strip() in ['quit', 'exit', 'q']:
+            if text.lower().strip() in ["quit", "exit", "q"]:
                 break
 
             result = detect_confidentiality(text)
             print(f"Classification: {result.upper()}")
 
-            if result == 'private':
+            if result == "private":
                 print("🔒 This document would be marked as PRIVATE")
             else:
                 print("🌐 This document would be marked as PUBLIC")
@@ -284,7 +296,7 @@ def main():
         test_edge_cases()
 
         # Ask if user wants interactive mode
-        if input("\nRun interactive test mode? (y/n): ").lower().startswith('y'):
+        if input("\nRun interactive test mode? (y/n): ").lower().startswith("y"):
             interactive_test()
 
         print("\nTesting complete!")

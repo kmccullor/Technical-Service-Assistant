@@ -1,8 +1,8 @@
 # 🔍 Technical Service Assistant - Retrieval Test Report
 
-**Test Date:** 2025-09-16T12:31:09.383319  
-**Total Documents:** 9  
-**Total Questions Tested:** 160  
+**Test Date:** 2025-09-16T12:31:09.383319
+**Total Documents:** 9
+**Total Questions Tested:** 160
 
 ## 📊 Overall Performance Metrics
 
@@ -16,7 +16,7 @@
 ## ⚡ Performance Metrics
 
 - **Average Embedding Time:** 0.051s
-- **Average Search Time:** 0.025s  
+- **Average Search Time:** 0.025s
 - **Average Total Time:** 0.076s
 
 ## 📚 Document-Level Results

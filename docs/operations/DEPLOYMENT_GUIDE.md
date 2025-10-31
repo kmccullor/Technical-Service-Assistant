@@ -1,7 +1,7 @@
 # Technical Service Assistant - Deployment & Maintenance Guide
 
-**Date:** October 7, 2025  
-**Version:** Production v2.1  
+**Date:** October 7, 2025
+**Version:** Production v2.1
 **Target Audience:** System Administrators & DevOps Engineers
 
 ---
@@ -294,9 +294,9 @@ docker compose exec pgvector pg_isready -U postgres
 
 # Monitor database performance
 docker compose exec pgvector psql -U postgres -d vector_db -c "
-SELECT query, calls, total_time, mean_time 
-FROM pg_stat_statements 
-ORDER BY total_time DESC 
+SELECT query, calls, total_time, mean_time
+FROM pg_stat_statements
+ORDER BY total_time DESC
 LIMIT 10;
 "
 
@@ -335,12 +335,12 @@ docker compose exec pgvector pg_dump -U postgres vector_db > emergency_backup.sq
 ### Database Optimization
 ```sql
 -- Optimize vector search performance
-CREATE INDEX CONCURRENTLY idx_document_chunks_embedding_hnsw 
-ON document_chunks USING hnsw (embedding vector_cosine_ops) 
+CREATE INDEX CONCURRENTLY idx_document_chunks_embedding_hnsw
+ON document_chunks USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
 -- Optimize metadata queries
-CREATE INDEX CONCURRENTLY idx_document_chunks_metadata_gin 
+CREATE INDEX CONCURRENTLY idx_document_chunks_metadata_gin
 ON document_chunks USING gin(metadata);
 ```
 
@@ -398,7 +398,7 @@ services:
 
 ---
 
-**Deployment Guide Maintained By:** Technical Service Assistant Team  
-**Last Updated:** October 7, 2025  
-**Next Review:** November 7, 2025  
+**Deployment Guide Maintained By:** Technical Service Assistant Team
+**Last Updated:** October 7, 2025
+**Next Review:** November 7, 2025
 **Support:** technical-service-assistant@yourorg.com

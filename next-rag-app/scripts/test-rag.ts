@@ -12,7 +12,7 @@ async function testRAG() {
     const docCount = await db.select({ count: sql<number>`count(*)::int` }).from(documents)
     console.log(`📄 Documents in database: ${docCount[0].count}`)
 
-    // Test 2: Check chunk count  
+    // Test 2: Check chunk count
     const chunkCount = await db.select({ count: sql<number>`count(*)::int` }).from(documentChunks)
     console.log(`📝 Chunks in database: ${chunkCount[0].count}`)
 
@@ -21,7 +21,7 @@ async function testRAG() {
       .select({ id: documents.id, fileName: documents.fileName, title: documents.title })
       .from(documents)
       .limit(5)
-    
+
     console.log('\n📋 Sample documents:')
     sampleDocs.forEach(doc => {
       console.log(`  ${doc.id}: ${doc.fileName || doc.title || 'Untitled'}`)
@@ -29,17 +29,17 @@ async function testRAG() {
 
     // Test 4: Sample chunks with embeddings
     const chunksWithEmbeddings = await db
-      .select({ 
+      .select({
         count: sql<number>`count(*)::int`
       })
       .from(documentChunks)
       .where(sql`embedding IS NOT NULL`)
-    
+
     console.log(`\n🔢 Chunks with embeddings: ${chunksWithEmbeddings[0].count}`)
 
     // Test 5: Sample chunk content
     const sampleChunks = await db
-      .select({ 
+      .select({
         id: documentChunks.id,
         content: sql<string>`LEFT(content, 100)`,
         pageNumber: documentChunks.pageNumber,

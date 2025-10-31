@@ -3,9 +3,9 @@
 Debug script to test AI categorization functionality
 """
 import sys
-import os
-sys.path.append('/home/kmccullor/Projects/Technical-Service-Assistant')
-sys.path.append('/home/kmccullor/Projects/Technical-Service-Assistant/pdf_processor')
+
+sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
+sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant/pdf_processor")
 
 from pdf_processor.pdf_utils import classify_document_with_ai
 

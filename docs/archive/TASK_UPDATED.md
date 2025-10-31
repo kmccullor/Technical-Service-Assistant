@@ -63,7 +63,7 @@ Priority: P1 - Required for advanced reasoning
 ollama pull llama2:7b
 ollama pull mistral:7b
 
-# Instance 2 (port 11435): Code & Technical Documentation  
+# Instance 2 (port 11435): Code & Technical Documentation
 ollama pull codellama:7b
 ollama pull starcoder:7b
 
@@ -96,7 +96,7 @@ ollama pull deepseek-math:7b
 # New service architecture
 reasoning_engine/
 ├── orchestrator.py          # Main reasoning coordination
-├── chain_of_thought.py     # Multi-step reasoning implementation  
+├── chain_of_thought.py     # Multi-step reasoning implementation
 ├── knowledge_synthesis.py  # Cross-document information combination
 ├── context_manager.py      # Conversation memory and optimization
 └── reasoning_types.py      # Classification and routing logic
@@ -251,7 +251,7 @@ monitoring:
 # Automated quality validation
 class QualityMetrics:
     factual_accuracy: float = 0.95      # Target: >95%
-    reasoning_quality: float = 0.90     # Target: >90% 
+    reasoning_quality: float = 0.90     # Target: >90%
     source_attribution: float = 1.0     # Target: 100%
     conversation_coherence: float = 0.90 # Target: >90%
     response_relevance: float = 0.95    # Target: >95%

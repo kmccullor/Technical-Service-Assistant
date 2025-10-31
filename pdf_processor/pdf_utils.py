@@ -1,15 +1,15 @@
-import json
+import gc
 import hashlib
+import json
 import os
 import random
 import re
 import sys
 import time
+from collections import Counter
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Set
-from collections import Counter
-from datetime import datetime
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 import psycopg2
 import requests
@@ -32,10 +32,61 @@ from config import get_settings
 settings = get_settings()
 
 
+def get_memory_usage() -> Dict[str, float]:
+    """Get current memory usage statistics."""
+    try:
+        import psutil
+
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        memory_percent = psutil.virtual_memory().percent
+        return {
+            "rss_mb": memory_info.rss / 1024 / 1024,
+            "vms_mb": memory_info.vms / 1024 / 1024,
+            "percent": memory_percent,
+        }
+    except ImportError:
+        return {"rss_mb": 0, "vms_mb": 0, "percent": 0}
+
+
+def extract_text_streaming(pdf_path: str, chunk_size: int = 1000) -> Iterator[str]:
+    """Extract text from PDF in chunks to reduce memory usage."""
+    try:
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(pdf_path)
+        logger.info(f"PDF opened successfully. Pages: {len(doc)}")
+
+        current_chunk = ""
+        for page_num in range(len(doc)):
+            page_text = doc[page_num].get_text()
+            current_chunk += page_text
+
+            # Yield chunk when it reaches the size limit
+            if len(current_chunk) >= chunk_size:
+                yield current_chunk
+                current_chunk = ""
+
+            # Force garbage collection periodically
+            if page_num % 10 == 0:
+                gc.collect()
+
+        # Yield remaining text
+        if current_chunk:
+            yield current_chunk
+
+        doc.close()
+
+    except Exception as e:
+        logger.error(f"Failed to extract text from {pdf_path}: {e}")
+        raise
+
+
 def extract_text(pdf_path: str) -> str:
-    """Extract plain text from a PDF using PyMuPDF (fitz) with structured logging."""
+    """Extract plain text from a PDF using PyMuPDF (fitz) with memory optimization."""
     logger.info(f"Starting text extraction from: {pdf_path}")
     start_time = time.time()
+    initial_memory = get_memory_usage()
 
     try:
         import fitz  # PyMuPDF
@@ -49,15 +100,37 @@ def extract_text(pdf_path: str) -> str:
         doc = fitz.open(pdf_path)
         logger.info(f"PDF opened successfully. Pages: {len(doc)}")
 
-        text = ""
-        for page_num in range(len(doc)):
-            page_text = doc[page_num].get_text()
-            text += page_text
-            logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
+        # Check file size and page count for memory optimization
+        file_size_mb = os.path.getsize(pdf_path) / 1024 / 1024
+        page_count = len(doc)
+
+        # Use streaming extraction for large files
+        if file_size_mb > 50 or page_count > 200:  # Configurable thresholds
+            logger.info(f"Using streaming extraction for large PDF ({file_size_mb:.1f}MB, {page_count} pages)")
+            text_chunks = []
+            for chunk in extract_text_streaming(pdf_path, chunk_size=50000):  # 50KB chunks
+                text_chunks.append(chunk)
+            text = "".join(text_chunks)
+        else:
+            # Standard extraction for smaller files
+            text = ""
+            for page_num in range(len(doc)):
+                page_text = doc[page_num].get_text()
+                text += page_text
+                logger.debug(f"Page {page_num + 1}: extracted {len(page_text)} characters")
 
         doc.close()
+
+        # Force garbage collection
+        gc.collect()
+
         extraction_time = time.time() - start_time
-        logger.info(f"Text extraction completed. Total characters: {len(text)}, Time: {extraction_time:.2f}s")
+        final_memory = get_memory_usage()
+        memory_delta = final_memory["rss_mb"] - initial_memory["rss_mb"]
+
+        logger.info(
+            f"Text extraction completed. Total characters: {len(text)}, Time: {extraction_time:.2f}s, Memory delta: {memory_delta:+.1f}MB"
+        )
         return text
 
     except Exception as e:
@@ -109,16 +182,16 @@ def extract_images(pdf_path: str, output_dir: str) -> List[str]:
 def detect_confidentiality(text: str) -> str:
     """
     Analyze document text for confidentiality indicators and classify as 'public' or 'private'.
-    
+
     Scans for common privacy/confidentiality keywords and patterns to determine
     if a document contains sensitive information.
-    
+
     Args:
         text: The full document text to analyze
-        
+
     Returns:
         str: 'private' if confidential content detected, 'public' otherwise
-        
+
     Example:
         >>> detect_confidentiality("This document is CONFIDENTIAL")
         'private'
@@ -127,80 +200,95 @@ def detect_confidentiality(text: str) -> str:
     """
     if not text or not text.strip():
         logger.debug("Empty text provided for confidentiality detection, defaulting to public")
-        return 'public'
-    
+        return "public"
+
     # Convert to lowercase for case-insensitive matching
     text_lower = text.lower()
-    
+
     # Define confidentiality keywords and patterns
     confidentiality_keywords = [
         # Direct privacy indicators
-        'confidential', 'private', 'restricted', 'classified',
-        'proprietary', 'internal', 'sensitive', 'privileged',
-        
+        "confidential",
+        "private",
+        "restricted",
+        "classified",
+        "proprietary",
+        "internal",
+        "sensitive",
+        "privileged",
         # Legal/compliance terms
-        'attorney-client', 'attorney client', 'work product',
-        'trade secret', 'proprietary information',
-        
+        "attorney-client",
+        "attorney client",
+        "work product",
+        "trade secret",
+        "proprietary information",
         # Business sensitivity
-        'do not distribute', 'internal use only', 'not for distribution',
-        'for internal use', 'company confidential',
-        
+        "do not distribute",
+        "internal use only",
+        "not for distribution",
+        "for internal use",
+        "company confidential",
         # Personal information indicators
-        'personally identifiable', 'pii', 'personal information',
-        'social security number', 'ssn', 'credit card',
-        
+        "personally identifiable",
+        "pii",
+        "personal information",
+        "social security number",
+        "ssn",
+        "credit card",
         # Data classification
-        'top secret', 'secret', 'eyes only', 'need to know'
+        "top secret",
+        "secret",
+        "eyes only",
+        "need to know",
     ]
-    
+
     # Check for exact keyword matches
     for keyword in confidentiality_keywords:
         if keyword in text_lower:
             logger.info(f"Confidentiality keyword detected: '{keyword}' - classifying as private")
-            return 'private'
-    
+            return "private"
+
     # Check for common confidentiality patterns with regex
     confidentiality_patterns = [
-        r'\bconfidential\b.*\bdocument\b',  # "confidential document"
-        r'\bdo\s+not\s+(share|distribute|disclose)\b',  # "do not share/distribute"
-        r'\bfor\s+internal\s+use\s+only\b',  # "for internal use only"
-        r'\bnot\s+for\s+(public|external)\b',  # "not for public/external"
-        r'\b(strictly|highly)\s+confidential\b',  # "strictly/highly confidential"
-        r'\bclassification\s*:\s*(private|confidential|restricted)\b'  # "classification: private"
+        r"\bconfidential\b.*\bdocument\b",  # "confidential document"
+        r"\bdo\s+not\s+(share|distribute|disclose)\b",  # "do not share/distribute"
+        r"\bfor\s+internal\s+use\s+only\b",  # "for internal use only"
+        r"\bnot\s+for\s+(public|external)\b",  # "not for public/external"
+        r"\b(strictly|highly)\s+confidential\b",  # "strictly/highly confidential"
+        r"\bclassification\s*:\s*(private|confidential|restricted)\b",  # "classification: private"
     ]
-    
+
     for pattern in confidentiality_patterns:
         if re.search(pattern, text_lower):
             logger.info(f"Confidentiality pattern detected: '{pattern}' - classifying as private")
-            return 'private'
-    
+            return "private"
+
     # Check document headers/footers for classification markings
     # Split into lines and check first/last few lines for headers/footers
-    lines = text.split('\n')
+    lines = text.split("\n")
     header_footer_lines = lines[:5] + lines[-5:]  # First and last 5 lines
-    
+
     for line in header_footer_lines:
         line_lower = line.lower().strip()
-        if any(keyword in line_lower for keyword in ['confidential', 'private', 'restricted']):
+        if any(keyword in line_lower for keyword in ["confidential", "private", "restricted"]):
             logger.info(f"Confidentiality marking in header/footer: '{line.strip()}' - classifying as private")
-            return 'private'
-    
+            return "private"
+
     logger.debug("No confidentiality indicators detected - classifying as public")
-    return 'public'
+    return "public"
 
 
 def classify_document_with_ai(text: str, filename: str = "") -> Dict[str, Any]:
     """
     Use AI to classify document type, extract product information, and categorize content.
-    
+
     Args:
         text: The full document text to analyze
         filename: Optional filename for additional context
-        
+
     Returns:
         Dict containing classification results with confidence scores
-    
+
     Example:
         >>> classify_document_with_ai("RNI 4.16 User Guide...", "RNI_4.16_User_Guide.pdf")
         {
@@ -213,25 +301,26 @@ def classify_document_with_ai(text: str, filename: str = "") -> Dict[str, Any]:
         }
     """
     from config import get_settings
-    settings = get_settings()
-    
+
+    get_settings()
+
     if not text or not text.strip():
         logger.debug("Empty text provided for AI classification, returning defaults")
         return {
-            'document_type': 'unknown',
-            'product_name': 'unknown', 
-            'product_version': 'unknown',
-            'document_category': 'documentation',
-            'confidence': 0.0,
-            'metadata': {}
+            "document_type": "unknown",
+            "product_name": "unknown",
+            "product_version": "unknown",
+            "document_category": "documentation",
+            "confidence": 0.0,
+            "metadata": {},
         }
-    
+
     logger.info(f"Starting AI classification for document: {filename}")
     start_time = time.time()
-    
+
     # Prepare smaller text sample for faster AI analysis (first 1000 characters)
     analysis_text = text[:1000] if len(text) > 1000 else text
-    
+
     # Build concise AI prompt for faster classification
     classification_prompt = f"""Classify this document. Return only valid JSON:
 
@@ -252,7 +341,7 @@ Respond with JSON only."""
     try:
         # Use intelligent routing to get the best available Ollama instance
         classification_result = get_ai_classification(classification_prompt)
-        
+
         if classification_result and isinstance(classification_result, dict):
             classification_time = time.time() - start_time
             logger.info(f"AI classification completed successfully in {classification_time:.2f}s")
@@ -265,10 +354,10 @@ Respond with JSON only."""
             logger.warning("AI classification returned unexpected payload type, using fallback")
         else:
             logger.warning("AI classification returned empty result, using fallback")
-            
+
     except Exception as e:
         logger.error(f"AI classification failed: {e}")
-    
+
     # Fallback to rule-based classification if AI fails
     logger.info("Using fallback rule-based classification")
     return classify_document_fallback(text, filename)
@@ -277,33 +366,33 @@ Respond with JSON only."""
 def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
     """
     Get AI-powered classification using Ollama with intelligent routing.
-    
+
     Args:
         prompt: The classification prompt for the AI model
-        
+
     Returns:
         Parsed classification result or None if failed
     """
     # List of available Ollama instances for load balancing
     ollama_instances = [
         "http://ollama-server-1:11434/api/generate",
-        "http://ollama-server-2:11434/api/generate", 
+        "http://ollama-server-2:11434/api/generate",
         "http://ollama-server-3:11434/api/generate",
         "http://ollama-server-4:11434/api/generate",
     ]
-    
+
     # Shuffle for load balancing
     urls_to_try = ollama_instances.copy()
     random.shuffle(urls_to_try)
-    
+
     # Use faster model for classification - mistral is more efficient for structured tasks
     classification_model = settings.chat_model  # Use configured chat model
-    
+
     last_error = None
     for attempt, url in enumerate(urls_to_try, 1):
         try:
             logger.debug(f"AI classification attempt {attempt}/{len(urls_to_try)}: {url}")
-            
+
             response = requests.post(
                 url,
                 json={
@@ -313,18 +402,18 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
                     "options": {
                         "temperature": 0.1,  # Low temperature for consistent classification
                         "top_p": 0.9,
-                        "num_predict": 200   # Shorter response for JSON only
-                    }
+                        "num_predict": 200,  # Shorter response for JSON only
+                    },
                 },
-                timeout=settings.embedding_timeout_seconds  # Configurable timeout
+                timeout=settings.embedding_timeout_seconds,  # Configurable timeout
             )
             response.raise_for_status()
-            
+
             # Parse AI response
             ai_response = response.json()
-            if 'response' in ai_response:
-                raw_response = ai_response['response'].strip()
-                
+            if "response" in ai_response:
+                raw_response = ai_response["response"].strip()
+
                 # Try to extract JSON from response
                 classification_data = parse_ai_classification_response(raw_response)
                 if classification_data:
@@ -332,7 +421,7 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
                     return classification_data
                 else:
                     logger.warning(f"Could not parse AI response from {url}")
-            
+
         except requests.exceptions.Timeout as e:
             last_error = e
             logger.warning(f"Timeout from {url}: {e}")
@@ -342,7 +431,7 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
         except Exception as e:
             last_error = e
             logger.error(f"Unexpected error with {url}: {e}")
-    
+
     logger.error(f"Failed to get AI classification from all instances. Last error: {last_error}")
     return None
 
@@ -350,52 +439,52 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
 def parse_ai_classification_response(response: str) -> Optional[Dict[str, Any]]:
     """
     Parse AI response and extract classification JSON.
-    
+
     Args:
         response: Raw AI response text
-        
+
     Returns:
         Parsed classification dictionary or None if parsing failed
     """
     try:
         # Try direct JSON parsing first
-        if response.startswith('{') and response.endswith('}'):
+        if response.startswith("{") and response.endswith("}"):
             return json.loads(response)
-        
+
         # Extract JSON from response text
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+        json_match = re.search(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", response, re.DOTALL)
         if json_match:
             json_str = json_match.group(0)
             return json.loads(json_str)
-        
+
         # Try to find JSON-like structure
-        lines = response.split('\n')
+        lines = response.split("\n")
         json_lines = []
         in_json = False
-        
+
         for line in lines:
-            if line.strip().startswith('{'):
+            if line.strip().startswith("{"):
                 in_json = True
             if in_json:
                 json_lines.append(line)
-            if in_json and line.strip().endswith('}'):
+            if in_json and line.strip().endswith("}"):
                 break
-        
+
         if json_lines:
-            json_str = '\n'.join(json_lines)
+            json_str = "\n".join(json_lines)
             return json.loads(json_str)
-            
+
     except json.JSONDecodeError as e:
         logger.warning(f"JSON parsing failed: {e}")
     except Exception as e:
         logger.error(f"Error parsing AI response: {e}")
-    
+
     return None
 
 
 def _classification_needs_enrichment(classification: Dict[str, Any]) -> bool:
     """Determine if AI classification left critical fields unset."""
-    for field in ('document_type', 'product_name', 'product_version'):
+    for field in ("document_type", "product_name", "product_version"):
         if _is_unknown_value(classification.get(field)):
             return True
     return False
@@ -405,7 +494,7 @@ def _is_unknown_value(value: Any) -> bool:
     if value is None:
         return True
     if isinstance(value, str):
-        return value.strip().lower() in ('', 'unknown', 'n/a')
+        return value.strip().lower() in ("", "unknown", "n/a")
     return False
 
 
@@ -418,26 +507,26 @@ def _merge_classification_results(primary: Dict[str, Any], fallback: Dict[str, A
     merged = base or {}
 
     for key, value in primary.items():
-        if key == 'metadata':
-            fallback_meta = merged.get('metadata', {})
+        if key == "metadata":
+            fallback_meta = merged.get("metadata", {})
             primary_meta = value or {}
             if isinstance(fallback_meta, dict) and isinstance(primary_meta, dict):
-                merged['metadata'] = {**fallback_meta, **primary_meta}
+                merged["metadata"] = {**fallback_meta, **primary_meta}
             elif isinstance(primary_meta, dict):
-                merged['metadata'] = primary_meta
-        elif key == 'confidence':
+                merged["metadata"] = primary_meta
+        elif key == "confidence":
             try:
                 primary_conf = float(value)
             except (TypeError, ValueError):
                 primary_conf = None
             if primary_conf is not None:
-                fallback_conf = merged.get('confidence')
+                fallback_conf = merged.get("confidence")
                 try:
                     fallback_conf = float(fallback_conf)
                 except (TypeError, ValueError):
                     fallback_conf = None
                 if fallback_conf is None or primary_conf > fallback_conf:
-                    merged['confidence'] = primary_conf
+                    merged["confidence"] = primary_conf
         else:
             if not _is_unknown_value(value):
                 merged[key] = value
@@ -448,88 +537,90 @@ def _merge_classification_results(primary: Dict[str, Any], fallback: Dict[str, A
 def classify_document_fallback(text: str, filename: str = "") -> Dict[str, Any]:
     """
     Fallback rule-based classification when AI classification fails.
-    
+
     Args:
         text: Document text to analyze
         filename: Optional filename for pattern matching
-        
+
     Returns:
         Basic classification based on filename and content patterns
     """
     logger.info("Applying rule-based fallback classification")
-    
+
     # Initialize default classification
     result = {
-        'document_type': 'unknown',
-        'product_name': 'unknown',
-        'product_version': 'unknown', 
-        'document_category': 'documentation',
-        'confidence': 0.5,  # Medium confidence for rule-based
-        'metadata': {
-            'classification_method': 'rule_based_fallback',
-            'key_topics': [],
-            'target_audience': 'technical',
-            'document_purpose': 'technical documentation'
-        }
+        "document_type": "unknown",
+        "product_name": "unknown",
+        "product_version": "unknown",
+        "document_category": "documentation",
+        "confidence": 0.5,  # Medium confidence for rule-based
+        "metadata": {
+            "classification_method": "rule_based_fallback",
+            "key_topics": [],
+            "target_audience": "technical",
+            "document_purpose": "technical documentation",
+        },
     }
-    
+
     filename_lower = filename.lower()
     text_lower = text.lower()
-    
+
     # Extract product name and version from filename patterns
     # Pattern: Product 1.2.3 Document Type.pdf or RNI 4.16 Document Type.pdf
-    product_match = re.search(r'\b(product|rni|flexnet|esm|multispeak|ppa)\s+(\d+\.\d+(?:\.\d+)?)\b', filename_lower)
+    product_match = re.search(r"\b(product|rni|flexnet|esm|multispeak|ppa)\s+(\d+\.\d+(?:\.\d+)?)\b", filename_lower)
     if product_match:
-        result['product_name'] = product_match.group(1).upper()
-        result['product_version'] = product_match.group(2)
-        result['confidence'] = 0.8
-    
+        result["product_name"] = product_match.group(1).upper()
+        result["product_version"] = product_match.group(2)
+        result["confidence"] = 0.8
+
     # Classify document type based on filename keywords
     doc_type_patterns = {
-        'user_guide': ['user guide', 'user manual'],
-        'installation_guide': ['installation guide', 'install guide'],
-        'reference_manual': ['reference manual', 'reference guide'],
-        'release_notes': ['release notes', 'release note'],
-        'integration_guide': ['integration guide'],
-        'security_guide': ['security guide', 'security user guide'],
-        'administration_guide': ['administration guide', 'admin guide', 'system admin'],
-        'technical_specification': ['tech note', 'specification', 'specs'],
-        'api_documentation': ['api guide', 'api documentation']
+        "user_guide": ["user guide", "user manual"],
+        "installation_guide": ["installation guide", "install guide"],
+        "reference_manual": ["reference manual", "reference guide"],
+        "release_notes": ["release notes", "release note"],
+        "integration_guide": ["integration guide"],
+        "security_guide": ["security guide", "security user guide"],
+        "administration_guide": ["administration guide", "admin guide", "system admin"],
+        "technical_specification": ["tech note", "specification", "specs"],
+        "api_documentation": ["api guide", "api documentation"],
     }
-    
+
     for doc_type, patterns in doc_type_patterns.items():
         if any(pattern in filename_lower for pattern in patterns):
-            result['document_type'] = doc_type
-            result['confidence'] = min(result['confidence'] + 0.2, 0.9)
+            result["document_type"] = doc_type
+            result["confidence"] = min(result["confidence"] + 0.2, 0.9)
             break
-    
+
     # Determine document category
-    if result['document_type'] in ['user_guide', 'installation_guide', 'integration_guide']:
-        result['document_category'] = 'guide'
-    elif result['document_type'] in ['reference_manual', 'technical_specification']:
-        result['document_category'] = 'reference'
-    elif result['document_type'] in ['security_guide', 'administration_guide']:
-        result['document_category'] = 'administration'
-    elif result['document_type'] == 'release_notes':
-        result['document_category'] = 'notes'
-    
+    if result["document_type"] in ["user_guide", "installation_guide", "integration_guide"]:
+        result["document_category"] = "guide"
+    elif result["document_type"] in ["reference_manual", "technical_specification"]:
+        result["document_category"] = "reference"
+    elif result["document_type"] in ["security_guide", "administration_guide"]:
+        result["document_category"] = "administration"
+    elif result["document_type"] == "release_notes":
+        result["document_category"] = "notes"
+
     # Extract key topics from content (simple keyword analysis)
     topic_keywords = {
-        'security': ['security', 'encryption', 'authentication', 'certificate'],
-        'installation': ['install', 'setup', 'configure', 'deployment'],
-        'integration': ['integration', 'api', 'interface', 'protocol'],
-        'administration': ['admin', 'management', 'configuration', 'settings'],
-        'networking': ['network', 'connection', 'communication', 'protocol']
+        "security": ["security", "encryption", "authentication", "certificate"],
+        "installation": ["install", "setup", "configure", "deployment"],
+        "integration": ["integration", "api", "interface", "protocol"],
+        "administration": ["admin", "management", "configuration", "settings"],
+        "networking": ["network", "connection", "communication", "protocol"],
     }
-    
+
     detected_topics = []
     for topic, keywords in topic_keywords.items():
         if any(keyword in text_lower for keyword in keywords):
             detected_topics.append(topic)
-    
-    result['metadata']['key_topics'] = detected_topics[:5]  # Limit to top 5 topics
-    
-    logger.info(f"Fallback classification: {result['document_type']} for {result['product_name']} {result['product_version']}")
+
+    result["metadata"]["key_topics"] = detected_topics[:5]  # Limit to top 5 topics
+
+    logger.info(
+        f"Fallback classification: {result['document_type']} for {result['product_name']} {result['product_version']}"
+    )
     return result
 
 
@@ -643,18 +734,20 @@ def perform_image_ocr(image_paths: List[str]) -> List[Dict[str, Any]]:
                     page_number = int(m.group(1))
                 except ValueError:
                     page_number = 0
-            ocr_chunks.append({
-                'text': cleaned,
-                'metadata': {
-                    'type': 'image_ocr',
-                    'source_image': img_path,
-                    'ocr_engine': 'tesseract',
-                    'raw_length': len(raw_txt),
-                    'clean_length': len(cleaned)
-                },
-                'page_number': page_number,
-                'chunk_type': 'image_ocr'
-            })
+            ocr_chunks.append(
+                {
+                    "text": cleaned,
+                    "metadata": {
+                        "type": "image_ocr",
+                        "source_image": img_path,
+                        "ocr_engine": "tesseract",
+                        "raw_length": len(raw_txt),
+                        "clean_length": len(cleaned),
+                    },
+                    "page_number": page_number,
+                    "chunk_type": "image_ocr",
+                }
+            )
         except Exception as e:
             logger.warning(f"OCR failed for image {img_path}: {e}")
             continue
@@ -666,8 +759,9 @@ def perform_image_ocr(image_paths: List[str]) -> List[Dict[str, Any]]:
 def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[str] = None) -> List[float]:
     """Get embedding using intelligent routing across multiple Ollama instances with detailed logging."""
     from config import get_settings
+
     settings = get_settings()
-    
+
     start_time = time.time()
     text_length = len(text)
     model = model or settings.embedding_model
@@ -696,7 +790,9 @@ def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[s
     for attempt, url in enumerate(urls_to_try, 1):
         try:
             logger.debug(f"Attempt {attempt}/{len(urls_to_try)}: Calling {url}")
-            response = requests.post(url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds)
+            response = requests.post(
+                url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds
+            )
             response.raise_for_status()
 
             embedding = response.json().get("embeddings", [None])[0]
@@ -783,39 +879,44 @@ def remove_existing_document(conn, document_name: str) -> Optional[int]:
         raise
 
 
-def insert_document_with_categorization(conn, document_name: str, privacy_level: str, classification: Dict[str, Any]) -> int:
+def insert_document_with_categorization(
+    conn, document_name: str, privacy_level: str, classification: Dict[str, Any]
+) -> int:
     """
     Insert or update document record with privacy classification and AI categorization.
-    
+
     Args:
         conn: Database connection
         document_name: Name of the document file
         privacy_level: 'public' or 'private' classification
         classification: AI classification results dictionary
-        
+
     Returns:
         int: Document ID
-        
+
     Raises:
         Exception: If document insertion fails
     """
     logger.info(f"Creating document record: {document_name}")
     logger.info(f"  Privacy: {privacy_level}")
     logger.info(f"  Type: {classification.get('document_type', 'unknown')}")
-    logger.info(f"  Product: {classification.get('product_name', 'unknown')} {classification.get('product_version', 'unknown')}")
+    logger.info(
+        f"  Product: {classification.get('product_name', 'unknown')} {classification.get('product_version', 'unknown')}"
+    )
     logger.info(f"  Confidence: {classification.get('confidence', 0.0):.2f}")
-    
+
     try:
         with conn.cursor() as cur:
             # Check if document already exists from current session
             cur.execute("SELECT id FROM documents WHERE file_name = %s;", (document_name,))
             result = cur.fetchone()
-            
+
             if result:
                 document_id = result[0]
                 # Update with new classification data
-                cur.execute("""
-                    UPDATE documents SET 
+                cur.execute(
+                    """
+                    UPDATE documents SET
                         privacy_level = %s,
                         document_type = %s,
                         document_category = %s,
@@ -828,56 +929,61 @@ def insert_document_with_categorization(conn, document_name: str, privacy_level:
                         processing_status = 'processed',
                         processed_at = now()
                     WHERE id = %s;
-                """, (
-                    privacy_level,
-                    classification.get('document_type', 'unknown'),
-                    classification.get('document_category', 'documentation'),
-                    classification.get('product_name', 'unknown'),
-                    classification.get('product_version', 'unknown'),
-                    classification.get('confidence', 0.0),
-                    classification.get('metadata', {}).get('classification_method', 'ai'),
-                    json.dumps(classification.get('metadata', {})),
-                    document_id
-                ))
+                """,
+                    (
+                        privacy_level,
+                        classification.get("document_type", "unknown"),
+                        classification.get("document_category", "documentation"),
+                        classification.get("product_name", "unknown"),
+                        classification.get("product_version", "unknown"),
+                        classification.get("confidence", 0.0),
+                        classification.get("metadata", {}).get("classification_method", "ai"),
+                        json.dumps(classification.get("metadata", {})),
+                        document_id,
+                    ),
+                )
                 logger.info(f"Updated existing document ID {document_id} with AI classification")
             else:
                 # Create new document record with full classification
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO documents (
-                        file_name, file_hash, file_size, mime_type, 
+                        file_name, file_hash, file_size, mime_type,
                         privacy_level, document_type, document_category,
                         product_name, product_version, classification_confidence, classification_method,
                         metadata, processing_status, processed_at
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'processed', now())
                     RETURNING id;
-                """, (
-                    document_name,
-                    classification.get('file_hash', document_name),
-                    classification.get('file_size'),
-                    classification.get('mime_type'),
-                    privacy_level,
-                    classification.get('document_type', 'unknown'),
-                    classification.get('document_category', 'documentation'),
-                    classification.get('product_name', 'unknown'),
-                    classification.get('product_version', 'unknown'),
-                    classification.get('confidence', 0.0),
-                    classification.get('metadata', {}).get('classification_method', 'ai'),
-                    json.dumps(classification.get('metadata', {})),
-                ))
+                """,
+                    (
+                        document_name,
+                        classification.get("file_hash", document_name),
+                        classification.get("file_size"),
+                        classification.get("mime_type"),
+                        privacy_level,
+                        classification.get("document_type", "unknown"),
+                        classification.get("document_category", "documentation"),
+                        classification.get("product_name", "unknown"),
+                        classification.get("product_version", "unknown"),
+                        classification.get("confidence", 0.0),
+                        classification.get("metadata", {}).get("classification_method", "ai"),
+                        json.dumps(classification.get("metadata", {})),
+                    ),
+                )
                 result = cur.fetchone()
                 document_id = result[0] if result else None
                 if not document_id:
                     raise Exception("Failed to get document_id after insertion")
                 logger.info(f"Created new document with ID: {document_id}")
                 logger.info(f"  Full classification applied successfully")
-            
+
             # Explicitly commit the transaction to ensure persistence
             conn.commit()
             logger.debug(f"Transaction committed for document {document_name}")
-            
+
             return document_id
-            
+
     except Exception as e:
         logger.error(f"Failed to insert/update document '{document_name}': {e}")
         try:
@@ -894,11 +1000,11 @@ def insert_document_chunks_with_categorization(
     document_id: int,
     privacy_level: str,
     classification: Dict[str, Any],
-    embedding_model: str
+    embedding_model: str,
 ) -> Dict[str, Any]:
     """
     Insert document chunks with enhanced categorization metadata.
-    
+
     Args:
         conn: Database connection
         chunks: List of chunk dictionaries with 'text', 'metadata', etc.
@@ -906,19 +1012,19 @@ def insert_document_chunks_with_categorization(
         privacy_level: Privacy classification ('public' or 'private')
         classification: AI classification results dictionary
         embedding_model: Name of the embedding model used
-        
+
     Raises:
         Exception: If chunk insertion fails
     """
     start_time = time.time()
     metrics: Dict[str, Any] = {
-        'document_id': document_id,
-        'total_input_chunks': len(chunks),
-        'inserted_chunks': 0,
-        'skipped_duplicates': 0,
-        'failed_embeddings': 0,
-        'by_type': {},
-        'elapsed_seconds': None
+        "document_id": document_id,
+        "total_input_chunks": len(chunks),
+        "inserted_chunks": 0,
+        "skipped_duplicates": 0,
+        "failed_embeddings": 0,
+        "by_type": {},
+        "elapsed_seconds": None,
     }
     try:
         with conn.cursor() as cur:
@@ -926,37 +1032,39 @@ def insert_document_chunks_with_categorization(
             seen_hashes: Set[str] = set()
             type_counter: Counter = Counter()
             for i, chunk in enumerate(chunks):
-                chunk_text = chunk.get('text', '')
+                chunk_text = chunk.get("text", "")
                 if not chunk_text.strip():
                     continue
-                page_number = chunk.get('page_number', 1)
-                chunk_type = chunk.get('chunk_type', chunk.get('metadata', {}).get('type', 'text'))
+                page_number = chunk.get("page_number", 1)
+                chunk_type = chunk.get("chunk_type", chunk.get("metadata", {}).get("type", "text"))
                 try:
                     chunk_embedding = get_embedding(chunk_text)
                     if not chunk_embedding:
-                        metrics['failed_embeddings'] += 1
+                        metrics["failed_embeddings"] += 1
                         continue
                 except Exception as e:
                     logger.error(f"Error generating embedding for chunk {i}: {e}")
-                    metrics['failed_embeddings'] += 1
+                    metrics["failed_embeddings"] += 1
                     continue
                 content_hash = hashlib.md5(chunk_text.encode()).hexdigest()
                 if content_hash in seen_hashes:
-                    metrics['skipped_duplicates'] += 1
+                    metrics["skipped_duplicates"] += 1
                     continue
                 seen_hashes.add(content_hash)
-                batch_data.append((
-                    document_id,
-                    i,
-                    page_number,
-                    chunk_type,
-                    chunk_text,
-                    content_hash,
-                    chunk_embedding,
-                    privacy_level,
-                    classification.get('document_type', 'unknown'),
-                    classification.get('product_name', 'unknown')
-                ))
+                batch_data.append(
+                    (
+                        document_id,
+                        i,
+                        page_number,
+                        chunk_type,
+                        chunk_text,
+                        content_hash,
+                        chunk_embedding,
+                        privacy_level,
+                        classification.get("document_type", "unknown"),
+                        classification.get("product_name", "unknown"),
+                    )
+                )
                 type_counter[chunk_type] += 1
             if batch_data:
                 cur.executemany(
@@ -968,10 +1076,10 @@ def insert_document_chunks_with_categorization(
                     """,
                     batch_data,
                 )
-            metrics['inserted_chunks'] = len(batch_data)
-            metrics['by_type'] = dict(type_counter)
+            metrics["inserted_chunks"] = len(batch_data)
+            metrics["by_type"] = dict(type_counter)
             conn.commit()
-            metrics['elapsed_seconds'] = round(time.time() - start_time, 3)
+            metrics["elapsed_seconds"] = round(time.time() - start_time, 3)
             logger.info(
                 f"Inserted {metrics['inserted_chunks']} chunks (skipped dup={metrics['skipped_duplicates']}, failed_embed={metrics['failed_embeddings']})"
             )
@@ -996,11 +1104,11 @@ def insert_ingestion_metrics(
     processing_start_time: datetime,
     processing_end_time: datetime,
     metrics: Dict[str, Any],
-    embedding_model: str
+    embedding_model: str,
 ) -> None:
     """
     Insert document ingestion metrics into the metrics table for monitoring and analysis.
-    
+
     Args:
         conn: Database connection
         document_id: ID of the processed document
@@ -1015,24 +1123,24 @@ def insert_ingestion_metrics(
     try:
         with conn.cursor() as cur:
             # Calculate derived metrics
-            by_type = metrics.get('by_type', {})
-            text_chunks = by_type.get('text', 0)
-            table_chunks = by_type.get('table', 0)
-            image_chunks = by_type.get('image', 0)
-            ocr_chunks = by_type.get('image_ocr', 0)
-            
+            by_type = metrics.get("by_type", {})
+            text_chunks = by_type.get("text", 0)
+            table_chunks = by_type.get("table", 0)
+            image_chunks = by_type.get("image", 0)
+            ocr_chunks = by_type.get("image_ocr", 0)
+
             duration = (processing_end_time - processing_start_time).total_seconds()
-            
+
             # Calculate ratios
             ocr_yield_ratio = (ocr_chunks / image_chunks) if image_chunks > 0 else None
-            success_rate = (metrics.get('inserted_chunks', 0) / metrics.get('total_input_chunks', 1))
-            
+            success_rate = metrics.get("inserted_chunks", 0) / metrics.get("total_input_chunks", 1)
+
             # Estimate embedding performance
-            embedding_time = metrics.get('elapsed_seconds', 0)
+            embedding_time = metrics.get("elapsed_seconds", 0)
             avg_embedding_time_ms = None
-            if embedding_time and metrics.get('inserted_chunks', 0) > 0:
-                avg_embedding_time_ms = (embedding_time * 1000) / metrics.get('inserted_chunks', 1)
-            
+            if embedding_time and metrics.get("inserted_chunks", 0) > 0:
+                avg_embedding_time_ms = (embedding_time * 1000) / metrics.get("inserted_chunks", 1)
+
             cur.execute(
                 """
                 INSERT INTO document_ingestion_metrics (
@@ -1046,16 +1154,30 @@ def insert_ingestion_metrics(
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    document_id, file_name, processing_start_time, processing_end_time,
-                    duration, metrics.get('total_input_chunks', 0), file_size_bytes, page_count,
-                    text_chunks, table_chunks, image_chunks, ocr_chunks,
-                    metrics.get('inserted_chunks', 0), metrics.get('failed_embeddings', 0),
-                    metrics.get('skipped_duplicates', 0), metrics.get('failed_embeddings', 0),
-                    embedding_time, avg_embedding_time_ms,
-                    ocr_yield_ratio, success_rate, embedding_model
-                )
+                    document_id,
+                    file_name,
+                    processing_start_time,
+                    processing_end_time,
+                    duration,
+                    metrics.get("total_input_chunks", 0),
+                    file_size_bytes,
+                    page_count,
+                    text_chunks,
+                    table_chunks,
+                    image_chunks,
+                    ocr_chunks,
+                    metrics.get("inserted_chunks", 0),
+                    metrics.get("failed_embeddings", 0),
+                    metrics.get("skipped_duplicates", 0),
+                    metrics.get("failed_embeddings", 0),
+                    embedding_time,
+                    avg_embedding_time_ms,
+                    ocr_yield_ratio,
+                    success_rate,
+                    embedding_model,
+                ),
             )
-            
+
             conn.commit()
             # Safely format optional ocr_yield_ratio (cannot embed conditional with format specifier inside single f-string expression)
             if ocr_yield_ratio is not None:
@@ -1073,35 +1195,36 @@ def insert_ingestion_metrics(
         except Exception:
             pass
 
+
 def insert_document_chunks_with_privacy(conn, document_name: str, privacy_level: str) -> int:
     """
     Insert or update document record with privacy classification.
-    
+
     Args:
         conn: Database connection
         document_name: Name of the document file
         privacy_level: 'public' or 'private' classification
-        
+
     Returns:
         int: Document ID
-        
+
     Raises:
         Exception: If document insertion fails
     """
     logger.info(f"Creating document record: {document_name} (Privacy: {privacy_level})")
-    
+
     try:
         with conn.cursor() as cur:
             # Check if document already exists from current session
             cur.execute("SELECT id FROM documents WHERE file_name = %s;", (document_name,))
             result = cur.fetchone()
-            
+
             if result:
                 document_id = result[0]
                 # Update privacy level if document exists
                 cur.execute(
                     "UPDATE documents SET privacy_level = %s, updated_at = now() WHERE id = %s;",
-                    (privacy_level, document_id)
+                    (privacy_level, document_id),
                 )
                 logger.info(f"Updated existing document ID {document_id} with privacy level: {privacy_level}")
             else:
@@ -1119,15 +1242,17 @@ def insert_document_chunks_with_privacy(conn, document_name: str, privacy_level:
                 if not document_id:
                     raise Exception("Failed to get document_id after insertion")
                 logger.info(f"Created new document with ID: {document_id} (Privacy: {privacy_level})")
-            
+
             return document_id
-            
+
     except Exception as e:
         logger.error(f"Failed to insert/update document '{document_name}': {e}")
         raise
 
 
-def insert_chunk_and_embedding(conn, chunk: Dict[str, Any], embedding: List[float], model_name: str, privacy_level: str = 'public'):
+def insert_chunk_and_embedding(
+    conn, chunk: Dict[str, Any], embedding: List[float], model_name: str, privacy_level: str = "public"
+):
     """Insert chunk and embedding into unified schema with comprehensive logging."""
     start_time = time.time()
     document_name = chunk["metadata"]["document"]
@@ -1171,12 +1296,15 @@ def insert_chunk_and_embedding(conn, chunk: Dict[str, Any], embedding: List[floa
             page_number = chunk.get("page_number", 0)
             chunk_type = chunk.get("metadata", {}).get("chunk_type", "text")
             content = chunk["text"]
-            
+
             # Generate content hash
             import hashlib
+
             content_hash = hashlib.md5(content.encode()).hexdigest()
 
-            logger.debug(f"Inserting chunk: doc_id={document_id}, chunk_index={chunk_index}, page={page_number}, type={chunk_type}")
+            logger.debug(
+                f"Inserting chunk: doc_id={document_id}, chunk_index={chunk_index}, page={page_number}, type={chunk_type}"
+            )
             cur.execute(
                 """
                 INSERT INTO document_chunks (document_id, chunk_index, page_number, chunk_type, content, content_hash, embedding)

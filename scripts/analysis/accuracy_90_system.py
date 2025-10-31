@@ -15,12 +15,13 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from config import get_settings
 # Import our accuracy improvement components
 from enhanced_query_processor import EnhancedQueryProcessor
 from enhanced_retrieval import EnhancedRetrieval
 from ensemble_embeddings import EnsembleEmbedder
 from multistage_reranker import MultiStageReranker
+
+from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

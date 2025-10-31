@@ -51,7 +51,7 @@ from enum import Enum
 class QuestionType(str, Enum):
     """Question classification for intelligent routing."""
     TECHNICAL = "technical"
-    CODE = "code"  
+    CODE = "code"
     CREATIVE = "creative"
     FACTUAL = "factual"
     MATH = "math"
@@ -86,18 +86,18 @@ async def intelligent_route(request: ModelSelectionRequest):
     try:
         # Question classification
         question_type = classify_question(request.query)
-        
+
         # Model selection logic
         selected_model = select_model_for_question(question_type)
-        
+
         # Instance health checking
         healthy_instances = await get_healthy_instances()
         if not healthy_instances:
             raise HTTPException(status_code=503, detail="No healthy Ollama instances available")
-        
+
         # Load balancing
         selected_instance = select_best_instance(healthy_instances)
-        
+
         return ModelSelectionResponse(
             selected_model=selected_model,
             question_type=question_type,
@@ -105,7 +105,7 @@ async def intelligent_route(request: ModelSelectionRequest):
             reasoning=f"Selected {selected_model} for {question_type} query",
             load_score=selected_instance.load_score
         )
-        
+
     except ValidationError as e:
         logger.error(f"Request validation failed: {e}")
         raise HTTPException(status_code=422, detail=str(e))
@@ -130,7 +130,7 @@ def get_db_connection():
     try:
         connection = psycopg2.connect(
             host=settings.db_host,
-            port=settings.db_port, 
+            port=settings.db_port,
             database=settings.db_name,
             user=settings.db_user,
             password=settings.db_password,
@@ -168,10 +168,10 @@ def vector_search(query_text: str, top_k: int = 10) -> List[Dict]:
     """Perform vector similarity search with proper embedding."""
     # Get embedding for query
     query_embedding = get_embedding(query_text)
-    
+
     # Vector similarity query with metadata
     query = """
-        SELECT 
+        SELECT
             content,
             metadata,
             document_name,
@@ -181,7 +181,7 @@ def vector_search(query_text: str, top_k: int = 10) -> List[Dict]:
         ORDER BY embedding <=> %s::vector
         LIMIT %s
     """
-    
+
     return execute_query(query, (query_embedding, query_embedding, query_embedding, top_k))
 ```
 
@@ -235,7 +235,7 @@ def extract_text(pdf_path: str) -> str:
         import fitz  # PyMuPDF
     except ImportError as e:
         raise RuntimeError(f"PyMuPDF (fitz) is required for extract_text: {e}")
-    
+
     doc = fitz.open(pdf_path)
     text = ""
     for page in doc:
@@ -253,16 +253,16 @@ def chunk_text(text: str, document_name: str = "", start_index: int = 0) -> Tupl
         from nltk.tokenize import sent_tokenize
     except ImportError:
         raise RuntimeError("NLTK is required for sentence tokenization")
-    
+
     sentences = sent_tokenize(text)
     chunks = []
     current_index = start_index
-    
+
     # Strategy: sent_overlap (previous sentence + current for context)
     for i, sentence in enumerate(sentences):
         # Include previous sentence for context (overlap strategy)
         content = sentences[i-1] + " " + sentence if i > 0 else sentence
-        
+
         chunk = {
             "content": content.strip(),
             "metadata": {
@@ -274,7 +274,7 @@ def chunk_text(text: str, document_name: str = "", start_index: int = 0) -> Tupl
         }
         chunks.append(chunk)
         current_index += 1
-    
+
     return chunks, current_index
 ```
 
@@ -292,40 +292,40 @@ def get_embedding(text: str, model: str = None, ollama_url: str = None) -> List[
     """Get text embedding from Ollama with fallback logic."""
     model = model or settings.embedding_model
     base_url = ollama_url or settings.ollama_url
-    
+
     # Support multiple instance URLs for load balancing
     urls_to_try = [
         base_url,
         "http://ollama-server-2:11435/api/embeddings",
-        "http://ollama-server-3:11436/api/embeddings", 
+        "http://ollama-server-3:11436/api/embeddings",
         "http://ollama-server-4:11437/api/embeddings"
     ]
-    
+
     payload = {
         "model": model,
         "prompt": text
     }
-    
+
     for url in urls_to_try:
         try:
             response = requests.post(url, json=payload, timeout=30)
             response.raise_for_status()
-            
+
             data = response.json()
             embedding = data.get("embedding")
             if not embedding:
                 raise ValueError(f"No embedding in response from {url}")
-                
+
             logger.debug(f"Successfully got embedding from {url}")
             return embedding
-            
+
         except requests.exceptions.RequestException as e:
             logger.warning(f"Embedding request failed for {url}: {e}")
             continue
         except Exception as e:
             logger.error(f"Unexpected error with {url}: {e}")
             continue
-    
+
     raise RuntimeError(f"All Ollama instances failed for model {model}")
 ```
 
@@ -336,12 +336,12 @@ async def check_ollama_health(instance_url: str) -> Dict[str, Any]:
     try:
         # Quick health check endpoint
         health_url = f"{instance_url}/api/tags"
-        
+
         response = requests.get(health_url, timeout=5)
         response.raise_for_status()
-        
+
         models = response.json().get("models", [])
-        
+
         return {
             "url": instance_url,
             "healthy": True,
@@ -349,7 +349,7 @@ async def check_ollama_health(instance_url: str) -> Dict[str, Any]:
             "response_time": response.elapsed.total_seconds(),
             "available_models": [model["name"] for model in models]
         }
-        
+
     except Exception as e:
         logger.warning(f"Health check failed for {instance_url}: {e}")
         return {
@@ -377,32 +377,32 @@ def process_pdf_with_error_handling(pdf_path: str) -> Dict[str, Any]:
         # Validation
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-        
+
         if not pdf_path.lower().endswith('.pdf'):
             raise ValueError(f"File is not a PDF: {pdf_path}")
-        
+
         # Processing
         text = extract_text(pdf_path)
         if not text.strip():
             raise PDFProcessingError(f"No text extracted from {pdf_path}")
-        
+
         chunks, _ = chunk_text(text, document_name=os.path.basename(pdf_path))
-        
+
         return {
             "status": "success",
             "pdf_path": pdf_path,
             "chunk_count": len(chunks),
             "chunks": chunks
         }
-        
+
     except (FileNotFoundError, ValueError) as e:
         logger.error(f"Validation error for {pdf_path}: {e}")
         return {"status": "validation_error", "error": str(e)}
-    
+
     except PDFProcessingError as e:
         logger.error(f"PDF processing error for {pdf_path}: {e}")
         return {"status": "processing_error", "error": str(e)}
-    
+
     except Exception as e:
         logger.exception(f"Unexpected error processing {pdf_path}")
         return {"status": "unexpected_error", "error": str(e)}
@@ -416,8 +416,8 @@ from typing import List, Dict, Tuple, Optional, Any, Union
 from pathlib import Path
 
 def chunk_tables(
-    tables: List[Any], 
-    document_name: str = "", 
+    tables: List[Any],
+    document_name: str = "",
     start_index: int = 0
 ) -> Tuple[List[Dict[str, Any]], int]:
     """Chunk table data with proper type annotations."""
@@ -444,7 +444,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-# Third-party imports  
+# Third-party imports
 import requests
 import psycopg2
 from pydantic import BaseModel, Field
@@ -480,7 +480,7 @@ def test_extract_text_success():
     # Arrange
     pdf_path = "test.pdf"
     expected_text = "Sample text content"
-    
+
     # Act
     with patch('fitz.open') as mock_fitz:
         mock_doc = Mock()
@@ -488,9 +488,9 @@ def test_extract_text_success():
         mock_page.get_text.return_value = expected_text
         mock_doc.__iter__.return_value = [mock_page]
         mock_fitz.return_value = mock_doc
-        
+
         result = extract_text(pdf_path)
-    
+
     # Assert
     assert result == expected_text
     mock_fitz.assert_called_once_with(pdf_path)
@@ -500,10 +500,10 @@ def test_chunk_text_with_overlap():
     # Arrange
     text = "First sentence. Second sentence. Third sentence."
     document_name = "test.pdf"
-    
+
     # Act
     chunks, final_index = chunk_text(text, document_name)
-    
+
     # Assert
     assert len(chunks) == 3
     assert chunks[0]["content"] == "First sentence."
@@ -519,10 +519,10 @@ def test_chunk_text_with_overlap():
 def process_large_pdf(pdf_path: str, chunk_size: int = 1000):
     """Process large PDF files in memory-efficient chunks."""
     text = extract_text(pdf_path)
-    
+
     # Process text in smaller chunks to avoid memory overflow
     sentences = sent_tokenize(text)
-    
+
     for i in range(0, len(sentences), chunk_size):
         batch = sentences[i:i + chunk_size]
         batch_text = " ".join(batch)
@@ -558,22 +558,22 @@ def get_connection_pool():
 ```python
 def intelligent_route_selection(query: str, instances: List[Dict]) -> Dict[str, Any]:
     """Select optimal Ollama instance and model for given query.
-    
+
     Analyzes query type and instance health to route requests to the most
     appropriate model and available instance for optimal performance.
-    
+
     Args:
         query: User query text to analyze for model selection
         instances: List of available Ollama instance configurations
-        
+
     Returns:
         Dictionary containing selected model, instance URL, reasoning,
         and load balancing metrics
-        
+
     Raises:
         ValueError: If no healthy instances are available
         RuntimeError: If model selection logic fails
-        
+
     Example:
         >>> instances = [{"url": "http://ollama:11434", "healthy": True}]
         >>> result = intelligent_route_selection("Write Python code", instances)
@@ -587,7 +587,7 @@ def intelligent_route_selection(query: str, instances: List[Dict]) -> Dict[str, 
 These Python coding instructions ensure consistency with the Technical Service Assistant's architectural patterns:
 
 - **Configuration**: Always use `config.py` settings, never read `os.environ` directly
-- **API Design**: Use Pydantic models for request/response validation  
+- **API Design**: Use Pydantic models for request/response validation
 - **Database**: Proper connection handling with error management
 - **Logging**: Structured logging with appropriate levels and context
 - **Error Handling**: Comprehensive exception management with custom types

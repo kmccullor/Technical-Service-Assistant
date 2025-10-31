@@ -11,9 +11,9 @@ Usage:
 
 import os
 import sys
+
 import bcrypt
 import psycopg2
-from datetime import datetime
 
 # Add the project root to the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,14 +29,14 @@ def get_db_connection():
         port=settings.db_port,
         database=settings.db_name,
         user=settings.db_user,
-        password=settings.db_password
+        password=settings.db_password,
     )
 
 
 def hash_password(password: str) -> str:
     """Hash password using bcrypt."""
     salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
 def setup_default_roles():
@@ -45,29 +45,20 @@ def setup_default_roles():
     cursor = conn.cursor()
 
     roles = [
-        {
-            'name': 'admin',
-            'description': 'Full system access with user management capabilities',
-            'is_system': False
-        },
-        {
-            'name': 'employee',
-            'description': 'Standard user with chat and document access',
-            'is_system': False
-        },
-        {
-            'name': 'guest',
-            'description': 'Limited read-only access',
-            'is_system': False
-        }
+        {"name": "admin", "description": "Full system access with user management capabilities", "is_system": False},
+        {"name": "employee", "description": "Standard user with chat and document access", "is_system": False},
+        {"name": "guest", "description": "Limited read-only access", "is_system": False},
     ]
 
     for role in roles:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO roles (name, description, is_system)
             VALUES (%(name)s, %(description)s, %(is_system)s)
             ON CONFLICT (name) DO NOTHING
-        """, role)
+        """,
+            role,
+        )
 
     conn.commit()
     cursor.close()
@@ -82,55 +73,54 @@ def setup_default_permissions():
 
     permissions = [
         # User management
-        ('users', 'create', 'Create new users'),
-        ('users', 'read', 'View user information'),
-        ('users', 'update', 'Update user information'),
-        ('users', 'delete', 'Delete users'),
-
+        ("users", "create", "Create new users"),
+        ("users", "read", "View user information"),
+        ("users", "update", "Update user information"),
+        ("users", "delete", "Delete users"),
         # Role management
-        ('roles', 'create', 'Create new roles'),
-        ('roles', 'read', 'View role information'),
-        ('roles', 'update', 'Update role information'),
-        ('roles', 'delete', 'Delete roles'),
-        ('roles', 'assign', 'Assign roles to users'),
-
+        ("roles", "create", "Create new roles"),
+        ("roles", "read", "View role information"),
+        ("roles", "update", "Update role information"),
+        ("roles", "delete", "Delete roles"),
+        ("roles", "assign", "Assign roles to users"),
         # Document management
-        ('documents', 'upload', 'Upload documents'),
-        ('documents', 'read', 'View documents'),
-        ('documents', 'delete', 'Delete documents'),
-
+        ("documents", "upload", "Upload documents"),
+        ("documents", "read", "View documents"),
+        ("documents", "delete", "Delete documents"),
         # Chat functionality
-        ('chat', 'use', 'Use chat functionality'),
-        ('chat', 'history', 'Access chat history'),
-        ('chat', 'export', 'Export chat conversations'),
-
+        ("chat", "use", "Use chat functionality"),
+        ("chat", "history", "Access chat history"),
+        ("chat", "export", "Export chat conversations"),
         # System administration
-        ('system', 'monitor', 'Monitor system performance'),
-        ('system', 'configure', 'Configure system settings'),
-        ('system', 'backup', 'Create system backups'),
-
+        ("system", "monitor", "Monitor system performance"),
+        ("system", "configure", "Configure system settings"),
+        ("system", "backup", "Create system backups"),
         # Analytics and reporting
-        ('analytics', 'view', 'View analytics dashboards'),
-        ('analytics', 'export', 'Export analytics data'),
+        ("analytics", "view", "View analytics dashboards"),
+        ("analytics", "export", "Export analytics data"),
     ]
 
     inserted = 0
     for resource, action, description in permissions:
         permission_name = f"{resource}:{action}"
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO permissions (name, resource, action, description)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (resource, action) DO UPDATE
             SET description = EXCLUDED.description,
                 updated_at = CURRENT_TIMESTAMP
             RETURNING id
-        """, (permission_name, resource, action, description))
+        """,
+            (permission_name, resource, action, description),
+        )
         if cursor.fetchone():
             inserted += 1
     conn.commit()
     cursor.execute("SELECT COUNT(*) FROM permissions")
     total = cursor.fetchone()[0]
-    cursor.close(); conn.close()
+    cursor.close()
+    conn.close()
     print(f"✅ Permissions ensured (inserted/updated: {inserted}, total now: {total})")
 
 
@@ -140,46 +130,54 @@ def setup_role_permissions():
     cursor = conn.cursor()
 
     # Admin gets all permissions
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO role_permissions (role_id, permission_id)
         SELECT r.id, p.id
         FROM roles r, permissions p
         WHERE r.name = 'admin'
         ON CONFLICT (role_id, permission_id) DO NOTHING
-    """)
+    """
+    )
 
     # Employee permissions
     employee_permissions = [
-        ('documents', 'read'),
-        ('chat', 'use'),
-        ('chat', 'history'),
-        ('chat', 'export'),
-        ('analytics', 'view'),
+        ("documents", "read"),
+        ("chat", "use"),
+        ("chat", "history"),
+        ("chat", "export"),
+        ("analytics", "view"),
     ]
 
     for resource, action in employee_permissions:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM roles r, permissions p
             WHERE r.name = 'employee' AND p.resource = %s AND p.action = %s
             ON CONFLICT (role_id, permission_id) DO NOTHING
-        """, (resource, action))
+        """,
+            (resource, action),
+        )
 
     # Guest permissions (very limited)
     guest_permissions = [
-        ('documents', 'read'),
-        ('chat', 'use'),
+        ("documents", "read"),
+        ("chat", "use"),
     ]
 
     for resource, action in guest_permissions:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO role_permissions (role_id, permission_id)
             SELECT r.id, p.id
             FROM roles r, permissions p
             WHERE r.name = 'guest' AND p.resource = %s AND p.action = %s
             ON CONFLICT (role_id, permission_id) DO NOTHING
-        """, (resource, action))
+        """,
+            (resource, action),
+        )
 
     conn.commit()
     cursor.close()
@@ -196,25 +194,31 @@ def create_admin_user(email: str = "admin@technical-service.local", password: st
     password_hash = hash_password(password)
 
     # Create admin user
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO users (email, password_hash, name, first_name, last_name, status, verified)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (email) DO NOTHING
         RETURNING id
-    """, (email, password_hash, "System Administrator", "System", "Administrator", "active", True))
+    """,
+        (email, password_hash, "System Administrator", "System", "Administrator", "active", True),
+    )
 
     result = cursor.fetchone()
     if result:
         user_id = result[0]
 
         # Assign admin role
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO user_roles (user_id, role_id)
             SELECT %s, r.id
             FROM roles r
             WHERE r.name = 'admin'
             ON CONFLICT (user_id, role_id) DO NOTHING
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
 
         conn.commit()
         print(f"✅ Admin user created successfully: {email}")

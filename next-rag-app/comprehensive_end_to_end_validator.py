@@ -5,15 +5,16 @@ Tests 20+ questions per document across all archive documents with detailed repo
 """
 
 import json
-import time
-import requests
 import os
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
 import statistics
-import concurrent.futures
+import time
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from threading import Lock
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
+
 
 @dataclass
 class TestResult:
@@ -29,6 +30,7 @@ class TestResult:
     reasoning: str
     error_message: Optional[str] = None
 
+
 @dataclass
 class DocumentSummary:
     document: str
@@ -41,12 +43,13 @@ class DocumentSummary:
     total_sources: int
     avg_answer_length: float
 
+
 class ComprehensiveRAGValidator:
     def __init__(self, api_url: str = "http://localhost:3025/api/chat"):
         self.api_url = api_url
         self.results: List[TestResult] = []
         self.lock = Lock()
-        
+
         # Enhanced question templates for comprehensive testing
         self.question_templates = {
             "Installation Guide": [
@@ -71,9 +74,8 @@ class ComprehensiveRAGValidator:
                 "What are the disk space and storage requirements for {product}?",
                 "How do you validate and test the {product} installation?",
                 "What licensing requirements and activation steps are needed for {product}?",
-                "How do you configure high availability and clustering for {product}?"
+                "How do you configure high availability and clustering for {product}?",
             ],
-            
             "User Guide": [
                 "How do you access and navigate the {product} user interface?",
                 "What are the main features and capabilities of {product}?",
@@ -96,9 +98,8 @@ class ComprehensiveRAGValidator:
                 "How do you schedule automated tasks, jobs, or processes in {product}?",
                 "What integration capabilities and third-party connections does {product} support?",
                 "How do you manage workflows, processes, and business rules in {product}?",
-                "What mobile, remote, or web-based access options are available for {product}?"
+                "What mobile, remote, or web-based access options are available for {product}?",
             ],
-            
             "Reference Manual": [
                 "What are the complete technical specifications and capabilities of {product}?",
                 "What APIs, web services, and programming interfaces are available in {product}?",
@@ -121,9 +122,8 @@ class ComprehensiveRAGValidator:
                 "What performance tuning, optimization strategies, and efficiency improvements are available for {product}?",
                 "What are the detailed upgrade, migration, and version management procedures for {product}?",
                 "What debugging tools, diagnostic methods, and troubleshooting resources are available for {product}?",
-                "What are the comprehensive best practices, guidelines, and recommended configurations for {product}?"
+                "What are the comprehensive best practices, guidelines, and recommended configurations for {product}?",
             ],
-            
             "Release Notes": [
                 "What new features and enhancements were introduced in {version}?",
                 "What bugs, issues, and defects were fixed in {version}?",
@@ -146,15 +146,15 @@ class ComprehensiveRAGValidator:
                 "What migration tools, conversion utilities, and upgrade assistance is available for {version}?",
                 "What validation steps, verification procedures, and testing recommendations are provided for {version}?",
                 "What monitoring changes, alerting updates, and diagnostic enhancements exist in {version}?",
-                "What support changes, maintenance updates, and service modifications accompany {version}?"
-            ]
+                "What support changes, maintenance updates, and service modifications accompany {version}?",
+            ],
         }
 
     def get_document_list(self) -> List[str]:
         """Get list of all PDF documents in the archive"""
         archive_path = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
         try:
-            documents = [f for f in os.listdir(archive_path) if f.endswith('.pdf')]
+            documents = [f for f in os.listdir(archive_path) if f.endswith(".pdf")]
             return sorted(documents)
         except Exception as e:
             print(f"❌ Error reading archive: {e}")
@@ -163,8 +163,8 @@ class ComprehensiveRAGValidator:
     def extract_product_info(self, filename: str) -> Tuple[str, str, str]:
         """Extract product name, version, and document type from filename"""
         # Remove .pdf extension
-        name = filename.replace('.pdf', '')
-        
+        name = filename.replace(".pdf", "")
+
         # Extract version if present (e.g., "4.14", "4.15.1")
         version = "latest"
         try:
@@ -176,12 +176,13 @@ class ComprehensiveRAGValidator:
             elif "4." in name:
                 # Handle cases like "PPA.4.14.TechNote"
                 import re
-                version_match = re.search(r'4\.(\d+)', name)
+
+                version_match = re.search(r"4\.(\d+)", name)
                 if version_match:
                     version = f"4.{version_match.group(1)}"
         except (IndexError, AttributeError):
             version = "4.14"  # Safe fallback
-        
+
         # Determine document type
         doc_type = "User Guide"  # Default
         if "Installation Guide" in name or "Install" in name:
@@ -194,7 +195,7 @@ class ComprehensiveRAGValidator:
             doc_type = "User Guide"  # Treat as user guide for questions
         elif "TechNote" in name or "Technical" in name:
             doc_type = "Reference Manual"  # Technical notes are reference material
-        
+
         # Extract product name - be more robust
         product = name
         try:
@@ -205,89 +206,83 @@ class ComprehensiveRAGValidator:
             product = product.replace("..", ".").replace("  ", " ").strip(".")
             if not product:
                 product = name  # Fallback to full name if cleaning failed
-        except:
+        except Exception:
             product = name  # Safe fallback
-        
+
         return product, version, doc_type
 
     def generate_questions_for_document(self, filename: str) -> List[Dict[str, str]]:
         """Generate 22 targeted questions for a specific document"""
         product, version, doc_type = self.extract_product_info(filename)
-        
+
         # Get appropriate templates
         templates = self.question_templates.get(doc_type, self.question_templates["User Guide"])
-        
+
         questions = []
         for i, template in enumerate(templates[:22]):  # Limit to 22 questions
             if doc_type == "Release Notes":
                 question = template.format(version=version)
             else:
                 question = template.format(product=product)
-            
-            questions.append({
-                'question': question,
-                'type': doc_type,
-                'template_id': i + 1
-            })
-        
+
+            questions.append({"question": question, "type": doc_type, "template_id": i + 1})
+
         return questions
 
     def test_single_question(self, document: str, question_data: Dict[str, str]) -> TestResult:
         """Test a single question and return detailed results"""
-        question = question_data['question']
-        question_type = question_data['type']
-        
+        question = question_data["question"]
+        question_type = question_data["type"]
+
         start_time = time.time()
-        
+
         try:
-            payload = {
-                "messages": [{"role": "user", "content": question}]
-            }
-            
+            payload = {"messages": [{"role": "user", "content": question}]}
+
             response = requests.post(
                 self.api_url,
                 json=payload,
                 timeout=60,  # Increased timeout for complex queries
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
-            
+
             response_time = time.time() - start_time
-            
+
             if response.status_code == 200:
                 # Parse streaming response
                 answer_tokens = []
                 confidence = None
                 sources_count = 0
-                
-                lines = response.text.strip().split('\n')
+
+                lines = response.text.strip().split("\n")
                 for line in lines:
-                    if line.startswith('data: '):
+                    if line.startswith("data: "):
                         try:
                             parsed = json.loads(line[6:])
-                            if parsed.get('type') == 'token':
-                                answer_tokens.append(parsed.get('token', ''))
-                            elif parsed.get('type') == 'sources':
-                                confidence = parsed.get('confidence')
-                                sources_count = len(parsed.get('sources', []))
+                            if parsed.get("type") == "token":
+                                answer_tokens.append(parsed.get("token", ""))
+                            elif parsed.get("type") == "sources":
+                                confidence = parsed.get("confidence")
+                                sources_count = len(parsed.get("sources", []))
                         except json.JSONDecodeError:
                             continue
-                
-                answer = ''.join(answer_tokens)
+
+                answer = "".join(answer_tokens)
                 answer_length = len(answer)
                 answer_preview = answer[:200] + "..." if len(answer) > 200 else answer
-                
+
                 # Determine success (≥95% confidence target)
                 success = confidence is not None and confidence >= 0.95 and answer_length > 50
-                
+
                 # Generate reasoning
                 conf_pct = confidence * 100 if confidence else 0
                 reasoning = f"Confidence: {conf_pct:.1f}% | Sources: {sources_count} | Length: {answer_length} chars"
-                
+
                 if success:
                     reasoning = "✅ " + reasoning + " | HIGH CONFIDENCE ACHIEVED"
                 else:
                     reasoning = "⚠️ " + reasoning + " | Below 95% target"
-                
+
                 return TestResult(
                     document=document,
                     question=question,
@@ -298,9 +293,9 @@ class ComprehensiveRAGValidator:
                     sources_count=sources_count,
                     success=success,
                     answer_preview=answer_preview,
-                    reasoning=reasoning
+                    reasoning=reasoning,
                 )
-            
+
             else:
                 return TestResult(
                     document=document,
@@ -313,9 +308,9 @@ class ComprehensiveRAGValidator:
                     success=False,
                     answer_preview="",
                     reasoning=f"API Error: {response.status_code}",
-                    error_message=f"HTTP {response.status_code}"
+                    error_message=f"HTTP {response.status_code}",
                 )
-        
+
         except Exception as e:
             return TestResult(
                 document=document,
@@ -328,66 +323,68 @@ class ComprehensiveRAGValidator:
                 success=False,
                 answer_preview="",
                 reasoning=f"Exception: {str(e)[:100]}",
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def test_document(self, document: str) -> List[TestResult]:
         """Test all questions for a single document"""
         print(f"\n🔍 Testing: {document}")
         print("=" * 80)
-        
+
         questions = self.generate_questions_for_document(document)
         doc_results = []
-        
+
         for i, question_data in enumerate(questions, 1):
             print(f"  📋 Question {i}/22: {question_data['question'][:80]}...")
-            
+
             result = self.test_single_question(document, question_data)
             doc_results.append(result)
-            
+
             # Display immediate result
             status = "✅" if result.success else "❌"
             conf_display = f"{result.confidence*100:.1f}%" if result.confidence else "N/A"
-            print(f"      {status} Confidence: {conf_display} | Time: {result.response_time:.1f}s | Sources: {result.sources_count}")
-            
+            print(
+                f"      {status} Confidence: {conf_display} | Time: {result.response_time:.1f}s | Sources: {result.sources_count}"
+            )
+
             # Brief pause between requests
             time.sleep(1)
-        
+
         # Document summary
         successful = sum(1 for r in doc_results if r.success)
         avg_conf = statistics.mean([r.confidence for r in doc_results if r.confidence]) if doc_results else 0
-        
+
         print(f"\n📊 {document} Summary:")
         print(f"   Success Rate: {successful}/{len(doc_results)} ({successful/len(doc_results)*100:.1f}%)")
         print(f"   Average Confidence: {avg_conf*100:.1f}%")
-        
+
         with self.lock:
             self.results.extend(doc_results)
-        
+
         return doc_results
 
     def generate_document_summary(self, doc_results: List[TestResult]) -> Optional[DocumentSummary]:
         """Generate summary statistics for a document"""
         if not doc_results:
             return None
-        
+
         document = doc_results[0].document
         total_questions = len(doc_results)
         successful_questions = sum(1 for r in doc_results if r.success)
         success_rate = successful_questions / total_questions
-        
+
         confidences = [r.confidence for r in doc_results if r.confidence]
         avg_confidence = statistics.mean(confidences) if confidences else 0
         high_confidence_count = sum(1 for c in confidences if c >= 0.95)
-        
+
         response_times = [r.response_time for r in doc_results]
         avg_response_time = statistics.mean(response_times) if response_times else 0
-        
+
         total_sources = sum(r.sources_count for r in doc_results)
-        
+
         answer_lengths = [r.answer_length for r in doc_results if r.answer_length > 0]
         avg_answer_length = statistics.mean(answer_lengths) if answer_lengths else 0
-        
+
         return DocumentSummary(
             document=document,
             total_questions=total_questions,
@@ -397,79 +394,81 @@ class ComprehensiveRAGValidator:
             high_confidence_count=high_confidence_count,
             avg_response_time=avg_response_time,
             total_sources=total_sources,
-            avg_answer_length=avg_answer_length
+            avg_answer_length=avg_answer_length,
         )
 
     def run_comprehensive_validation(self) -> Dict[str, Any]:
         """Run comprehensive validation across all documents"""
         print("🚀 COMPREHENSIVE END-TO-END RAG VALIDATION WITH RERANKING")
         print("=" * 100)
-        
+
         start_time = time.time()
         documents = self.get_document_list()
-        
+
         print(f"📚 Found {len(documents)} documents in archive")
         print(f"📋 Testing 22 questions per document = {len(documents) * 22} total questions")
         print(f"🎯 Target: ≥95% confidence per answer with reranking enabled")
-        
+
         # Test each document sequentially for better stability
         document_summaries = []
-        
+
         for i, document in enumerate(documents, 1):
             print(f"\n🔍 Document {i}/{len(documents)}: {document}")
-            
+
             try:
                 doc_results = self.test_document(document)
                 doc_summary = self.generate_document_summary(doc_results)
                 if doc_summary:
                     document_summaries.append(doc_summary)
-                
+
                 # Progress update
                 elapsed = time.time() - start_time
                 avg_time_per_doc = elapsed / i
                 remaining_docs = len(documents) - i
                 estimated_remaining = avg_time_per_doc * remaining_docs
-                
+
                 print(f"\n⏱️ Progress: {i}/{len(documents)} docs completed")
                 print(f"   Elapsed: {elapsed/60:.1f} min | Est. remaining: {estimated_remaining/60:.1f} min")
-                
+
             except Exception as e:
                 print(f"❌ Error testing {document}: {e}")
                 continue
-        
+
         total_time = time.time() - start_time
-        
+
         # Generate comprehensive report
         report = self.generate_comprehensive_report(document_summaries, total_time)
-        
+
         # Save results
         self.save_results(report)
-        
+
         return report
 
-    def generate_comprehensive_report(self, document_summaries: List[DocumentSummary], total_time: float) -> Dict[str, Any]:
+    def generate_comprehensive_report(
+        self, document_summaries: List[DocumentSummary], total_time: float
+    ) -> Dict[str, Any]:
         """Generate a comprehensive validation report"""
-        
+
         # Overall statistics
         total_documents = len(document_summaries)
         total_questions = sum(ds.total_questions for ds in document_summaries)
         total_successful = sum(ds.successful_questions for ds in document_summaries)
         overall_success_rate = total_successful / total_questions if total_questions > 0 else 0
-        
+
         # Confidence statistics
         all_confidences = []
         for result in self.results:
             if result.confidence is not None:
                 all_confidences.append(result.confidence)
-        
+
         avg_confidence = statistics.mean(all_confidences) if all_confidences else 0
         high_confidence_count = sum(1 for c in all_confidences if c >= 0.95)
         high_confidence_rate = high_confidence_count / len(all_confidences) if all_confidences else 0
-        
-        # Performance statistics  
+
+        # Performance statistics
         all_response_times = [r.response_time for r in self.results if r.response_time > 0]
         avg_response_time = statistics.mean(all_response_times) if all_response_times else 0
-        
+
         # Document type analysis
         doc_type_stats = {}
         for ds in document_summaries:
@@ -482,81 +481,84 @@ class ComprehensiveRAGValidator:
                 doc_type = "Reference Manual"
             elif "Release Notes" in ds.document:
                 doc_type = "Release Notes"
-            
+
             if doc_type not in doc_type_stats:
                 doc_type_stats[doc_type] = {
-                    'documents': 0, 'questions': 0, 'successful': 0,
-                    'avg_confidence': 0, 'high_confidence': 0
+                    "documents": 0,
+                    "questions": 0,
+                    "successful": 0,
+                    "avg_confidence": 0,
+                    "high_confidence": 0,
                 }
-            
-            doc_type_stats[doc_type]['documents'] += 1
-            doc_type_stats[doc_type]['questions'] += ds.total_questions
-            doc_type_stats[doc_type]['successful'] += ds.successful_questions
-        
+
+            doc_type_stats[doc_type]["documents"] += 1
+            doc_type_stats[doc_type]["questions"] += ds.total_questions
+            doc_type_stats[doc_type]["successful"] += ds.successful_questions
+
         # Top and bottom performers
         document_summaries.sort(key=lambda x: x.success_rate, reverse=True)
         top_performers = document_summaries[:5]
         bottom_performers = document_summaries[-5:] if len(document_summaries) >= 5 else []
-        
+
         report = {
-            'metadata': {
-                'timestamp': datetime.now().isoformat(),
-                'test_duration_minutes': total_time / 60,
-                'api_endpoint': self.api_url,
-                'reranking_enabled': True,
-                'target_confidence': 95.0
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "test_duration_minutes": total_time / 60,
+                "api_endpoint": self.api_url,
+                "reranking_enabled": True,
+                "target_confidence": 95.0,
             },
-            'overall_statistics': {
-                'total_documents': total_documents,
-                'total_questions': total_questions,
-                'successful_questions': total_successful,
-                'success_rate': overall_success_rate,
-                'average_confidence': avg_confidence,
-                'high_confidence_count': high_confidence_count,
-                'high_confidence_rate': high_confidence_rate,
-                'average_response_time': avg_response_time,
-                'total_test_time_minutes': total_time / 60
+            "overall_statistics": {
+                "total_documents": total_documents,
+                "total_questions": total_questions,
+                "successful_questions": total_successful,
+                "success_rate": overall_success_rate,
+                "average_confidence": avg_confidence,
+                "high_confidence_count": high_confidence_count,
+                "high_confidence_rate": high_confidence_rate,
+                "average_response_time": avg_response_time,
+                "total_test_time_minutes": total_time / 60,
             },
-            'confidence_analysis': {
-                'target_achieved': high_confidence_rate >= 0.80,  # 80% of questions ≥95% confidence
-                'confidence_95_plus': high_confidence_count,
-                'confidence_90_95': sum(1 for c in all_confidences if 0.90 <= c < 0.95),
-                'confidence_85_90': sum(1 for c in all_confidences if 0.85 <= c < 0.90),
-                'confidence_80_85': sum(1 for c in all_confidences if 0.80 <= c < 0.85),
-                'confidence_below_80': sum(1 for c in all_confidences if c < 0.80)
+            "confidence_analysis": {
+                "target_achieved": high_confidence_rate >= 0.80,  # 80% of questions ≥95% confidence
+                "confidence_95_plus": high_confidence_count,
+                "confidence_90_95": sum(1 for c in all_confidences if 0.90 <= c < 0.95),
+                "confidence_85_90": sum(1 for c in all_confidences if 0.85 <= c < 0.90),
+                "confidence_80_85": sum(1 for c in all_confidences if 0.80 <= c < 0.85),
+                "confidence_below_80": sum(1 for c in all_confidences if c < 0.80),
             },
-            'document_type_analysis': doc_type_stats,
-            'top_performers': [asdict(ds) for ds in top_performers],
-            'bottom_performers': [asdict(ds) for ds in bottom_performers],
-            'detailed_results': [asdict(result) for result in self.results]
+            "document_type_analysis": doc_type_stats,
+            "top_performers": [asdict(ds) for ds in top_performers],
+            "bottom_performers": [asdict(ds) for ds in bottom_performers],
+            "detailed_results": [asdict(result) for result in self.results],
         }
-        
+
         return report
 
     def save_results(self, report: Dict[str, Any]):
         """Save comprehensive results to files"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+
         # Save detailed JSON report
         json_file = f"comprehensive_rag_report_{timestamp}.json"
-        with open(json_file, 'w') as f:
+        with open(json_file, "w") as f:
             json.dump(report, f, indent=2, default=str)
-        
+
         # Generate and save text summary report
         text_file = f"rag_validation_summary_{timestamp}.txt"
         self.generate_text_report(report, text_file)
-        
+
         print(f"\n💾 Results saved:")
         print(f"   📄 Detailed report: {json_file}")
         print(f"   📝 Summary report: {text_file}")
-        
+
         # Display final summary
         self.display_final_summary(report)
 
     def generate_text_report(self, report: Dict[str, Any], filename: str):
         """Generate a formatted text summary report"""
-        
-        with open(filename, 'w') as f:
+
+        with open(filename, "w") as f:
             f.write("=" * 100 + "\n")
             f.write("COMPREHENSIVE RAG VALIDATION REPORT WITH RERANKING\n")
             f.write("=" * 100 + "\n")
@@ -565,9 +567,9 @@ class ComprehensiveRAGValidator:
             f.write(f"API Endpoint: {report['metadata']['api_endpoint']}\n")
             f.write(f"Reranking: {'Enabled' if report['metadata']['reranking_enabled'] else 'Disabled'}\n")
             f.write(f"Target Confidence: {report['metadata']['target_confidence']}%\n\n")
-            
+
             # Overall Statistics
-            stats = report['overall_statistics']
+            stats = report["overall_statistics"]
             f.write("OVERALL PERFORMANCE\n")
             f.write("-" * 50 + "\n")
             f.write(f"Documents Tested: {stats['total_documents']}\n")
@@ -575,11 +577,13 @@ class ComprehensiveRAGValidator:
             f.write(f"Successful Questions: {stats['successful_questions']}\n")
             f.write(f"Success Rate: {stats['success_rate']*100:.1f}%\n")
             f.write(f"Average Confidence: {stats['average_confidence']*100:.1f}%\n")
-            f.write(f"High Confidence (≥95%): {stats['high_confidence_count']} ({stats['high_confidence_rate']*100:.1f}%)\n")
+            f.write(
+                f"High Confidence (≥95%): {stats['high_confidence_count']} ({stats['high_confidence_rate']*100:.1f}%)\n"
+            )
             f.write(f"Average Response Time: {stats['average_response_time']:.1f}s\n\n")
-            
+
             # Confidence Analysis
-            conf = report['confidence_analysis']
+            conf = report["confidence_analysis"]
             f.write("CONFIDENCE DISTRIBUTION\n")
             f.write("-" * 50 + "\n")
             f.write(f"95-100%: {conf['confidence_95_plus']} questions\n")
@@ -588,13 +592,15 @@ class ComprehensiveRAGValidator:
             f.write(f"80-85%:  {conf['confidence_80_85']} questions\n")
             f.write(f"<80%:    {conf['confidence_below_80']} questions\n")
             f.write(f"Target Achieved: {'✅ YES' if conf['target_achieved'] else '❌ NO'}\n\n")
-            
+
             # Top Performers
             f.write("TOP PERFORMING DOCUMENTS\n")
             f.write("-" * 50 + "\n")
-            for i, doc in enumerate(report['top_performers'][:10], 1):
+            for i, doc in enumerate(report["top_performers"][:10], 1):
                 f.write(f"{i}. {doc['document']}\n")
-                f.write(f"   Success Rate: {doc['success_rate']*100:.1f}% ({doc['successful_questions']}/{doc['total_questions']})\n")
+                f.write(
+                    f"   Success Rate: {doc['success_rate']*100:.1f}% ({doc['successful_questions']}/{doc['total_questions']})\n"
+                )
                 f.write(f"   Avg Confidence: {doc['avg_confidence']*100:.1f}%\n")
                 f.write(f"   High Confidence: {doc['high_confidence_count']}\n\n")
 
@@ -603,29 +609,36 @@ class ComprehensiveRAGValidator:
         print("\n" + "=" * 100)
         print("🎯 COMPREHENSIVE RAG VALIDATION SUMMARY WITH RERANKING")
         print("=" * 100)
-        
-        stats = report['overall_statistics']
-        conf = report['confidence_analysis']
-        
+
+        stats = report["overall_statistics"]
+        conf = report["confidence_analysis"]
+
         print(f"\n📊 OVERALL RESULTS:")
         print(f"   Documents Tested: {stats['total_documents']}")
         print(f"   Questions Asked: {stats['total_questions']}")
-        print(f"   Success Rate: {stats['successful_questions']}/{stats['total_questions']} ({stats['success_rate']*100:.1f}%)")
-        
+        print(
+            f"   Success Rate: {stats['successful_questions']}/{stats['total_questions']} ({stats['success_rate']*100:.1f}%)"
+        )
+
         print(f"\n🎯 CONFIDENCE ACHIEVEMENT:")
         print(f"   Average Confidence: {stats['average_confidence']*100:.1f}%")
-        print(f"   High Confidence (≥95%): {stats['high_confidence_count']}/{len(report['detailed_results'])} ({stats['high_confidence_rate']*100:.1f}%)")
-        target_status = "✅ TARGET ACHIEVED" if conf['target_achieved'] else "❌ TARGET NOT MET"
+        print(
+            f"   High Confidence (≥95%): {stats['high_confidence_count']}/{len(report['detailed_results'])} ({stats['high_confidence_rate']*100:.1f}%)"
+        )
+        target_status = "✅ TARGET ACHIEVED" if conf["target_achieved"] else "❌ TARGET NOT MET"
         print(f"   Target Status: {target_status}")
-        
+
         print(f"\n⚡ PERFORMANCE:")
         print(f"   Average Response Time: {stats['average_response_time']:.1f}s")
         print(f"   Total Test Duration: {stats['total_test_time_minutes']:.1f} minutes")
-        
+
         print(f"\n📚 TOP PERFORMERS:")
-        for i, doc in enumerate(report['top_performers'][:5], 1):
+        for i, doc in enumerate(report["top_performers"][:5], 1):
             print(f"   {i}. {doc['document']}")
-            print(f"      Success: {doc['successful_questions']}/{doc['total_questions']} ({doc['success_rate']*100:.1f}%) | Confidence: {doc['avg_confidence']*100:.1f}%")
+            print(
+                f"      Success: {doc['successful_questions']}/{doc['total_questions']} ({doc['success_rate']*100:.1f}%) | Confidence: {doc['avg_confidence']*100:.1f}%"
+            )
+
 
 if __name__ == "__main__":
     validator = ComprehensiveRAGValidator()

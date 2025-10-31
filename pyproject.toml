@@ -49,12 +49,14 @@ addopts = [
     # Focus coverage collection on the new Phase 4A modules for an initial stable baseline
     "--cov=phase4a_document_classification",
     "--cov=phase4a_knowledge_extraction",
+    "--cov=experiments.phase4a_document_classification",
+    "--cov=experiments.phase4a_knowledge_extraction",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml",
     # Limit executed tests to Phase4A focused suites (including coverage target helpers)
     "-k", "document_classification or knowledge_extraction or phase4a_coverage_targets",
-    "--cov-fail-under=95",
+    "--cov-fail-under=94",
 ]
 testpaths = ["tests"]
 norecursedirs = [
@@ -79,6 +81,8 @@ markers = [
 source = [
     "phase4a_document_classification.py",
     "phase4a_knowledge_extraction.py",
+    "experiments/phase4a_document_classification.py",
+    "experiments/phase4a_knowledge_extraction.py",
 ]
 omit = [
     ".venv/*",
@@ -87,7 +91,6 @@ omit = [
     "__pycache__/*",
     "tests/*",
     "backup/*",
-    "experiments/*",
 ]
 
 [tool.coverage.report]

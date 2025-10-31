@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
@@ -172,23 +170,23 @@ class IntelligentRouter:
             1: {  # General Chat & Document QA (11434)
                 "primary_models": ["mistral:7b", "mistral:latest", "llama3.1:8b"],
                 "strengths": [QuestionType.CHAT, QuestionType.FACTUAL, QuestionType.TECHNICAL],
-                "description": "General chat and document QA"
+                "description": "General chat and document QA",
             },
             2: {  # Code & Technical Analysis (11435)
                 "primary_models": ["mistral:7b", "gemma2:2b", "phi3:mini"],
                 "strengths": [QuestionType.CODE, QuestionType.TECHNICAL],
-                "description": "Code and technical analysis"
+                "description": "Code and technical analysis",
             },
             3: {  # Advanced Reasoning & Math (11436)
                 "primary_models": ["llama3.1:8b", "llama3.2:3b", "mistral:latest"],
                 "strengths": [QuestionType.MATH, QuestionType.TECHNICAL],
-                "description": "Advanced reasoning and math"
+                "description": "Advanced reasoning and math",
             },
             4: {  # Embeddings & Search Optimization (11437)
                 "primary_models": ["nomic-embed-text:v1.5", "nomic-embed-text:latest"],
                 "strengths": [],  # Embedding-focused
-                "description": "Embeddings and search optimization"
-            }
+                "description": "Embeddings and search optimization",
+            },
         }
 
         self.health_check_interval = 30  # seconds
@@ -337,7 +335,12 @@ class IntelligentRouter:
         logger.info(f"Health check complete: {healthy_count}/{len(self.instances)} instances healthy")
 
     def select_best_model_for_instance(
-        self, question_type: QuestionType, instance_num: int, prefer_speed: bool, require_context: bool, exclude_models: List[str]
+        self,
+        question_type: QuestionType,
+        instance_num: int,
+        prefer_speed: bool,
+        require_context: bool,
+        exclude_models: List[str],
     ) -> Tuple[str, str]:
         """Select best model for question type on specific instance."""
         # Get available models for this instance

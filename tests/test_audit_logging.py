@@ -1,12 +1,10 @@
-import os
 import psycopg2
+import pytest
 from psycopg2.extras import RealDictCursor
-import time
 
 # Import modules included in coverage filters so coverage does not report 0%
 import phase4a_document_classification  # noqa: F401
 import phase4a_knowledge_extraction  # noqa: F401
-import pytest
 
 # This regression test is outside the Phase4A coverage ring enforced in pyproject.
 # Skipping by default to avoid failing strict coverage gates while still shipping
@@ -31,15 +29,14 @@ def get_conn():
 def test_login_creates_audit_log(test_client):
     """Login flow should create a login_success audit log with JSON details."""
     # Perform login (admin seeded previously in environment)
-    resp = test_client.post(
-        "/api/auth/login", json={"email": "admin@example.com", "password": "admin123!"}
-    )
+    resp = test_client.post("/api/auth/login", json={"email": "admin@example.com", "password": "admin123!"})
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert "access_token" in data
 
     # Query audit_logs for most recent login_success
-    conn = get_conn(); cur = conn.cursor()
+    conn = get_conn()
+    cur = conn.cursor()
     try:
         cur.execute(
             """
@@ -60,18 +57,18 @@ def test_login_creates_audit_log(test_client):
         if isinstance(details, dict):
             assert details.get("method") == "password"
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
 
 
 def test_security_event_insert_helper(test_client):
     """Force a failed login to ensure security_events row is inserted with JSON details."""
     # Intentionally wrong password to trigger failure & security log
-    resp = test_client.post(
-        "/api/auth/login", json={"email": "admin@example.com", "password": "wrongpass"}
-    )
+    resp = test_client.post("/api/auth/login", json={"email": "admin@example.com", "password": "wrongpass"})
     assert resp.status_code in (401, 400)
 
-    conn = get_conn(); cur = conn.cursor()
+    conn = get_conn()
+    cur = conn.cursor()
     try:
         cur.execute(
             """
@@ -91,4 +88,5 @@ def test_security_event_insert_helper(test_client):
         if isinstance(details, dict):
             assert details.get("reason") in {"invalid_password", "user_not_found"}
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()

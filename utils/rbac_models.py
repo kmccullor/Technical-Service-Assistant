@@ -14,30 +14,24 @@ Features:
 
 Usage:
     from utils.rbac_models import User, Role, Permission, CreateUserRequest
-    
+
     user = User(email="admin@example.com", role_id=1, verified=True)
     role = Role(name="admin", permissions=["read", "write", "admin"])
 """
 
-from datetime import datetime, timedelta
-from enum import Enum
 import re
+from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    EmailStr,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class PermissionLevel(str, Enum):
     """Permission levels for granular access control."""
+
     READ = "read"
-    WRITE = "write" 
+    WRITE = "write"
     ADMIN = "admin"
     DELETE = "delete"
     MANAGE_USERS = "manage_users"
@@ -49,6 +43,7 @@ class PermissionLevel(str, Enum):
 
 class UserStatus(str, Enum):
     """User account status."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -57,6 +52,7 @@ class UserStatus(str, Enum):
 
 class RoleType(str, Enum):
     """Built-in role types with predefined permissions."""
+
     ADMIN = "admin"
     EMPLOYEE = "employee"
     GUEST = "guest"
@@ -76,22 +72,24 @@ class TimestampedModel(BaseModel):
 # Permission Models
 class Permission(TimestampedModel):
     """Permission entity model."""
+
     id: Optional[int] = None
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=255)
     resource: str = Field(..., min_length=1, max_length=100)
     action: PermissionLevel
-    
-    @field_validator('name')
+
+    @field_validator("name")
     def validate_permission_name(cls, v: str) -> str:
         """Validate permission name format."""
-        if not re.match(r'^[a-zA-Z0-9_]+$', v):
-            raise ValueError('Permission name must contain only alphanumeric characters and underscores')
+        if not re.match(r"^[a-zA-Z0-9_]+$", v):
+            raise ValueError("Permission name must contain only alphanumeric characters and underscores")
         return v.lower()
 
 
 class CreatePermissionRequest(BaseModel):
     """Request model for creating permissions."""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=255)
     resource: str = Field(..., min_length=1, max_length=100)
@@ -100,6 +98,7 @@ class CreatePermissionRequest(BaseModel):
 
 class PermissionResponse(BaseModel):
     """Response model for permission data."""
+
     id: int
     name: str
     description: Optional[str]
@@ -112,32 +111,34 @@ class PermissionResponse(BaseModel):
 # Role Models
 class Role(TimestampedModel):
     """Role entity model."""
+
     id: Optional[int] = None
     name: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=255)
     permissions: List[str] = Field(default_factory=list)
     is_system_role: bool = Field(default=False)
-    
-    @field_validator('name')
+
+    @field_validator("name")
     def validate_role_name(cls, v: str) -> str:
         """Validate role name format."""
-        if not re.match(r'^[a-zA-Z0-9_\-\s]+$', v):
-            raise ValueError('Role name contains invalid characters')
+        if not re.match(r"^[a-zA-Z0-9_\-\s]+$", v):
+            raise ValueError("Role name contains invalid characters")
         return v.lower()
-    
-    @field_validator('permissions')
+
+    @field_validator("permissions")
     def validate_permissions(cls, v: List[str]) -> List[str]:
         """Validate permission format."""
         valid_permissions = [p.value for p in PermissionLevel]
         for perm in v:
             if perm not in valid_permissions:
-                raise ValueError(f'Invalid permission: {perm}')
+                raise ValueError(f"Invalid permission: {perm}")
         # Remove duplicates while preserving order
         return list(dict.fromkeys(v))
 
 
 class CreateRoleRequest(BaseModel):
     """Request model for creating roles."""
+
     name: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=255)
     permissions: List[PermissionLevel] = Field(default_factory=list)
@@ -145,6 +146,7 @@ class CreateRoleRequest(BaseModel):
 
 class UpdateRoleRequest(BaseModel):
     """Request model for updating roles."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=255)
     permissions: Optional[List[PermissionLevel]] = None
@@ -152,6 +154,7 @@ class UpdateRoleRequest(BaseModel):
 
 class RoleResponse(BaseModel):
     """Response model for role data."""
+
     id: int
     name: str
     description: Optional[str]
@@ -165,6 +168,7 @@ class RoleResponse(BaseModel):
 # User Models
 class User(TimestampedModel):
     """User entity model."""
+
     id: Optional[int] = None
     email: EmailStr
     password_hash: Optional[str] = Field(None, exclude=True)  # Never serialize password hash
@@ -179,62 +183,61 @@ class User(TimestampedModel):
     password_change_required: bool = True  # Force password change on first login
     password_changed_at: Optional[datetime] = None
     preferences: Dict[str, Any] = Field(default_factory=dict)
-    
-    @field_validator('email')
-    def normalize_email(cls, v: EmailStr) -> EmailStr:
+
+    @field_validator("email")
+    def normalize_email(cls, v: EmailStr) -> str:
         """Additional email validation."""
         # Convert to lowercase for consistency
-        return EmailStr(str(v).lower())
-    
+        return str(v).lower()
+
     @property
     def full_name(self) -> str:
         """Get user's full name."""
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
         return self.email
-    
+
     @property
     def is_locked(self) -> bool:
         """Check if user account is locked."""
         if self.locked_until:
             return datetime.utcnow() < self.locked_until
         return False
-    
+
     @property
     def is_active(self) -> bool:
         """Check if user account is active."""
-        return (
-            self.status == UserStatus.ACTIVE and 
-            self.verified and 
-            not self.is_locked
-        )
+        return self.status == UserStatus.ACTIVE and self.verified and not self.is_locked
+
 
 class CreateUserRequest(BaseModel):
     """Request model for user creation."""
+
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     role_id: int = Field(..., gt=0)
-    
-    @field_validator('password')
+
+    @field_validator("password")
     def validate_password(cls, v: str) -> str:
         """Validate password strength."""
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('Password must contain at least one special character')
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
 class UpdateUserRequest(BaseModel):
     """Request model for user updates."""
+
     first_name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     role_id: Optional[int] = Field(None, gt=0)
@@ -244,63 +247,66 @@ class UpdateUserRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     """Request model for password changes."""
+
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: str = Field(..., min_length=8, max_length=128)
 
-    @model_validator(mode='after')
-    def validate_password_match(cls, model: 'ChangePasswordRequest') -> 'ChangePasswordRequest':
+    @model_validator(mode="after")
+    def validate_password_match(cls, model: "ChangePasswordRequest") -> "ChangePasswordRequest":
         """Ensure new password matches confirmation."""
         if model.new_password != model.confirm_password:
-            raise ValueError('New password and confirmation do not match')
+            raise ValueError("New password and confirmation do not match")
         return model
 
-    @field_validator('new_password')
+    @field_validator("new_password")
     def validate_new_password_strength(cls, v: str) -> str:
         """Validate password strength requirements."""
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('Password must contain at least one special character')
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
 class ForcePasswordChangeRequest(BaseModel):
     """Request model for forced initial password changes."""
+
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: str = Field(..., min_length=8, max_length=128)
-    
-    @model_validator(mode='after')
-    def validate_password_match(cls, model: 'ForcePasswordChangeRequest') -> 'ForcePasswordChangeRequest':
+
+    @model_validator(mode="after")
+    def validate_password_match(cls, model: "ForcePasswordChangeRequest") -> "ForcePasswordChangeRequest":
         """Validate password confirmation using Pydantic v2 style validator."""
         if model.new_password != model.confirm_password:
-            raise ValueError('New password and confirmation do not match')
+            raise ValueError("New password and confirmation do not match")
         return model
-    
-    @field_validator('new_password')
+
+    @field_validator("new_password")
     def validate_new_password(cls, v: str) -> str:
         """Validate new password strength."""
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
-            raise ValueError('Password must contain at least one special character')
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
 class UserResponse(BaseModel):
     """Response model for user data."""
+
     id: int
     email: str
     first_name: Optional[str]
@@ -321,6 +327,7 @@ class UserResponse(BaseModel):
 # Authentication Models
 class LoginRequest(BaseModel):
     """Login request model."""
+
     email: EmailStr
     password: str = Field(..., min_length=1)
     remember_me: bool = Field(default=False)
@@ -328,6 +335,7 @@ class LoginRequest(BaseModel):
 
 class TokenData(BaseModel):
     """JWT token payload data."""
+
     user_id: int
     email: str
     role_id: int
@@ -339,6 +347,7 @@ class TokenData(BaseModel):
 
 class TokenResponse(BaseModel):
     """Authentication token response."""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -348,31 +357,35 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """Refresh token request."""
+
     refresh_token: str = Field(..., min_length=1)
 
 
 class ResetPasswordRequest(BaseModel):
     """Password reset request."""
+
     email: EmailStr
 
 
 class ConfirmPasswordResetRequest(BaseModel):
     """Password reset confirmation."""
+
     token: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: str = Field(..., min_length=8, max_length=128)
-    
-    @model_validator(mode='after')
-    def validate_password_match(cls, model: 'ConfirmPasswordResetRequest') -> 'ConfirmPasswordResetRequest':
+
+    @model_validator(mode="after")
+    def validate_password_match(cls, model: "ConfirmPasswordResetRequest") -> "ConfirmPasswordResetRequest":
         """Validate password confirmation using Pydantic v2 style validator."""
         if model.new_password != model.confirm_password:
-            raise ValueError('New password and confirmation do not match')
+            raise ValueError("New password and confirmation do not match")
         return model
 
 
 # Audit and Security Models
 class AuditLog(TimestampedModel):
     """Audit log entry model."""
+
     id: Optional[int] = None
     user_id: Optional[int] = None
     action: str = Field(..., min_length=1, max_length=100)
@@ -384,11 +397,13 @@ class AuditLog(TimestampedModel):
     success: bool = Field(default=True)
     error_message: Optional[str] = None
 
+
 class SecurityEvent(TimestampedModel):
     """Security event model for monitoring."""
+
     id: Optional[int] = None
     event_type: str = Field(..., min_length=1, max_length=50)
-    severity: str = Field(..., pattern=r'^(low|medium|high|critical)$')
+    severity: str = Field(..., pattern=r"^(low|medium|high|critical)$")
     user_id: Optional[int] = None
     ip_address: Optional[str] = None
     details: Dict[str, Any] = Field(default_factory=dict)
@@ -396,9 +411,11 @@ class SecurityEvent(TimestampedModel):
     resolved_by: Optional[int] = None
     resolved_at: Optional[datetime] = None
 
+
 # API Response Models
 class APIResponse(BaseModel):
     """Standard API response wrapper."""
+
     success: bool
     message: str
     data: Optional[Any] = None
@@ -408,6 +425,7 @@ class APIResponse(BaseModel):
 
 class PaginatedResponse(BaseModel):
     """Paginated response model."""
+
     items: List[Any]
     total: int
     page: int
@@ -419,6 +437,7 @@ class PaginatedResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Error response model."""
+
     success: bool = False
     message: str
     error_code: Optional[str] = None
@@ -429,12 +448,14 @@ class ErrorResponse(BaseModel):
 # Utility Models for RBAC Operations
 class RoleAssignmentRequest(BaseModel):
     """Request to assign role to user."""
+
     user_id: int = Field(..., gt=0)
     role_id: int = Field(..., gt=0)
 
 
 class PermissionCheckRequest(BaseModel):
     """Request to check user permissions."""
+
     user_id: int = Field(..., gt=0)
     permission: PermissionLevel
     resource: Optional[str] = None
@@ -442,6 +463,7 @@ class PermissionCheckRequest(BaseModel):
 
 class PermissionCheckResponse(BaseModel):
     """Response for permission check."""
+
     has_permission: bool
     user_id: int
     permission: str
@@ -453,13 +475,15 @@ class PermissionCheckResponse(BaseModel):
 # Bulk Operations
 class BulkUserOperation(BaseModel):
     """Bulk user operation request."""
+
     user_ids: List[int] = Field(..., min_length=1, max_length=100)
-    operation: str = Field(..., pattern=r'^(activate|deactivate|suspend|delete|assign_role)$')
+    operation: str = Field(..., pattern=r"^(activate|deactivate|suspend|delete|assign_role)$")
     parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class BulkOperationResponse(BaseModel):
     """Bulk operation response."""
+
     total_requested: int
     successful: int
     failed: int
@@ -470,24 +494,27 @@ class BulkOperationResponse(BaseModel):
 # System Configuration Models
 class RBACConfig(BaseModel):
     """RBAC system configuration."""
-    password_policy: Dict[str, Any] = Field(default_factory=lambda: {
-        "min_length": 8,
-        "require_uppercase": True,
-        "require_lowercase": True,
-        "require_digits": True,
-        "require_special_chars": True
-    })
-    session_config: Dict[str, Any] = Field(default_factory=lambda: {
-        "access_token_expire_minutes": 30,
-        "refresh_token_expire_days": 7,
-        "max_login_attempts": 5,
-        "lockout_duration_minutes": 15
-    })
-    audit_config: Dict[str, Any] = Field(default_factory=lambda: {
-        "log_all_actions": True,
-        "log_failed_attempts": True,
-        "retention_days": 90
-    })
+
+    password_policy: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "min_length": 8,
+            "require_uppercase": True,
+            "require_lowercase": True,
+            "require_digits": True,
+            "require_special_chars": True,
+        }
+    )
+    session_config: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "access_token_expire_minutes": 30,
+            "refresh_token_expire_days": 7,
+            "max_login_attempts": 5,
+            "lockout_duration_minutes": 15,
+        }
+    )
+    audit_config: Dict[str, Any] = Field(
+        default_factory=lambda: {"log_all_actions": True, "log_failed_attempts": True, "retention_days": 90}
+    )
 
 
 # Default role configurations
@@ -495,24 +522,18 @@ DEFAULT_ROLES = {
     RoleType.ADMIN: {
         "name": "admin",
         "description": "Full system administrator with all permissions",
-        "permissions": [p.value for p in PermissionLevel]
+        "permissions": [p.value for p in PermissionLevel],
     },
     RoleType.EMPLOYEE: {
-        "name": "employee", 
+        "name": "employee",
         "description": "Standard employee with chat and document access",
-        "permissions": [
-            PermissionLevel.READ.value,
-            PermissionLevel.WRITE.value,
-            PermissionLevel.EXPORT_DATA.value
-        ]
+        "permissions": [PermissionLevel.READ.value, PermissionLevel.WRITE.value, PermissionLevel.EXPORT_DATA.value],
     },
     RoleType.GUEST: {
         "name": "guest",
         "description": "Limited guest access for read-only operations",
-        "permissions": [
-            PermissionLevel.READ.value
-        ]
-    }
+        "permissions": [PermissionLevel.READ.value],
+    },
 }
 
 
@@ -520,6 +541,7 @@ class UserRoleAssignment(BaseModel):
     user_id: int
     role_id: int
     assigned_at: Optional[datetime] = None
+
 
 class RolePermissionAssignment(BaseModel):
     role_id: int

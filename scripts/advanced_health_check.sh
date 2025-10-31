@@ -20,7 +20,7 @@ echo -e "${BLUE}=== ⚡ Detailed Performance Analysis ===${NC}"
 # Database query performance
 echo "📊 Database Query Performance:"
 SLOW_QUERIES=$(docker exec pgvector psql -U postgres -d vector_db -t -c "
-SELECT COUNT(*) FROM pg_stat_statements 
+SELECT COUNT(*) FROM pg_stat_statements
 WHERE mean_time > 1000 AND calls > 10;" 2>/dev/null | xargs || echo "0")
 echo "  Slow queries (>1s, >10 calls): $SLOW_QUERIES"
 

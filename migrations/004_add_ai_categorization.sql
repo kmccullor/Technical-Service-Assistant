@@ -2,7 +2,7 @@
 -- This enables intelligent classification of document types and products
 
 -- Add categorization columns to pdf_documents table
-ALTER TABLE pdf_documents 
+ALTER TABLE pdf_documents
 ADD COLUMN IF NOT EXISTS document_type text DEFAULT 'unknown',
 ADD COLUMN IF NOT EXISTS product_name text DEFAULT 'unknown',
 ADD COLUMN IF NOT EXISTS product_version text DEFAULT 'unknown',
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_pdf_documents_document_category ON pdf_documents(
 CREATE INDEX IF NOT EXISTS idx_pdf_documents_ai_metadata ON pdf_documents USING gin(ai_metadata);
 
 -- Add categorization columns to document_chunks table for enhanced search
-ALTER TABLE document_chunks 
+ALTER TABLE document_chunks
 ADD COLUMN IF NOT EXISTS document_type text DEFAULT 'unknown',
 ADD COLUMN IF NOT EXISTS product_name text DEFAULT 'unknown';
 
@@ -78,7 +78,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql STABLE
 AS $$
-  SELECT 
+  SELECT
     d.document_type,
     d.product_name,
     d.privacy_level,
@@ -107,7 +107,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql STABLE
 AS $$
-  SELECT 
+  SELECT
     d.id,
     d.file_name,
     d.document_type,

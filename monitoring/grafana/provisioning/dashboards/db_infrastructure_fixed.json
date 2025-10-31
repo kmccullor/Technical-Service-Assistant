@@ -31,7 +31,7 @@
                     "color": "red"
                   },
                   "1": {
-                    "text": "UP", 
+                    "text": "UP",
                     "color": "green"
                   }
                 },
@@ -61,7 +61,7 @@
       },
       {
         "id": 2,
-        "title": "Redis Status", 
+        "title": "Redis Status",
         "type": "stat",
         "targets": [
           {
@@ -90,7 +90,7 @@
             "thresholds": {
               "steps": [
                 {
-                  "color": "red", 
+                  "color": "red",
                   "value": 0
                 },
                 {
@@ -120,7 +120,7 @@
           },
           {
             "expr": "sum(pg_stat_activity_count)",
-            "legendFormat": "Total Connections", 
+            "legendFormat": "Total Connections",
             "refId": "B"
           }
         ],

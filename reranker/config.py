@@ -9,16 +9,17 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 # Load .env automatically if present to mirror top-level config behavior
 try:  # pragma: no cover - optional convenience
     from dotenv import load_dotenv
-    env_path = Path(__file__).resolve().parent / '.env'
-    project_env = Path(__file__).resolve().parent.parent / '.env'
+
+    env_path = Path(__file__).resolve().parent / ".env"
+    project_env = Path(__file__).resolve().parent.parent / ".env"
     if env_path.exists():
         load_dotenv(env_path)
     elif project_env.exists():
@@ -198,11 +199,19 @@ def get_settings() -> Settings:
     s.smtp_password = os.getenv("SMTP_PASSWORD")
     s.smtp_use_tls = _get_bool("SMTP_USE_TLS", True)
     s.verification_email_sender = os.getenv("VERIFICATION_EMAIL_SENDER", "no-reply@technical-service-assistant.local")
-    s.verification_email_subject = os.getenv("VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account")
-    s.verification_email_link_base = os.getenv("VERIFICATION_EMAIL_LINK_BASE", "http://localhost:3000/verify-email")
+    s.verification_email_subject = os.getenv(
+        "VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account"
+    )
+    s.verification_email_link_base = os.getenv(
+        "VERIFICATION_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/verify-email"
+    )
     s.password_reset_email_sender = os.getenv("PASSWORD_RESET_EMAIL_SENDER", s.verification_email_sender)
-    s.password_reset_email_subject = os.getenv("PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password")
-    s.password_reset_email_link_base = os.getenv("PASSWORD_RESET_EMAIL_LINK_BASE", "http://localhost:3000/reset-password")
+    s.password_reset_email_subject = os.getenv(
+        "PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password"
+    )
+    s.password_reset_email_link_base = os.getenv(
+        "PASSWORD_RESET_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/reset-password"
+    )
 
     # Feature Flags
     s.enable_table_extraction = _get_bool("ENABLE_TABLE_EXTRACTION", True)

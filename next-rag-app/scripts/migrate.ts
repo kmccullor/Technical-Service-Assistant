@@ -17,13 +17,13 @@ async function runMigrations() {
 
   try {
     console.log('🔄 Running database migrations...')
-    
+
     // Read and execute migration file
     const migrationPath = join(process.cwd(), 'lib', 'db', 'migrations', '001_initial.sql')
     const migrationSQL = readFileSync(migrationPath, 'utf-8')
-    
+
     await pool.query(migrationSQL)
-    
+
     console.log('✅ Migrations completed successfully')
   } catch (error) {
     console.error('❌ Migration failed:', error)

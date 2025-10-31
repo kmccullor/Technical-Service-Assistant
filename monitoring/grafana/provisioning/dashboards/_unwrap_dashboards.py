@@ -14,7 +14,10 @@ Steps per file:
  5. Write back raw model.
 """
 from __future__ import annotations
-import json, pathlib, re
+
+import json
+import pathlib
+import re
 
 DIR = pathlib.Path(__file__).parent
 
@@ -24,9 +27,9 @@ PANEL_LIKE = {"CPU Usage %", "PostgreSQL Active Connections"}
 
 
 def synthesize_title(fname: str) -> str:
-    stem = fname.rsplit('.', 1)[0]
-    human = re.sub(r'[_-]+', ' ', stem).title()
-    if not human.lower().startswith('technical service assistant'):
+    stem = fname.rsplit(".", 1)[0]
+    human = re.sub(r"[_-]+", " ", stem).title()
+    if not human.lower().startswith("technical service assistant"):
         human = SAFE_TITLE_PREFIX + human
     return human
 
@@ -41,30 +44,31 @@ def normalize_datasource(obj):
         return [normalize_datasource(v) for v in obj]
     return obj
 
+
 changed = []
-for f in DIR.glob('*.json'):
-    if f.name.startswith('_'):  # skip helper scripts
+for f in DIR.glob("*.json"):
+    if f.name.startswith("_"):  # skip helper scripts
         continue
-    data = json.loads(f.read_text(encoding='utf-8'))
-    if isinstance(data, dict) and 'dashboard' in data and isinstance(data['dashboard'], dict):
-        dashboard = data['dashboard']
+    data = json.loads(f.read_text(encoding="utf-8"))
+    if isinstance(data, dict) and "dashboard" in data and isinstance(data["dashboard"], dict):
+        dashboard = data["dashboard"]
     else:
         dashboard = data
 
-    title = dashboard.get('title')
+    title = dashboard.get("title")
     if not title or title in PANEL_LIKE:
         title = synthesize_title(f.name)
-        dashboard['title'] = title
+        dashboard["title"] = title
 
     dashboard = normalize_datasource(dashboard)
 
     # Strip provisioning envelope if present
-    if 'dashboard' in data:
-        f.write_text(json.dumps(dashboard, indent=2), encoding='utf-8')
+    if "dashboard" in data:
+        f.write_text(json.dumps(dashboard, indent=2), encoding="utf-8")
         changed.append(f.name)
     else:
         # Already raw; just update if modified
-        f.write_text(json.dumps(dashboard, indent=2), encoding='utf-8')
+        f.write_text(json.dumps(dashboard, indent=2), encoding="utf-8")
         changed.append(f.name)
 
 print(f"✅ Unwrapped/normalized {len(changed)} dashboards:")

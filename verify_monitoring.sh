@@ -16,7 +16,7 @@ test_endpoint() {
     local name=$1
     local url=$2
     local expected_status=${3:-200}
-    
+
     local status=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null)
     if [ "$status" = "$expected_status" ]; then
         echo "  ✅ $name: HTTP $status"
@@ -53,7 +53,7 @@ TARGETS_JSON=$(curl -s "http://$HOSTNAME:$PROMETHEUS_PORT/api/v1/targets" 2>/dev
 if [ $? -eq 0 ] && echo "$TARGETS_JSON" | grep -q "activeTargets"; then
     echo "📊 Active Prometheus Targets:"
     echo "$TARGETS_JSON" | jq -r '.data.activeTargets[] | "  \(if .health == "up" then "✅" else "❌" end) \(.labels.job) (\(.labels.instance // "no-instance")): \(.health)"' 2>/dev/null | sort
-    
+
     echo ""
     echo "📈 Target Summary:"
     UP_COUNT=$(echo "$TARGETS_JSON" | jq '[.data.activeTargets[] | select(.health == "up")] | length' 2>/dev/null)
@@ -74,7 +74,7 @@ echo "==========================="
 test_metrics() {
     local metric=$1
     local description=$2
-    
+
     local result=$(curl -s "http://$HOSTNAME:$PROMETHEUS_PORT/api/v1/query?query=$metric" 2>/dev/null | jq -r '.data.result | length' 2>/dev/null)
     if [ "$result" -gt 0 ] 2>/dev/null; then
         echo "  ✅ $description ($result series)"

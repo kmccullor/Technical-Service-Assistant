@@ -1,7 +1,9 @@
 fastapi
 uvicorn[standard]
 python-multipart
+torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu
 FlagEmbedding
+--extra-index-url https://download.pytorch.org/whl/cpu
 psycopg2-binary
 ollama
 httpx

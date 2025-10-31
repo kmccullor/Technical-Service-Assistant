@@ -9,10 +9,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import psycopg2
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
+import psycopg2
 from pydantic import BaseModel
 
 from config import get_settings

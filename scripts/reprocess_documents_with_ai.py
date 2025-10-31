@@ -13,32 +13,26 @@ Usage:
     python scripts/reprocess_documents_with_ai.py [--limit N] [--dry-run]
 """
 
-import sys
-import os
 import argparse
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
 # Add project root to path
-sys.path.append('/app')
-sys.path.append('/home/kmccullor/Projects/Technical-Service-Assistant')
+sys.path.append("/app")
+sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
 
 from config import get_settings
+from pdf_processor.pdf_utils import classify_document_with_ai, detect_confidentiality, extract_text, get_db_connection
 from utils.logging_config import setup_logging
-from pdf_processor.pdf_utils import (
-    get_db_connection,
-    extract_text,
-    classify_document_with_ai,
-    detect_confidentiality,
-)
 
 # Setup logging
 logger = setup_logging(
-    program_name='reprocess_ai',
-    log_level='INFO',
+    program_name="reprocess_ai",
+    log_level="INFO",
     log_file=f'logs/reprocess_ai_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log',
-    console_output=True
+    console_output=True,
 )
 
 settings = get_settings()
@@ -98,7 +92,8 @@ def update_document_categorization(doc_id, file_name, ai_classification, privacy
     cur = conn.cursor()
 
     try:
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE pdf_documents SET
                 document_type = %s,
                 product_name = %s,
@@ -108,36 +103,41 @@ def update_document_categorization(doc_id, file_name, ai_classification, privacy
                 privacy_level = %s,
                 ai_metadata = %s
             WHERE id = %s
-        """, (
-            ai_classification.get('document_type', 'unknown'),
-            ai_classification.get('product_name', 'unknown'),
-            ai_classification.get('product_version', 'unknown'),
-            ai_classification.get('document_category', 'documentation'),
-            ai_classification.get('confidence', 0.0),
-            privacy_level,
-            str(ai_classification.get('metadata', {})),  # Store as text for now
-            doc_id
-        ))
+        """,
+            (
+                ai_classification.get("document_type", "unknown"),
+                ai_classification.get("product_name", "unknown"),
+                ai_classification.get("product_version", "unknown"),
+                ai_classification.get("document_category", "documentation"),
+                ai_classification.get("confidence", 0.0),
+                privacy_level,
+                str(ai_classification.get("metadata", {})),  # Store as text for now
+                doc_id,
+            ),
+        )
 
         # Update associated chunks with AI categorization
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE document_chunks SET
                 document_type = %s,
                 product_name = %s,
                 privacy_level = %s
             WHERE document_id = %s
-        """, (
-            ai_classification.get('document_type', 'unknown'),
-            ai_classification.get('product_name', 'unknown'),
-            privacy_level,
-            doc_id
-        ))
+        """,
+            (
+                ai_classification.get("document_type", "unknown"),
+                ai_classification.get("product_name", "unknown"),
+                privacy_level,
+                doc_id,
+            ),
+        )
 
         conn.commit()
         logger.info(f"Updated document ID {doc_id} ({file_name}) with AI categorization")
         logger.info(f"  Type: {ai_classification.get('document_type', 'unknown')}")
-        product_name = ai_classification.get('product_name', 'unknown')
-        product_version = ai_classification.get('product_version', 'unknown')
+        product_name = ai_classification.get("product_name", "unknown")
+        product_version = ai_classification.get("product_version", "unknown")
         logger.info("  Product: %s v%s", product_name, product_version)
         logger.info(f"  Privacy: {privacy_level}")
         logger.info(f"  Confidence: {ai_classification.get('confidence', 0.0):.2f}")
@@ -194,8 +194,8 @@ def reprocess_document(doc_id, file_name, dry_run=False):
             logger.info(f"  Type: {ai_classification.get('document_type')}")
             logger.info(
                 "  Product: %s v%s",
-                ai_classification.get('product_name'),
-                ai_classification.get('product_version'),
+                ai_classification.get("product_name"),
+                ai_classification.get("product_version"),
             )
             logger.info(f"  Privacy: {privacy_level}")
             logger.info(f"  Confidence: {ai_classification.get('confidence', 0.0):.2f}")
@@ -212,9 +212,9 @@ def reprocess_document(doc_id, file_name, dry_run=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Reprocess documents with AI categorization')
-    parser.add_argument('--limit', type=int, help='Limit number of documents to process')
-    parser.add_argument('--dry-run', action='store_true', help='Show what would be done without making changes')
+    parser = argparse.ArgumentParser(description="Reprocess documents with AI categorization")
+    parser.add_argument("--limit", type=int, help="Limit number of documents to process")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
 
     args = parser.parse_args()
 

@@ -113,7 +113,7 @@ services:
       - DB_PASSWORD=postgres
       - LOG_LEVEL=DEBUG
       - OLLAMA_URL=http://ollama-server-1:11434
-      - EMBEDDING_MODEL=nomic-embed-text
+      - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7B
       - RERANK_MODEL=BAAI/bge-reranker-base
       - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
@@ -123,10 +123,10 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - VERIFICATION_EMAIL_SENDER=${VERIFICATION_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
       - VERIFICATION_EMAIL_SUBJECT=${VERIFICATION_EMAIL_SUBJECT:-Verify your Technical Service Assistant account}
-      - VERIFICATION_EMAIL_LINK_BASE=${VERIFICATION_EMAIL_LINK_BASE:-http://localhost:3000/verify-email}
+      - VERIFICATION_EMAIL_LINK_BASE=${VERIFICATION_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/verify-email}
       - PASSWORD_RESET_EMAIL_SENDER=${PASSWORD_RESET_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
       - PASSWORD_RESET_EMAIL_SUBJECT=${PASSWORD_RESET_EMAIL_SUBJECT:-Reset your Technical Service Assistant password}
-      - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-http://localhost:3000/reset-password}
+      - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/reset-password}
     depends_on:
       - pgvector
       - ollama-server-1
@@ -184,14 +184,14 @@ services:
     environment:
       # Database - Connect to pgvector container
       - DATABASE_URL=postgresql://postgres:postgres@pgvector:5432/vector_db
-      
+
       # Local AI Models - Connect to Ollama containers
       - USE_LOCAL_MODELS=true
       - OLLAMA_BASE_URL=http://ollama-server-1:11434
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7b
-      
+
       # App Configuration - RAG Performance Optimized
       - NODE_ENV=production
       - NEXT_PUBLIC_APP_URL=http://RNI-LLM-01.lab.sensus.net:3000
@@ -205,21 +205,21 @@ services:
       - CACHE_TTL=3600
       - OLLAMA_TIMEOUT=30000
       - REQUEST_TIMEOUT=45000
-      
+
       # Web Search Configuration (Reranker)
       - RERANKER_BASE_URL=http://reranker:8008
       - USE_RERANKER_WEBSEARCH=true
-      
+
       # Performance & Caching
       - REDIS_URL=redis://redis:6379
-      
+
       # Disabled External Services (using local only)
       - COHERE_API_KEY=disabled-using-local
       - TAVILY_API_KEY=disabled-using-local
       - SERP_API_KEY=disabled-using-local
       - LANGFUSE_PUBLIC_KEY=disabled-using-local
       - LANGFUSE_SECRET_KEY=disabled-using-local
-      
+
     ports:
       - "3000:3000"
     depends_on:
@@ -372,7 +372,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # Redis exporter for cache metrics  
+  # Redis exporter for cache metrics
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: redis-exporter

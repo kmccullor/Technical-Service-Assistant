@@ -136,7 +136,7 @@ docker run -p 3000:3000 \
    ```bash
    # Check if PostgreSQL is running
    docker-compose ps db
-   
+
    # Reset database
    docker-compose down -v
    docker-compose up -d db
@@ -152,7 +152,7 @@ docker run -p 3000:3000 \
    ```bash
    # Check if data exists
    psql $DATABASE_URL -c "SELECT COUNT(*) FROM chunks;"
-   
+
    # Re-seed database
    pnpm db:seed
    ```
@@ -161,7 +161,7 @@ docker run -p 3000:3000 \
    ```bash
    # Install missing types
    pnpm add -D @types/node @types/react @types/react-dom
-   
+
    # Check configuration
    pnpm typecheck
    ```
@@ -177,9 +177,9 @@ ALTER INDEX embedding_idx SET (m = 16, ef_construction = 64);
 ANALYZE chunks;
 
 -- Check index usage
-EXPLAIN (ANALYZE, BUFFERS) 
-SELECT * FROM chunks 
-ORDER BY embedding <=> '[0.1,0.2,...]'::vector 
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM chunks
+ORDER BY embedding <=> '[0.1,0.2,...]'::vector
 LIMIT 10;
 ```
 

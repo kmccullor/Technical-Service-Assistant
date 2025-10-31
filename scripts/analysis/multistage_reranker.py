@@ -40,6 +40,7 @@ class MultiStageReranker:
 
     def __init__(self):
         """Initialize multi-stage reranker."""
+
     self.domain_glossary = self._load_domain_glossary()
     # Support remote deployments via environment variable
     self.reranker_url = os.getenv("RERANKER_URL", "http://localhost:8008")

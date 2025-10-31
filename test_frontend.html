@@ -26,22 +26,22 @@
                         max_tokens: 100
                     })
                 });
-                
+
                 if (!response.ok) {
                     console.error('Response not OK:', response.status, response.statusText);
                     return;
                 }
-                
+
                 const data = await response.json();
                 console.log('Success! Response:', data);
-                
+
                 document.getElementById('result').innerHTML = `
                     <h3>✅ Success</h3>
                     <p><strong>Model:</strong> ${data.model}</p>
                     <p><strong>Search Method:</strong> ${data.search_method}</p>
                     <p><strong>Response:</strong> ${data.response.substring(0, 200)}...</p>
                 `;
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('result').innerHTML = `
@@ -50,7 +50,7 @@
                 `;
             }
         }
-        
+
         window.onload = () => {
             testChat();
         };

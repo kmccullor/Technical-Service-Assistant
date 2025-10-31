@@ -26,13 +26,13 @@
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const resultDiv = document.getElementById('result');
-            
+
             resultDiv.innerHTML = '<div class="info">Testing login...</div>';
-            
+
             try {
                 // Test direct API call
                 const response = await fetch('/api/auth/login', {
@@ -42,9 +42,9 @@
                     },
                     body: JSON.stringify({ email, password })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     resultDiv.innerHTML = `
                         <div class="success">

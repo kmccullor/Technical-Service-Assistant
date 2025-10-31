@@ -53,7 +53,7 @@ echo "========================"
 # Check key services
 services=(
     "3001:Grafana"
-    "9090:Prometheus" 
+    "9090:Prometheus"
     "8008:Reranker"
     "9100:Node-Exporter"
     "9187:Postgres-Exporter"
@@ -66,7 +66,7 @@ services=(
 for service in "${services[@]}"; do
     port=$(echo $service | cut -d: -f1)
     name=$(echo $service | cut -d: -f2)
-    
+
     if timeout 2 bash -c "echo >/dev/tcp/$HOSTNAME/$port" 2>/dev/null; then
         echo "  ✅ $name (port $port)"
     else

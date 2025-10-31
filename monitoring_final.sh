@@ -23,7 +23,7 @@ else
 fi
 
 if curl -s "http://$HOSTNAME:3001/api/health" >/dev/null 2>&1; then
-    echo "  ✅ Grafana: Running (Port 3001)" 
+    echo "  ✅ Grafana: Running (Port 3001)"
     echo "     URL: http://$HOSTNAME:3001"
     echo "     Login: admin/admin"
 else
@@ -38,7 +38,7 @@ echo "============================"
 TARGET_DATA=$(curl -s "http://$HOSTNAME:9091/api/v1/targets" 2>/dev/null)
 if [ $? -eq 0 ]; then
     echo "$TARGET_DATA" | jq -r '.data.activeTargets[] | "\(if .health == "up" then "✅" else "❌" end) \(.labels.job): \(.labels.instance // "internal") - \(.health)"' 2>/dev/null | sort
-    
+
     echo ""
     UP_COUNT=$(echo "$TARGET_DATA" | jq '[.data.activeTargets[] | select(.health == "up")] | length' 2>/dev/null)
     TOTAL_COUNT=$(echo "$TARGET_DATA" | jq '.data.activeTargets | length' 2>/dev/null)
@@ -144,7 +144,7 @@ echo "🚀 Your Technical Service Assistant now has comprehensive"
 echo "   monitoring with Prometheus and Grafana configured for:"
 echo ""
 echo "   • Real-time system metrics"
-echo "   • Application performance monitoring"  
+echo "   • Application performance monitoring"
 echo "   • Database health tracking"
 echo "   • Container resource monitoring"
 echo "   • Custom alerting capabilities"

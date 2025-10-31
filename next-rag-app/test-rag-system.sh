@@ -54,7 +54,7 @@ done
 echo -e "\n6. 🎯 SOLUTION SUMMARY:"
 echo "================================"
 echo "✅ Database: 4033 document chunks available"
-echo "✅ Ollama: 4 containers running with load balancing"  
+echo "✅ Ollama: 4 containers running with load balancing"
 echo "✅ Models: llama3.2:1b (chat) + nomic-embed-text (embeddings)"
 echo "✅ RAG Search: Successfully finding relevant documents"
 

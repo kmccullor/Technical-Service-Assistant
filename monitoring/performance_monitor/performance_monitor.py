@@ -29,23 +29,16 @@ Design:
 
 from __future__ import annotations
 
-import os
-import time
-import socket
 import logging
-from typing import Dict, List
+import os
+import socket
+import time
 from contextlib import contextmanager
+from typing import Dict
 
 import psycopg2
 import requests
-from prometheus_client import (
-    CollectorRegistry,
-    Gauge,
-    Counter,
-    Histogram,
-    generate_latest,
-    start_http_server,
-)
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest, start_http_server
 
 from config import get_settings
 
@@ -62,13 +55,26 @@ REGISTRY = CollectorRegistry()
 
 G_DOCUMENTS_TOTAL = Gauge("tsa_documents_total", "Total documents ingested", registry=REGISTRY)
 G_DOCUMENT_CHUNKS_TOTAL = Gauge("tsa_document_chunks_total", "Total document chunks stored", registry=REGISTRY)
-G_LAST_INGESTION_TS = Gauge("tsa_last_ingestion_timestamp", "Unix timestamp of latest document ingestion", registry=REGISTRY)
+G_LAST_INGESTION_TS = Gauge(
+    "tsa_last_ingestion_timestamp", "Unix timestamp of latest document ingestion", registry=REGISTRY
+)
 G_DOCS_PROCESSED_TODAY = Gauge("tsa_documents_processed_today", "Documents processed today", registry=REGISTRY)
-G_AVG_PROC_TIME_TODAY = Gauge("tsa_avg_processing_time_seconds", "Average processing time (s) for today's ingestions", registry=REGISTRY)
-G_CHUNKS_CREATED_TODAY = Gauge("tsa_chunks_created_today", "Chunks created today (sum inserted_chunks)", registry=REGISTRY)
-G_SERVICE_STATUS = Gauge("tsa_service_status", "Service/component health (1=healthy,0=unhealthy)", ["component"], registry=REGISTRY)
+G_AVG_PROC_TIME_TODAY = Gauge(
+    "tsa_avg_processing_time_seconds", "Average processing time (s) for today's ingestions", registry=REGISTRY
+)
+G_CHUNKS_CREATED_TODAY = Gauge(
+    "tsa_chunks_created_today", "Chunks created today (sum inserted_chunks)", registry=REGISTRY
+)
+G_SERVICE_STATUS = Gauge(
+    "tsa_service_status", "Service/component health (1=healthy,0=unhealthy)", ["component"], registry=REGISTRY
+)
 G_LAST_REFRESH_TS = Gauge("tsa_last_refresh_timestamp", "Unix timestamp of last successful refresh", registry=REGISTRY)
-H_REFRESH_DURATION = Histogram("tsa_refresh_duration_seconds", "Refresh cycle durations", buckets=(0.05,0.1,0.25,0.5,1,2,5), registry=REGISTRY)
+H_REFRESH_DURATION = Histogram(
+    "tsa_refresh_duration_seconds",
+    "Refresh cycle durations",
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+    registry=REGISTRY,
+)
 C_REFRESH_ERRORS = Counter("tsa_refresh_errors_total", "Total refresh cycles that failed", registry=REGISTRY)
 
 
@@ -119,11 +125,11 @@ def _collect_db_metrics() -> Dict[str, float]:
             with conn.cursor() as cur:
                 cur.execute("SELECT COUNT(*) FROM documents")
                 row = cur.fetchone()
-                out["documents_total"] = (row[0] if row and row[0] is not None else 0)
+                out["documents_total"] = row[0] if row and row[0] is not None else 0
 
                 cur.execute("SELECT COUNT(*) FROM document_chunks")
                 row = cur.fetchone()
-                out["chunks_total"] = (row[0] if row and row[0] is not None else 0)
+                out["chunks_total"] = row[0] if row and row[0] is not None else 0
 
                 cur.execute("SELECT MAX(created_at) FROM documents")
                 row = cur.fetchone()

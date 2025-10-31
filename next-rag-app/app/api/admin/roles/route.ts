@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const text = await r.text()
     let data: any = null
     try { data = JSON.parse(text) } catch(_) {}
-    
+
     if (r.ok && data && data.items) {
       // Transform backend response format to match frontend expectation
       const transformed = data.items.map((item: any) => ({
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       }))
       return NextResponse.json(transformed, { status: r.status })
     }
-    
+
     return NextResponse.json(data ?? { detail: text || 'Admin roles failed' }, { status: r.status })
   } catch (e:any) {
     return NextResponse.json({ detail: 'Admin roles proxy error', error: e?.message }, { status: 500 })

@@ -8,9 +8,9 @@ This document outlines the complete workflow for using the Data Dictionary syste
 ### Microsoft SQL Server
 - **FlexnetDB**: Primary Sensus AMI database containing meter data, billing information, and infrastructure management
 
-### PostgreSQL Databases  
+### PostgreSQL Databases
 - **AMDS**: Advanced Metering Data System for real-time meter reading and data processing
-- **Router**: Communication management database for AMI network routing and device connectivity  
+- **Router**: Communication management database for AMI network routing and device connectivity
 - **FWDL**: Firmware Download management system for device updates and version control
 
 ## Employee Request Workflow
@@ -46,7 +46,7 @@ curl -X POST http://localhost:8008/api/data-dictionary/query-assistance \
 #### Scenario A: Data Dictionary Available ✅
 **Response Status:** `data_dictionary_available`
 - **Action:** Proceed with query development using available schema information
-- **Available Information:** 
+- **Available Information:**
   - Schema names and table counts
   - Direct links to detailed schema documentation
   - Ready to assist with specific queries
@@ -77,7 +77,7 @@ The system provides a database-specific extraction query that you must run on yo
 **For FlexnetDB (MSSQL):**
 ```sql
 -- Sensus AMI FlexnetDB Schema Extraction Query (MSSQL)
-SELECT 
+SELECT
     s.name AS schema_name,
     t.name AS table_name,
     c.name AS column_name,
@@ -101,7 +101,7 @@ ORDER BY s.name, t.name, c.column_id;
 **For AMDS/Router/FWDL (PostgreSQL):**
 ```sql
 -- Sensus AMI [Database] Schema Extraction Query (PostgreSQL)
-SELECT 
+SELECT
     n.nspname AS schema_name,
     c.relname AS table_name,
     a.attname AS column_name,
@@ -115,13 +115,13 @@ ORDER BY n.nspname, c.relname, a.attnum;
 
 1. Copy the provided extraction query
 2. Connect to your target database (FlexnetDB, AMDS, Router, or FWDL) using your SQL client
-3. Execute the query in your database environment  
+3. Execute the query in your database environment
 4. Export the query results as a CSV file
 
 ### Step 3: Upload Schema Data
 **The system cannot access your database servers directly - you must upload the data**
 
-1. Navigate to: `http://localhost:3000/data-dictionary` 
+1. Navigate to: `http://localhost:3000/data-dictionary`
 2. Click the **"Upload Schema"** button
 3. Select your RNI version and database type
 4. Upload the CSV file generated from Step 2
@@ -131,7 +131,7 @@ ORDER BY n.nspname, c.relname, a.attnum;
 
 ### Core Endpoints
 - **Query Assistance:** `POST /api/data-dictionary/query-assistance`
-- **RNI Versions:** `GET /api/data-dictionary/rni-versions` 
+- **RNI Versions:** `GET /api/data-dictionary/rni-versions`
 - **Database Instances:** `GET /api/data-dictionary/database-instances`
 - **Schema Upload:** `POST /api/data-dictionary/upload-schema` (File upload)
 - **Health Check:** `GET /api/data-dictionary/health`
@@ -189,7 +189,7 @@ docker compose ps
 # Test data dictionary health
 curl http://localhost:8008/api/data-dictionary/health
 
-# Test frontend accessibility  
+# Test frontend accessibility
 curl -I http://localhost:3000/data-dictionary
 ```
 

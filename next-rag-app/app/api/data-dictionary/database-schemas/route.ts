@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const searchParams = url.searchParams.toString()
     const fetchUrl = `${BASE_URL}/api/data-dictionary/database-schemas${searchParams ? `?${searchParams}` : ''}`
-    
+
     const response = await fetch(fetchUrl, {
       headers: auth ? { Authorization: auth } : undefined,
     })

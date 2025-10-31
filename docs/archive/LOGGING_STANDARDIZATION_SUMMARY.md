@@ -53,7 +53,7 @@ Successfully implemented standardized Log4-style logging across all Python scrip
 
 - **Timestamp**: Subsecond precision (milliseconds)
 - **Program Name**: Script or service name
-- **Module Name**: Logger name/module identifier  
+- **Module Name**: Logger name/module identifier
 - **Severity**: INFO, DEBUG, WARNING, ERROR, CRITICAL
 - **Message**: Actual log message
 

@@ -1,19 +1,19 @@
 import json
 import logging
 import os
-import tempfile
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-import uuid
 
 import fitz  # PyMuPDF for PDF processing
-from PIL import Image
 import pytesseract
+from PIL import Image
+
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
 
 @dataclass
 class TempDocument:
@@ -24,6 +24,7 @@ class TempDocument:
     upload_time: datetime
     chunks: List[str]
     embeddings: Optional[List[List[float]]] = None
+
 
 class TempDocumentProcessor:
     """
@@ -40,17 +41,28 @@ class TempDocumentProcessor:
         try:
             file_extension = os.path.splitext(file_name)[1].lower()
 
-            if file_extension == '.pdf':
+            if file_extension == ".pdf":
                 content = self._extract_pdf_content(file_path)
-            elif file_extension in ['.txt', '.log', '.sql', '.conf', '.config', '.ini', '.properties', '.out', '.err', '.trace']:
+            elif file_extension in [
+                ".txt",
+                ".log",
+                ".sql",
+                ".conf",
+                ".config",
+                ".ini",
+                ".properties",
+                ".out",
+                ".err",
+                ".trace",
+            ]:
                 content = self._extract_text_content(file_path)
-            elif file_extension in ['.json']:
+            elif file_extension in [".json"]:
                 content = self._extract_json_content(file_path)
-            elif file_extension in ['.csv']:
+            elif file_extension in [".csv"]:
                 content = self._extract_csv_content(file_path)
-            elif file_extension in ['.xml']:
+            elif file_extension in [".xml"]:
                 content = self._extract_xml_content(file_path)
-            elif file_extension in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']:
+            elif file_extension in [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"]:
                 content = self._extract_image_content(file_path, file_name)
             else:
                 # Fallback to text extraction
@@ -65,7 +77,7 @@ class TempDocumentProcessor:
                 content=content,
                 file_type=file_extension,
                 upload_time=datetime.now(),
-                chunks=chunks
+                chunks=chunks,
             )
 
             # Store in session
@@ -98,13 +110,13 @@ class TempDocumentProcessor:
     def _extract_text_content(self, file_path: str) -> str:
         """Extract content from text-based files."""
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Text extraction failed: {e}")
             # Try with different encoding
             try:
-                with open(file_path, 'r', encoding='latin-1') as f:
+                with open(file_path, "r", encoding="latin-1") as f:
                     return f.read()
             except Exception:
                 raise e
@@ -112,7 +124,7 @@ class TempDocumentProcessor:
     def _extract_json_content(self, file_path: str) -> str:
         """Extract and format JSON content."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 # Pretty print JSON for better readability
                 formatted = json.dumps(data, indent=2, ensure_ascii=False)
@@ -126,8 +138,9 @@ class TempDocumentProcessor:
         """Extract CSV content with basic formatting."""
         try:
             import csv
+
             content = []
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 csv_reader = csv.reader(f)
                 for i, row in enumerate(csv_reader):
                     if i == 0:
@@ -147,6 +160,7 @@ class TempDocumentProcessor:
         """Extract XML content with basic formatting."""
         try:
             import xml.etree.ElementTree as ET
+
             tree = ET.parse(file_path)
             root = tree.getroot()
 
@@ -186,19 +200,14 @@ class TempDocumentProcessor:
                 f"Dimensions: {width}x{height} pixels",
                 f"Format: {format_name}",
                 f"Color Mode: {mode}",
-                ""
+                "",
             ]
 
             # Try OCR text extraction
             try:
                 ocr_text = pytesseract.image_to_string(image)
                 if ocr_text.strip():
-                    content_parts.extend([
-                        "Extracted Text (OCR):",
-                        "=" * 30,
-                        ocr_text.strip(),
-                        ""
-                    ])
+                    content_parts.extend(["Extracted Text (OCR):", "=" * 30, ocr_text.strip(), ""])
                 else:
                     content_parts.append("No readable text found in image.")
             except Exception as ocr_error:
@@ -206,20 +215,22 @@ class TempDocumentProcessor:
                 content_parts.append("OCR text extraction unavailable - image content analysis only.")
 
             # Add technical context for troubleshooting images
-            content_parts.extend([
-                "",
-                "Technical Analysis Context:",
-                "=" * 30,
-                "This appears to be an image file that may contain:",
-                "- Screenshots of system interfaces or error messages",
-                "- Diagrams of network topology or system architecture",
-                "- Photos of physical equipment or hardware components",
-                "- Graphs or charts showing system metrics or performance data",
-                "- Configuration screens or status displays",
-                "",
-                "If this image contains error messages, system screenshots, or technical diagrams,",
-                "please describe what you're seeing or ask specific questions about the content."
-            ])
+            content_parts.extend(
+                [
+                    "",
+                    "Technical Analysis Context:",
+                    "=" * 30,
+                    "This appears to be an image file that may contain:",
+                    "- Screenshots of system interfaces or error messages",
+                    "- Diagrams of network topology or system architecture",
+                    "- Photos of physical equipment or hardware components",
+                    "- Graphs or charts showing system metrics or performance data",
+                    "- Configuration screens or status displays",
+                    "",
+                    "If this image contains error messages, system screenshots, or technical diagrams,",
+                    "please describe what you're seeing or ask specific questions about the content.",
+                ]
+            )
 
             return "\\n".join(content_parts)
 
@@ -240,7 +251,7 @@ class TempDocumentProcessor:
             return [content]
 
         for i in range(0, len(words), chunk_size - overlap):
-            chunk_words = words[i:i + chunk_size]
+            chunk_words = words[i : i + chunk_size]
             chunk_text = " ".join(chunk_words)
             chunks.append(chunk_text)
 
@@ -256,15 +267,13 @@ class TempDocumentProcessor:
 
         try:
             from app import ollama_client  # Import from main app
+
             temp_doc = self.sessions[session_id]
 
             embeddings = []
             for chunk in temp_doc.chunks:
                 if chunk.strip():
-                    embedding_response = ollama_client.embeddings(
-                        model=settings.embedding_model,
-                        prompt=chunk
-                    )
+                    embedding_response = ollama_client.embeddings(model=settings.embedding_model, prompt=chunk)
                     embeddings.append(embedding_response["embedding"])
 
             temp_doc.embeddings = embeddings
@@ -285,14 +294,11 @@ class TempDocumentProcessor:
             return []
 
         try:
-            from app import ollama_client
             import numpy as np
+            from app import ollama_client
 
             # Generate query embedding
-            query_response = ollama_client.embeddings(
-                model=settings.embedding_model,
-                prompt=query
-            )
+            query_response = ollama_client.embeddings(model=settings.embedding_model, prompt=query)
             query_embedding = np.array(query_response["embedding"])
 
             # Calculate similarities
@@ -326,15 +332,14 @@ class TempDocumentProcessor:
             "upload_time": temp_doc.upload_time.isoformat(),
             "content_length": len(temp_doc.content),
             "chunk_count": len(temp_doc.chunks),
-            "has_embeddings": temp_doc.embeddings is not None
+            "has_embeddings": temp_doc.embeddings is not None,
         }
 
     def cleanup_expired_sessions(self):
         """Clean up expired sessions."""
         now = datetime.now()
         expired_sessions = [
-            session_id for session_id, doc in self.sessions.items()
-            if now - doc.upload_time > self.session_timeout
+            session_id for session_id, doc in self.sessions.items() if now - doc.upload_time > self.session_timeout
         ]
 
         for session_id in expired_sessions:
@@ -350,6 +355,7 @@ class TempDocumentProcessor:
             logger.info(f"Manually cleaned up session: {session_id}")
             return True
         return False
+
 
 # Global instance
 temp_processor = TempDocumentProcessor()

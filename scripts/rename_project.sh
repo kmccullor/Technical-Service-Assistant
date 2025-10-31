@@ -46,7 +46,7 @@ replace_in_file() {
     local file=$1
     local old_pattern=$2
     local new_pattern=$3
-    
+
     if [[ -f "$file" ]]; then
         backup_file "$file"
         sed -i "s|$old_pattern|$new_pattern|g" "$file"
@@ -57,7 +57,7 @@ replace_in_file() {
 # Main replacement logic
 main() {
     log "Phase 1: Update documentation files"
-    
+
     # Update main documentation
     for file in README.md ARCHITECTURE.md CHANGELOG.md PROJECT_STATUS_SEPTEMBER_2025.md AI_CATEGORIZATION_SUCCESS.md NEXT_STEPS_ANALYSIS.md PLANNING_TASK_REVIEW.md; do
         if [[ -f "$file" ]]; then
@@ -66,96 +66,96 @@ main() {
             replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
         fi
     done
-    
+
     # Update docs directory
     find docs/ -name "*.md" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     log "Phase 2: Update configuration files"
-    
+
     # Update Docker Compose
     replace_in_file "docker-compose.yml" "Technical-Service-Assistant" "technical-service-assistant"
-    
+
     # Update SearXNG config
     replace_in_file "searxng/settings.yml" "Technical-Service-Assistant" "technical-service-assistant"
-    
+
     log "Phase 3: Update Python code files"
-    
+
     # Update reranker components
     find reranker/ -name "*.py" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     # Update reasoning engine
     find reasoning_engine/ -name "*.py" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     # Update scripts
     find scripts/ -name "*.py" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     # Update bin directory
     find bin/ -name "*.py" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     # Update other Python files
     find . -maxdepth 1 -name "*.py" -type f | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     log "Phase 4: Update frontend files"
-    
+
     # Update frontend
     find frontend/ -name "*.html" -o -name "*.js" -o -name "*.css" | while read -r file; do
         replace_in_file "$file" "AI PDF Vector Stack" "Technical Service Assistant"
         replace_in_file "$file" "Technical-Service-Assistant" "Technical-Service-Assistant"
         replace_in_file "$file" "ai_pdf_vector_stack" "technical_service_assistant"
     done
-    
+
     log "Phase 5: Update hardcoded paths"
-    
+
     # Update hardcoded paths in specific files
     if [[ -f "bin/remote_embedding_test.py" ]]; then
         replace_in_file "bin/remote_embedding_test.py" "/home/kmccullor/Projects/Technical-Service-Assistant" "/home/kmccullor/Projects/Technical-Service-Assistant"
     fi
-    
+
     if [[ -f "bin/monitor_uploads.py" ]]; then
         replace_in_file "bin/monitor_uploads.py" "/home/kmccullor/Projects/Technical-Service-Assistant" "/home/kmccullor/Projects/Technical-Service-Assistant"
     fi
-    
+
     if [[ -f "bin/process_all_pdfs.py" ]]; then
         replace_in_file "bin/process_all_pdfs.py" "/home/kmccullor/Projects/Technical-Service-Assistant" "/home/kmccullor/Projects/Technical-Service-Assistant"
     fi
-    
+
     log "Phase 6: Update container names in Docker Compose"
-    
+
     # Update container names
     replace_in_file "docker-compose.yml" "Technical-Service-Assistant-" "technical-service-assistant-"
-    
+
     log "Phase 7: Create project rename summary"
-    
+
     # Create rename summary
     cat > "PROJECT_RENAME_SUMMARY.md" << EOF
 # Project Rename Summary
 
-**Date**: $(date -Iseconds)  
-**Action**: Project renamed from "AI PDF Vector Stack" to "Technical Service Assistant"  
+**Date**: $(date -Iseconds)
+**Action**: Project renamed from "AI PDF Vector Stack" to "Technical Service Assistant"
 **Directory**: Technical-Service-Assistant → Technical-Service-Assistant
 
 ## Changes Made
@@ -211,10 +211,10 @@ grep -r "AI PDF Vector Stack" . --exclude-dir=.git --exclude="*.bak.*"
 
 Should return minimal or no results (excluding backup files).
 EOF
-    
+
     success "Project rename completed successfully!"
     echo ""
-    
+
     log "Summary of changes:"
     echo "  ✅ Documentation files updated"
     echo "  ✅ Configuration files updated"
@@ -224,13 +224,13 @@ EOF
     echo "  ✅ Container names updated"
     echo "  ✅ Backup files created"
     echo ""
-    
+
     warning "Important next steps:"
     echo "  1. Rename the project directory manually"
     echo "  2. Restart Docker containers"
     echo "  3. Update any external references"
     echo ""
-    
+
     log "Project rename script completed. See PROJECT_RENAME_SUMMARY.md for details."
 }
 

@@ -290,7 +290,7 @@ For large document collections:
 
 ```sql
 -- Create additional indexes
-CREATE INDEX CONCURRENTLY idx_document_chunks_embedding_cosine 
+CREATE INDEX CONCURRENTLY idx_document_chunks_embedding_cosine
 ON document_chunks USING ivfflat (embedding vector_cosine_ops);
 
 -- Adjust PostgreSQL settings

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+
 # Add parent directory to path to import from other modules
 import sys
 

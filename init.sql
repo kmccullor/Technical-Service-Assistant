@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS models (
 );
 
 -- Insert default embedding model
-INSERT INTO models (name, provider, dimension_size) 
+INSERT INTO models (name, provider, dimension_size)
 VALUES ('nomic-embed-text:v1.5', 'ollama', 768)
 ON CONFLICT (name) DO UPDATE SET dimension_size = 768;
 

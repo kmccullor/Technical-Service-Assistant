@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -13,8 +14,8 @@ from pathlib import Path
 from typing import AsyncGenerator, Generator
 from unittest.mock import MagicMock
 
-import pytest
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 # Import your main application components
@@ -78,7 +79,7 @@ def mock_ollama_response():
     """Mock Ollama API response for testing."""
     return {
         "embedding": [0.1, 0.2, 0.3, 0.4, 0.5] * 256,  # 1280-dimensional embedding
-        "model": "nomic-embed-text:v1.5"
+        "model": "nomic-embed-text:v1.5",
     }
 
 
@@ -92,6 +93,7 @@ async def async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
 @pytest.fixture
 def test_client() -> TestClient:
     from reranker.app import app
+
     with TestClient(app) as client:
         yield client
 
@@ -140,11 +142,11 @@ endobj
 
 xref
 0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000206 00000 n 
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000206 00000 n
 trailer
 <<
 /Size 5
@@ -162,25 +164,15 @@ def sample_document_chunks():
         {
             "id": 1,
             "content": "This is the first chunk of content about artificial intelligence.",
-            "metadata": {
-                "document_name": "ai_paper.pdf",
-                "page_number": 1,
-                "chunk_index": 0,
-                "chunk_type": "text"
-            },
-            "embedding": [0.1] * 1280
+            "metadata": {"document_name": "ai_paper.pdf", "page_number": 1, "chunk_index": 0, "chunk_type": "text"},
+            "embedding": [0.1] * 1280,
         },
         {
             "id": 2,
             "content": "This is the second chunk discussing machine learning algorithms.",
-            "metadata": {
-                "document_name": "ai_paper.pdf",
-                "page_number": 1,
-                "chunk_index": 1,
-                "chunk_type": "text"
-            },
-            "embedding": [0.2] * 1280
-        }
+            "metadata": {"document_name": "ai_paper.pdf", "page_number": 1, "chunk_index": 1, "chunk_type": "text"},
+            "embedding": [0.2] * 1280,
+        },
     ]
 
 
@@ -192,11 +184,11 @@ def mock_search_results():
             {
                 "content": "Relevant content about the search query.",
                 "metadata": {"document_name": "test.pdf", "page_number": 1},
-                "similarity_score": 0.95
+                "similarity_score": 0.95,
             }
         ],
         "total_results": 1,
-        "search_time_ms": 50
+        "search_time_ms": 50,
     }
 
 
@@ -215,24 +207,24 @@ async def mock_async_database():
 def performance_timer():
     """Timer fixture for performance testing."""
     import time
-    
+
     class Timer:
         def __init__(self):
             self.start_time = None
             self.end_time = None
-        
+
         def start(self):
             self.start_time = time.time()
-        
+
         def stop(self):
             self.end_time = time.time()
-        
+
         @property
         def elapsed(self):
             if self.start_time and self.end_time:
                 return self.end_time - self.start_time
             return None
-    
+
     return Timer()
 
 

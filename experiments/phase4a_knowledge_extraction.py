@@ -18,14 +18,11 @@ from __future__ import annotations
 
 import json
 import re
-import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
-
-import pandas as pd
+from typing import Any, Dict, List, Optional, Tuple
 
 from utils.logging_config import get_logger
 from utils.monitoring import monitor_performance
@@ -143,7 +140,9 @@ class EntityExtractor:
     for t in TOOL_TERMS:
         TYPE_MAP[t] = "tool"
 
-    WORD_BOUNDARY_PATTERN = re.compile(r"\b(" + r"|".join(re.escape(t) for t in TYPE_MAP.keys()) + r")\b", re.IGNORECASE)
+    WORD_BOUNDARY_PATTERN = re.compile(
+        r"\b(" + r"|".join(re.escape(t) for t in TYPE_MAP.keys()) + r")\b", re.IGNORECASE
+    )
 
     def extract(self, text: str, context_window: int = 40) -> List[Entity]:
         entities: Dict[Tuple[str, int, int], Entity] = {}
@@ -234,39 +233,39 @@ class SpecificationMiner:
             unit = self.normalize_unit(captured_unit)
 
             # If unit absent try to extract from parenthetical part of the name e.g. 'speed (rpm)'
-            if (not unit) and '(' in raw_name and raw_name.endswith(')'):
+            if (not unit) and "(" in raw_name and raw_name.endswith(")"):
                 pm = self.PAREN_UNIT_PATTERN.match(raw_name)
                 if pm:
-                    candidate_unit = self.normalize_unit(pm.group('unit'))
+                    candidate_unit = self.normalize_unit(pm.group("unit"))
                     # Only accept short plausible unit tokens
                     if candidate_unit and len(candidate_unit) <= 5:
                         unit = candidate_unit
-                        name = pm.group('base').strip().lower()
+                        name = pm.group("base").strip().lower()
 
             # Discard obviously invalid long unit captures (e.g. a following word like 'temperature')
             if unit and len(unit) > 5:
                 unit = None
             # Guard against partial capture of following spec name (e.g., 'temperat' from 'temperature:')
             if unit and captured_unit:
-                end_pos = m.end('unit')
+                end_pos = m.end("unit")
                 if end_pos < len(text) and text[end_pos].isalpha():  # next char continues a word
                     unit = None
             # Additional disambiguation: if immediately after numeric (and optional unit) a new spec name pattern appears, drop unit
             if unit:
-                lookahead_segment = text[m.end('value'): m.end('value') + 30]
+                lookahead_segment = text[m.end("value") : m.end("value") + 30]
                 # pattern: optional space then word >=3 chars then ':'
                 if re.search(r"\s+[A-Za-z][A-Za-z0-9_ \-/()]{2,40}:", lookahead_segment):
                     # Only drop if captured unit length >=3 (more likely false positive) and not in known unit map
                     if captured_unit and (len(captured_unit) > 2 and captured_unit.lower() not in self.UNIT_NORMALIZE):
                         unit = None
             # Second-chance parentheses extraction if unit invalidated
-            if (not unit) and '(' in raw_name and raw_name.endswith(')'):
+            if (not unit) and "(" in raw_name and raw_name.endswith(")"):
                 pm2 = self.PAREN_UNIT_PATTERN.match(raw_name)
                 if pm2:
-                    candidate_unit2 = self.normalize_unit(pm2.group('unit'))
+                    candidate_unit2 = self.normalize_unit(pm2.group("unit"))
                     if candidate_unit2 and len(candidate_unit2) <= 5:
                         unit = candidate_unit2
-                        name = pm2.group('base').strip().lower()
+                        name = pm2.group("base").strip().lower()
             num = self.parse_numeric(raw_value)
             confidence = 0.85 if num is not None else 0.7
             specs.append(
@@ -288,7 +287,7 @@ class ProcessDiscovery:
 
     STEP_PATTERNS = [
         re.compile(r"^(?:step\s+)?(?P<idx>[0-9]{1,3})[).:\-]\s+(?P<action>.+)", re.IGNORECASE),
-        re.compile(r"^(?P<bullet>[-*])\s+(?P<action>.+)")
+        re.compile(r"^(?P<bullet>[-*])\s+(?P<action>.+)"),
     ]
 
     def extract(self, text: str) -> List[ProcessStep]:
@@ -297,17 +296,16 @@ class ProcessDiscovery:
         # First pass: detect inline multi-step patterns (e.g., 'Step 1: ... Step 2: ...')
         inline_pattern = re.compile(r"(Step\s+[0-9]{1,3}[:).\-]\s+)", re.IGNORECASE)
         segments: List[Tuple[str, int]] = []
-        last_pos = 0
         matches = list(inline_pattern.finditer(text))
         if matches:
             for i, m in enumerate(matches):
                 start = m.start()
                 if i > 0:
                     prev = matches[i - 1]
-                    segments.append((text[prev.start():start], prev.start()))
+                    segments.append((text[prev.start() : start], prev.start()))
             # Add final segment
             last_match = matches[-1]
-            segments.append((text[last_match.start():], last_match.start()))
+            segments.append((text[last_match.start() :], last_match.start()))
         else:
             # Fallback: treat as lines
             for line in text.splitlines():
@@ -345,7 +343,11 @@ class ProcessDiscovery:
                         )
                         break
                 if not matched:
-                    if re.match(r"^(install|remove|inspect|measure|tighten|connect|disconnect|verify|record)\b", line_stripped, re.IGNORECASE):
+                    if re.match(
+                        r"^(install|remove|inspect|measure|tighten|connect|disconnect|verify|record)\b",
+                        line_stripped,
+                        re.IGNORECASE,
+                    ):
                         steps.append(
                             ProcessStep(
                                 step_id=str(uuid.uuid4()),
@@ -500,6 +502,7 @@ class KnowledgeExtractor:
 # ---------------------------------------------------------------------------
 # Quick Test Harness
 # ---------------------------------------------------------------------------
+
 
 def _demo_text() -> str:
     return (

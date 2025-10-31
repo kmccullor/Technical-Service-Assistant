@@ -85,7 +85,7 @@ Transform the Technical Service Assistant into a production-ready **Local LLM sy
    # New service: reasoning_engine/orchestrator.py
    class ReasoningOrchestrator:
        async def chain_of_thought_reasoning(query, context)
-       async def multi_step_analysis(query, documents) 
+       async def multi_step_analysis(query, documents)
        async def cross_document_synthesis(topics)
        async def reflection_and_refinement(initial_response)
    ```
@@ -129,14 +129,14 @@ Transform the Technical Service Assistant into a production-ready **Local LLM sy
    async def chain_of_thought_query(query: str) -> ReasoningResponse:
        # Step 1: Break down complex query
        sub_queries = await decompose_query(query)
-       
+
        # Step 2: Gather evidence for each sub-query
        evidence = []
        for sub_query in sub_queries:
            context = await hybrid_search(sub_query)
            reasoning_step = await generate_reasoning_step(sub_query, context)
            evidence.append(reasoning_step)
-       
+
        # Step 3: Synthesize final answer
        return await synthesize_final_answer(query, evidence)
    ```

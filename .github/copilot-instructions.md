@@ -78,7 +78,7 @@ Current **unified Python worker** with **intelligent routing** and **hybrid sear
 - **`searxng/limiter.toml`**: **NEW** - Rate limiting and bot detection configuration for API access
 - **`docs/HYBRID_SEARCH.md`**: **NEW** - Comprehensive documentation for hybrid search system
 - **`enhanced_retrieval.py`**: **NEW** - Enhanced retrieval pipeline with two-stage search and quality metrics
-- **`hybrid_search.py`**: **NEW** - Vector + BM25 hybrid search for technical term optimization  
+- **`hybrid_search.py`**: **NEW** - Vector + BM25 hybrid search for technical term optimization
 - **`semantic_chunking.py`**: **NEW** - Structure-aware chunking preserving document hierarchy
 - **`test_enhanced_retrieval.py`**: **NEW** - A/B testing framework for accuracy validation
 - **`pdf_processor/utils.py`**: Core extraction/chunking/embedding logic - unified across all ingestion pathways
@@ -88,7 +88,7 @@ Current **unified Python worker** with **intelligent routing** and **hybrid sear
 **Essential commands:**
 ```bash
 make up              # docker compose up -d --build
-make down            # docker compose down  
+make down            # docker compose down
 make logs            # docker logs -f pdf_processor
 make test            # pytest
 make eval-sample     # Run evaluation suite
@@ -132,7 +132,7 @@ make recreate-db     # Destructive: reset postgres volume
 - **Frontend <-> Reranker:** HTTP API (port 8008) for `/search`, `/chat`, `/api/intelligent-route`, `/api/ollama-health`
 - **Chat interfaces <-> Ollama:** Proxied through nginx (`/ollama/`, `/ollama-2/`, etc.) with intelligent routing
 - **pdf_processor <-> Ollama:** HTTP API calls with automatic fallback across ports 11434-11437
-- **Scripts <-> Postgres:** Direct connections via `psycopg2` using `config.py` database settings  
+- **Scripts <-> Postgres:** Direct connections via `psycopg2` using `config.py` database settings
 - **All containers:** Share `uploads/` volume for file-based coordination
 - **No N8N dependency:** Current architecture is pure Python + Docker
 

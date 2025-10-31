@@ -35,31 +35,31 @@ case $choice in
         echo "🧪 Testing email configuration..."
         python email_eod_report.py --test "$test_email"
         ;;
-    
+
     2)
         echo ""
         echo "🔧 Running interactive email setup..."
         ./setup_email.sh
         ;;
-    
+
     3)
         echo ""
         read -p "Enter recipient email address: " recipient_email
         echo ""
         echo "📧 Setting up environment..."
-        
+
         if [[ -z "${EOD_SENDER_EMAIL:-}" ]]; then
             read -p "Enter your email address (sender): " sender_email
             export EOD_SENDER_EMAIL="$sender_email"
         fi
-        
+
         if [[ -z "${EOD_SENDER_PASSWORD:-}" ]]; then
             echo "📋 For Gmail: Use App Password, not regular password"
             read -s -p "Enter your email password: " sender_password
             export EOD_SENDER_PASSWORD="$sender_password"
             echo ""
         fi
-        
+
         echo ""
         echo "📤 Sending today's report..."
         if python email_eod_report.py "$recipient_email"; then
@@ -70,7 +70,7 @@ case $choice in
             echo "❌ FAILED: Check your email configuration"
         fi
         ;;
-    
+
     4)
         echo ""
         echo "📋 Email Configuration Instructions:"
@@ -99,7 +99,7 @@ case $choice in
         echo "   - Generate App Password in Security settings"
         echo "   - Use App Password (not regular password)"
         ;;
-    
+
     *)
         echo "Invalid option. Please choose 1-4."
         exit 1

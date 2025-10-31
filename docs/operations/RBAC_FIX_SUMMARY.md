@@ -12,7 +12,7 @@
 - **Root Cause**: Migration files had simplified schema vs. what the Pydantic models expected
 - **Solution**: Added missing columns to `users` table:
   - `password_hash` VARCHAR(255)
-  - `first_name` VARCHAR(100) 
+  - `first_name` VARCHAR(100)
   - `last_name` VARCHAR(100)
   - `role_id` INTEGER (references roles)
   - `verified` BOOLEAN
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8008/api/auth/login \
 ```
 **Response**: Returns JWT tokens and user info successfully
 
-### **User Registration** ✅  
+### **User Registration** ✅
 ```bash
 curl -X POST http://localhost:8008/api/auth/register \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -58,7 +58,7 @@ curl -X POST http://localhost:8008/api/auth/register \
 
 ## 🚀 **Next Steps**
 
-1. **Update Documentation**: 
+1. **Update Documentation**:
    - Change `admin@technical-service.local` to `admin@example.com` in examples
    - Update password change endpoint documentation
 

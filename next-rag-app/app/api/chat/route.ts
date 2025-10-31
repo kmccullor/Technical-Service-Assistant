@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const body: ChatRequest = await req.json()
     console.log('Chat API received body:', JSON.stringify(body, null, 2))
-    
+
     const authHeader = req.headers.get('authorization')
     const user = await fetchCurrentUser(authHeader)
     if (!user) {
@@ -40,12 +40,12 @@ export async function POST(req: NextRequest) {
     // Check if we should use local models or OpenAI
     const useLocalModels = process.env.USE_LOCAL_MODELS === 'true'
     const openaiKey = process.env.OPENAI_API_KEY
-    
+
     console.log('Model configuration:', { useLocalModels, hasOpenaiKey: !!openaiKey })
 
     if (!useLocalModels && (!openaiKey || openaiKey === 'sk-your-openai-api-key-here')) {
       console.log('Neither local models nor OpenAI API key configured, returning test response')
-      
+
       // Create a simple test response without RAG
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
@@ -54,18 +54,18 @@ export async function POST(req: NextRequest) {
             type: 'content',
             content: 'Hello! I\'m your RAG assistant. To enable full functionality, please configure your OpenAI API key in the .env.local file or set USE_LOCAL_MODELS=true. '
           })}\n\n`))
-          
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'content', 
+            type: 'content',
             content: 'I can see you have ' + 'documents loaded in the database, but I need either local models or an OpenAI API key to search and answer questions about them.'
           })}\n\n`))
-          
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'citations',
             citations: [],
             searchType: 'fallback'
           })}\n\n`))
-          
+
           controller.close()
         }
       })

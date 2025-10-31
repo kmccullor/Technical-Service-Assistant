@@ -12,8 +12,7 @@ import sys
 sys.path.append("/app")
 
 from config import get_settings
-from pdf_processor.utils import (chunk_text, extract_text, get_db_connection,
-                                 get_embedding, insert_chunk_and_embedding)
+from pdf_processor.utils import chunk_text, extract_text, get_db_connection, get_embedding, insert_chunk_and_embedding
 
 
 def test_processing():

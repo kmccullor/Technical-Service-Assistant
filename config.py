@@ -7,19 +7,23 @@ from this module instead of reading os.environ directly to ensure consistency.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Load .env file early if present (local development convenience)
 try:  # pragma: no cover - simple optional side-effect
     from dotenv import load_dotenv
-    env_path = Path(__file__).parent / '.env'
+
+    env_path = Path(__file__).parent / ".env"
     # Also allow project root .env if config.py moved
     if env_path.exists():
         load_dotenv(env_path)
     else:
         # Fallback: look one directory up
-        root_env = Path(__file__).parent.parent / '.env'
+        root_env = Path(__file__).parent.parent / ".env"
         if root_env.exists():
             load_dotenv(root_env)
 except Exception:
@@ -116,7 +120,7 @@ class Settings:
 
     # Timeouts
     embedding_timeout_seconds: int
-    
+
     # Phase 2B Query Expansion Controls
     enable_semantic_expansion_filter: bool
     expansion_max_terms_base: int
@@ -199,11 +203,19 @@ def get_settings() -> Settings:
     s.smtp_password = os.getenv("SMTP_PASSWORD")
     s.smtp_use_tls = _get_bool("SMTP_USE_TLS", True)
     s.verification_email_sender = os.getenv("VERIFICATION_EMAIL_SENDER", "no-reply@technical-service-assistant.local")
-    s.verification_email_subject = os.getenv("VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account")
-    s.verification_email_link_base = os.getenv("VERIFICATION_EMAIL_LINK_BASE", "http://localhost:3000/verify-email")
+    s.verification_email_subject = os.getenv(
+        "VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account"
+    )
+    s.verification_email_link_base = os.getenv(
+        "VERIFICATION_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/verify-email"
+    )
     s.password_reset_email_sender = os.getenv("PASSWORD_RESET_EMAIL_SENDER", s.verification_email_sender)
-    s.password_reset_email_subject = os.getenv("PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password")
-    s.password_reset_email_link_base = os.getenv("PASSWORD_RESET_EMAIL_LINK_BASE", "http://localhost:3000/reset-password")
+    s.password_reset_email_subject = os.getenv(
+        "PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password"
+    )
+    s.password_reset_email_link_base = os.getenv(
+        "PASSWORD_RESET_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/reset-password"
+    )
 
     # Feature Flags
     s.enable_table_extraction = _get_bool("ENABLE_TABLE_EXTRACTION", True)
@@ -215,7 +227,7 @@ def get_settings() -> Settings:
 
     # Polling
     s.poll_interval_seconds = _get_int("POLL_INTERVAL_SECONDS", 60)
-    
+
     # Timeouts
     s.embedding_timeout_seconds = _get_int("EMBEDDING_TIMEOUT_SECONDS", 60)
 
@@ -273,7 +285,7 @@ def get_settings() -> Settings:
         s.ensemble_weight_bm25 = float(os.getenv("ENSEMBLE_WEIGHT_BM25", "0.45"))
     except ValueError:
         s.ensemble_weight_bm25 = 0.45
-    
+
     # Large document controls (avoid heavy table/image extraction on massive PDFs)
     s.large_doc_page_threshold = _get_int("LARGE_DOC_PAGE_THRESHOLD", 400)
     s.skip_tables_for_large_docs = _get_bool("SKIP_TABLES_FOR_LARGE_DOCS", True)
@@ -285,6 +297,7 @@ def get_settings() -> Settings:
 
 if __name__ == "__main__":
     # Simple debug output
+    logging.basicConfig(level=logging.INFO)
     cfg = get_settings()
     for k, v in cfg.as_dict().items():
-        print(f"{k}={v}")
+        logger.info(f"{k}={v}")

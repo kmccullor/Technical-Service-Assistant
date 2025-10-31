@@ -117,9 +117,7 @@ def main():
         zero_chunk = fetch_zero_chunk_docs(conn)
         if zero_chunk:
             for doc_id, fname in zero_chunk:
-                issues.append(
-                    IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname)
-                )
+                issues.append(IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname))
 
         anomalies = fetch_metrics_anomalies(conn, args.min_success_rate)
         if anomalies:

@@ -19,9 +19,9 @@ export default function ChangePasswordPage() {
 
   useEffect(() => {
     // Check if this is a forced password change
-    console.log('[CHANGE_PWD] Password change page loaded for user:', { 
-      email: user?.email, 
-      password_change_required: user?.password_change_required 
+    console.log('[CHANGE_PWD] Password change page loaded for user:', {
+      email: user?.email,
+      password_change_required: user?.password_change_required
     })
     if (user?.password_change_required) {
       console.log('[CHANGE_PWD] Setting forced password change mode')
@@ -85,7 +85,7 @@ export default function ChangePasswordPage() {
 
     try {
       const endpoint = isForced ? '/api/auth/force-change-password' : '/api/auth/change-password'
-      const payload = isForced 
+      const payload = isForced
         ? { new_password: newPassword, confirm_password: confirmPassword }
         : { current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword }
 
@@ -224,7 +224,7 @@ export default function ChangePasswordPage() {
             >
               {loading ? 'Changing...' : 'Change Password'}
             </Button>
-            
+
             {!isForced && (
               <Button
                 type="button"

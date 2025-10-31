@@ -37,13 +37,13 @@ We have successfully migrated the Technical Service Assistant from a basic vecto
 ```sql
 -- Limited metadata storage
 pdf_documents (
-    id, file_name, document_type, product_name, 
+    id, file_name, document_type, product_name,
     classification_confidence, ai_metadata
 );
 
 -- Basic chunk storage
 document_chunks (
-    id, document_id, page_number, chunk_type, 
+    id, document_id, page_number, chunk_type,
     content, embedding, privacy_level, document_type, product_name
 );
 ```
@@ -56,7 +56,7 @@ documents (
     title, version, doc_number, ga_date, publisher, copyright_year,
     product_family[], product_name, product_version,
     document_type, document_category, service_lines[], audiences[],
-    privacy_level, security_classification, 
+    privacy_level, security_classification,
     classification_confidence, classification_method,
     processing_status, processed_at, metadata JSONB,
     created_at, updated_at

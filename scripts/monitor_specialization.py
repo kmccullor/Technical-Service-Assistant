@@ -13,11 +13,13 @@ Monitors:
 import json
 import os
 import time
+from collections import Counter, defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any, Dict, List
+
 import requests
-from datetime import datetime, timedelta
-from typing import Dict, List, Any
-from dataclasses import dataclass, asdict
-from collections import defaultdict, Counter
+
 
 @dataclass
 class RoutingEvent:
@@ -28,6 +30,7 @@ class RoutingEvent:
     instance_url: str
     reasoning: str
     response_time_ms: float = 0.0
+
 
 class SpecializationMonitor:
     def __init__(self):
@@ -42,12 +45,12 @@ class SpecializationMonitor:
         print("🔍 Testing Specialized Routing Performance...")
 
         results = {
-            'total_tests': len(test_queries),
-            'routing_distribution': Counter(),
-            'response_times': defaultdict(list),
-            'model_selection': Counter(),
-            'instance_utilization': Counter(),
-            'question_type_routing': defaultdict(list)
+            "total_tests": len(test_queries),
+            "routing_distribution": Counter(),
+            "response_times": defaultdict(list),
+            "model_selection": Counter(),
+            "instance_utilization": Counter(),
+            "question_type_routing": defaultdict(list),
         }
 
         for i, test_query in enumerate(test_queries):
@@ -57,11 +60,7 @@ class SpecializationMonitor:
 
             try:
                 # Test routing decision
-                routing_response = requests.post(
-                    f"{self.base_url}/api/intelligent-route",
-                    json=test_query,
-                    timeout=10
-                )
+                routing_response = requests.post(f"{self.base_url}/api/intelligent-route", json=test_query, timeout=10)
                 routing_response.raise_for_status()
                 routing_data = routing_response.json()
 
@@ -70,26 +69,26 @@ class SpecializationMonitor:
                 # Record routing event
                 event = RoutingEvent(
                     timestamp=time.time(),
-                    question_type=routing_data['question_type'],
-                    selected_model=routing_data['selected_model'],
-                    selected_instance=routing_data['selected_instance'],
-                    instance_url=routing_data['instance_url'],
-                    reasoning=routing_data['reasoning'],
-                    response_time_ms=response_time
+                    question_type=routing_data["question_type"],
+                    selected_model=routing_data["selected_model"],
+                    selected_instance=routing_data["selected_instance"],
+                    instance_url=routing_data["instance_url"],
+                    reasoning=routing_data["reasoning"],
+                    response_time_ms=response_time,
                 )
 
                 self.routing_log.append(event)
 
                 # Update results
-                question_type = routing_data['question_type']
-                selected_instance = routing_data['selected_instance']
-                selected_model = routing_data['selected_model']
+                question_type = routing_data["question_type"]
+                selected_instance = routing_data["selected_instance"]
+                selected_model = routing_data["selected_model"]
 
-                results['routing_distribution'][selected_instance] += 1
-                results['response_times'][question_type].append(response_time)
-                results['model_selection'][selected_model] += 1
-                results['instance_utilization'][selected_instance] += 1
-                results['question_type_routing'][question_type].append(selected_instance)
+                results["routing_distribution"][selected_instance] += 1
+                results["response_times"][question_type].append(response_time)
+                results["model_selection"][selected_model] += 1
+                results["instance_utilization"][selected_instance] += 1
+                results["question_type_routing"][question_type].append(selected_instance)
 
             except Exception as e:
                 print(f"   ❌ Error testing query: {e}")
@@ -102,74 +101,70 @@ class SpecializationMonitor:
         print("\n📊 Analyzing Specialization Effectiveness...")
 
         analysis = {
-            'routing_accuracy': {},
-            'instance_specialization_score': {},
-            'performance_metrics': {},
-            'recommendations': []
+            "routing_accuracy": {},
+            "instance_specialization_score": {},
+            "performance_metrics": {},
+            "recommendations": [],
         }
 
         # Expected routing patterns based on our specialization
         expected_routing = {
-            'code': ['ollama-server-2-code-technical'],
-            'technical': ['ollama-server-1-chat-qa', 'ollama-server-2-code-technical'],
-            'math': ['ollama-server-3-reasoning-math'],
-            'factual': ['ollama-server-1-chat-qa'],
-            'chat': ['ollama-server-1-chat-qa']
+            "code": ["ollama-server-2-code-technical"],
+            "technical": ["ollama-server-1-chat-qa", "ollama-server-2-code-technical"],
+            "math": ["ollama-server-3-reasoning-math"],
+            "factual": ["ollama-server-1-chat-qa"],
+            "chat": ["ollama-server-1-chat-qa"],
         }
 
         # Analyze routing accuracy
-        for question_type, actual_instances in results['question_type_routing'].items():
+        for question_type, actual_instances in results["question_type_routing"].items():
             expected_instances = expected_routing.get(question_type, [])
             if expected_instances:
                 correct_routes = sum(
-                    1
-                    for instance in actual_instances
-                    if any(exp in instance for exp in expected_instances)
+                    1 for instance in actual_instances if any(exp in instance for exp in expected_instances)
                 )
                 accuracy = correct_routes / len(actual_instances) if actual_instances else 0
-                analysis['routing_accuracy'][question_type] = {
-                    'accuracy': accuracy,
-                    'total_queries': len(actual_instances),
-                    'correct_routes': correct_routes
+                analysis["routing_accuracy"][question_type] = {
+                    "accuracy": accuracy,
+                    "total_queries": len(actual_instances),
+                    "correct_routes": correct_routes,
                 }
 
         # Calculate instance specialization scores
-        total_queries = sum(results['instance_utilization'].values())
-        for instance, query_count in results['instance_utilization'].items():
+        total_queries = sum(results["instance_utilization"].values())
+        for instance, query_count in results["instance_utilization"].items():
             utilization_percentage = (query_count / total_queries) * 100
-            analysis['instance_specialization_score'][instance] = {
-                'query_count': query_count,
-                'utilization_percentage': utilization_percentage
+            analysis["instance_specialization_score"][instance] = {
+                "query_count": query_count,
+                "utilization_percentage": utilization_percentage,
             }
 
         # Performance metrics
-        for question_type, response_times in results['response_times'].items():
+        for question_type, response_times in results["response_times"].items():
             if response_times:
-                analysis['performance_metrics'][question_type] = {
-                    'avg_response_time': sum(response_times) / len(response_times),
-                    'min_response_time': min(response_times),
-                    'max_response_time': max(response_times),
-                    'query_count': len(response_times)
+                analysis["performance_metrics"][question_type] = {
+                    "avg_response_time": sum(response_times) / len(response_times),
+                    "min_response_time": min(response_times),
+                    "max_response_time": max(response_times),
+                    "query_count": len(response_times),
                 }
 
         # Generate recommendations
-        total_accuracy = sum(
-            acc['accuracy'] for acc in analysis['routing_accuracy'].values()
-        )
-        routing_accuracy = analysis['routing_accuracy']
-        accuracy_sum = sum(acc['accuracy'] for acc in routing_accuracy.values())
+        sum(acc["accuracy"] for acc in analysis["routing_accuracy"].values())
+        routing_accuracy = analysis["routing_accuracy"]
+        accuracy_sum = sum(acc["accuracy"] for acc in routing_accuracy.values())
         total_routing = len(routing_accuracy)
         overall_accuracy = accuracy_sum / total_routing if total_routing else 0
         if overall_accuracy < 0.8:
-            analysis['recommendations'].append("Consider refining question classification patterns")
+            analysis["recommendations"].append("Consider refining question classification patterns")
 
-        if len(set(results['instance_utilization'].keys())) < 3:
-            analysis['recommendations'].append("Instance distribution could be more balanced")
+        if len(set(results["instance_utilization"].keys())) < 3:
+            analysis["recommendations"].append("Instance distribution could be more balanced")
 
         # Check if specialization is effective
-        code_accuracy = analysis['routing_accuracy'].get('code', {}).get('accuracy', 0)
+        code_accuracy = analysis["routing_accuracy"].get("code", {}).get("accuracy", 0)
         if code_accuracy > 0.9:
-            analysis['recommendations'].append("Code specialization is working well")
+            analysis["recommendations"].append("Code specialization is working well")
 
         return analysis
 
@@ -181,19 +176,21 @@ class SpecializationMonitor:
             f"Test Duration: {len(self.routing_log)} routing decisions analyzed",
             "",
             "## 🎯 Specialization Effectiveness",
-            ""
+            "",
         ]
 
         # Routing accuracy summary
-        if analysis['routing_accuracy']:
-            report.extend([
-                "### Routing Accuracy by Question Type",
-                "| Question Type | Accuracy | Correct/Total | Performance |",
-                "|---------------|----------|---------------|-------------|"
-            ])
+        if analysis["routing_accuracy"]:
+            report.extend(
+                [
+                    "### Routing Accuracy by Question Type",
+                    "| Question Type | Accuracy | Correct/Total | Performance |",
+                    "|---------------|----------|---------------|-------------|",
+                ]
+            )
 
-            for q_type, accuracy_data in analysis['routing_accuracy'].items():
-                accuracy_pct = accuracy_data['accuracy'] * 100
+            for q_type, accuracy_data in analysis["routing_accuracy"].items():
+                accuracy_pct = accuracy_data["accuracy"] * 100
                 if accuracy_pct >= 90:
                     status = "✅ Excellent"
                 elif accuracy_pct >= 70:
@@ -204,66 +201,69 @@ class SpecializationMonitor:
                     "| {type} | {pct:.1f}% | {correct}/{total} | {status} |".format(
                         type=q_type.title(),
                         pct=accuracy_pct,
-                        correct=accuracy_data['correct_routes'],
-                        total=accuracy_data['total_queries'],
+                        correct=accuracy_data["correct_routes"],
+                        total=accuracy_data["total_queries"],
                         status=status,
                     )
                 )
 
         # Instance utilization
-        report.extend([
-            "",
-            "### Instance Utilization Distribution",
-            "| Instance | Queries | Utilization | Specialization |",
-            "|----------|---------|-------------|----------------|"
-        ])
+        report.extend(
+            [
+                "",
+                "### Instance Utilization Distribution",
+                "| Instance | Queries | Utilization | Specialization |",
+                "|----------|---------|-------------|----------------|",
+            ]
+        )
 
-        for instance, utilization_data in analysis['instance_specialization_score'].items():
-            util_pct = utilization_data['utilization_percentage']
-            is_specialized = any(
-                term in instance
-                for term in ("code-technical", "reasoning-math", "chat-qa")
-            )
+        for instance, utilization_data in analysis["instance_specialization_score"].items():
+            util_pct = utilization_data["utilization_percentage"]
+            is_specialized = any(term in instance for term in ("code-technical", "reasoning-math", "chat-qa"))
             specialization = "Specialized" if is_specialized else "General"
             report.append(
                 "| {instance} | {count} | {util:.1f}% | {label} |".format(
                     instance=instance,
-                    count=utilization_data['query_count'],
+                    count=utilization_data["query_count"],
                     util=util_pct,
                     label=specialization,
                 )
             )
 
         # Performance metrics
-        if analysis['performance_metrics']:
-            report.extend([
-                "",
-                "### Response Time Performance",
-                "| Question Type | Avg Response (ms) | Min (ms) | Max (ms) | Queries |",
-                "|---------------|-------------------|----------|----------|---------|"
-            ])
+        if analysis["performance_metrics"]:
+            report.extend(
+                [
+                    "",
+                    "### Response Time Performance",
+                    "| Question Type | Avg Response (ms) | Min (ms) | Max (ms) | Queries |",
+                    "|---------------|-------------------|----------|----------|---------|",
+                ]
+            )
 
-            for q_type, perf_data in analysis['performance_metrics'].items():
+            for q_type, perf_data in analysis["performance_metrics"].items():
                 report.append(
                     "| {type} | {avg:.1f} | {min:.1f} | {max:.1f} | {count} |".format(
                         type=q_type.title(),
-                        avg=perf_data['avg_response_time'],
-                        min=perf_data['min_response_time'],
-                        max=perf_data['max_response_time'],
-                        count=perf_data['query_count'],
+                        avg=perf_data["avg_response_time"],
+                        min=perf_data["min_response_time"],
+                        max=perf_data["max_response_time"],
+                        count=perf_data["query_count"],
                     )
                 )
 
         # Model selection distribution
-        report.extend([
-            "",
-            "### Model Selection Distribution",
-            "| Model | Usage Count | Percentage |",
-            "|-------|-------------|------------|"
-        ])
+        report.extend(
+            [
+                "",
+                "### Model Selection Distribution",
+                "| Model | Usage Count | Percentage |",
+                "|-------|-------------|------------|",
+            ]
+        )
 
-        total_model_usage = sum(results['model_selection'].values())
-        for model, count in results['model_selection'].most_common():
+        total_model_usage = sum(results["model_selection"].values())
+        for model, count in results["model_selection"].most_common():
             percentage = (count / total_model_usage) * 100
             report.append(
                 "| {model} | {count} | {percentage:.1f}% |".format(
@@ -274,31 +274,29 @@ class SpecializationMonitor:
             )
 
         # Recommendations
-        if analysis['recommendations']:
-            report.extend([
-                "",
-                "## 📋 Recommendations",
-                ""
-            ])
-            for i, rec in enumerate(analysis['recommendations'], 1):
+        if analysis["recommendations"]:
+            report.extend(["", "## 📋 Recommendations", ""])
+            for i, rec in enumerate(analysis["recommendations"], 1):
                 report.append(f"{i}. {rec}")
 
         # Summary
-        overall_accuracy = total_accuracy / len(analysis['routing_accuracy'])
-        total_response_time = sum(sum(times) for times in results['response_times'].values())
-        total_response_count = sum(len(times) for times in results['response_times'].values())
+        overall_accuracy = total_accuracy / len(analysis["routing_accuracy"])
+        total_response_time = sum(sum(times) for times in results["response_times"].values())
+        total_response_count = sum(len(times) for times in results["response_times"].values())
         avg_response_time = total_response_time / total_response_count if total_response_count else 0
 
         status_label = "✅ Effective" if overall_accuracy > 0.8 else "⚠️ Needs Tuning"
-        report.extend([
-            "",
-            "## 📊 Summary",
-            f"- **Overall Routing Accuracy**: {overall_accuracy:.1%}",
-            f"- **Average Response Time**: {avg_response_time:.1f}ms",
-            f"- **Instances Utilized**: {len(results['instance_utilization'])}/4",
-            f"- **Models Used**: {len(results['model_selection'])}",
-            f"- **Specialization Status**: {status_label}"
-        ])
+        report.extend(
+            [
+                "",
+                "## 📊 Summary",
+                f"- **Overall Routing Accuracy**: {overall_accuracy:.1%}",
+                f"- **Average Response Time**: {avg_response_time:.1f}ms",
+                f"- **Instances Utilized**: {len(results['instance_utilization'])}/4",
+                f"- **Models Used**: {len(results['model_selection'])}",
+                f"- **Specialization Status**: {status_label}",
+            ]
+        )
 
         return "\\n".join(report)
 
@@ -322,7 +320,6 @@ class SpecializationMonitor:
                 "prefer_speed": False,
                 "require_context": False,
             },
-
             # Technical questions (should route to instance 1 or 2)
             {
                 "query": "How do I configure RNI database connections?",
@@ -339,7 +336,6 @@ class SpecializationMonitor:
                 "prefer_speed": False,
                 "require_context": False,
             },
-
             # Math questions (should route to instance 3)
             {
                 "query": "Calculate the derivative of x^3 + 2x",
@@ -356,7 +352,6 @@ class SpecializationMonitor:
                 "prefer_speed": False,
                 "require_context": False,
             },
-
             # Factual questions (should route to instance 1)
             {
                 "query": "What is the capital of France?",
@@ -373,7 +368,6 @@ class SpecializationMonitor:
                 "prefer_speed": False,
                 "require_context": False,
             },
-
             # Chat questions (should route to instance 1)
             {
                 "query": "Hello, how are you today?",
@@ -389,7 +383,7 @@ class SpecializationMonitor:
                 "query": "Tell me a joke",
                 "prefer_speed": False,
                 "require_context": False,
-            }
+            },
         ]
 
         # Run tests
@@ -402,6 +396,7 @@ class SpecializationMonitor:
         report = self.generate_performance_report(results, analysis)
 
         return report
+
 
 def main():
     """Main execution function"""
@@ -422,15 +417,15 @@ def main():
         test_queries = [
             {"query": "How do I write Python code?", "prefer_speed": False, "require_context": False},
             {"query": "Configure RNI server settings", "prefer_speed": False, "require_context": False},
-            {"query": "Calculate 2 + 2", "prefer_speed": False, "require_context": False}
+            {"query": "Calculate 2 + 2", "prefer_speed": False, "require_context": False},
         ]
         results = monitor.test_routing_performance(test_queries)
         analysis = monitor.analyze_specialization_effectiveness(results)
 
         output_data = {
-            'results': results,
-            'analysis': analysis,
-            'routing_log': [asdict(event) for event in monitor.routing_log]
+            "results": results,
+            "analysis": analysis,
+            "routing_log": [asdict(event) for event in monitor.routing_log],
         }
 
         print(json.dumps(output_data, indent=2, default=str))
@@ -439,13 +434,14 @@ def main():
         report = monitor.run_comprehensive_test()
 
         if args.output:
-            with open(args.output, 'w') as f:
+            with open(args.output, "w") as f:
                 f.write(report)
             print(f"\\n📄 Report saved to: {args.output}")
         else:
             print("\\n" + report)
 
     return True
+
 
 if __name__ == "__main__":
     success = main()

@@ -6,30 +6,30 @@ Technical Service Assistant - Post-Installation Setup
 This script handles post-installation configuration and setup tasks.
 """
 
-import os
-import sys
-import subprocess
-import time
-import json
 import argparse
+import os
+import subprocess
+import sys
+import time
 from pathlib import Path
+
 
 def run_command(cmd, check=True, capture_output=False):
     """Run a shell command with proper error handling."""
     print(f"Running: {cmd}")
     try:
         if capture_output:
-            result = subprocess.run(cmd, shell=True, check=check,
-                                  capture_output=True, text=True)
+            result = subprocess.run(cmd, shell=True, check=check, capture_output=True, text=True)
             return result.stdout.strip()
         else:
             subprocess.run(cmd, shell=True, check=check)
             return True
     except subprocess.CalledProcessError as e:
         print(f"Command failed: {e}")
-        if capture_output and hasattr(e, 'stderr'):
+        if capture_output and hasattr(e, "stderr"):
             print(f"Error output: {e.stderr}")
         return False
+
 
 def wait_for_service(url, timeout=300, service_name="service"):
     """Wait for a service to become available."""
@@ -39,11 +39,13 @@ def wait_for_service(url, timeout=300, service_name="service"):
     while time.time() - start_time < timeout:
         try:
             import requests
+
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 print(f"✅ {service_name} is ready!")
                 return True
-        except:
+        except Exception:
+            # Continue retrying on any network or import errors
             pass
 
         print(".", end="", flush=True)
@@ -52,15 +54,16 @@ def wait_for_service(url, timeout=300, service_name="service"):
     print(f"\n❌ {service_name} failed to start within {timeout} seconds")
     return False
 
+
 def setup_ollama_models(base_url="http://localhost:11434"):
     """Download and setup required Ollama models."""
     print("Setting up Ollama models...")
 
     models = [
         "nomic-embed-text:v1.5",  # Embedding model
-        "llama2",                  # Default chat model
-        "mistral:7b",             # Technical questions
-        "codellama",              # Code generation
+        "llama2",  # Default chat model
+        "mistral:7b",  # Technical questions
+        "codellama",  # Code generation
     ]
 
     for model in models:
@@ -70,6 +73,7 @@ def setup_ollama_models(base_url="http://localhost:11434"):
             print(f"⚠️ Failed to pull {model}, continuing...")
 
     print("✅ Ollama models setup completed")
+
 
 def setup_database():
     """Initialize database with required tables and indexes."""
@@ -84,13 +88,14 @@ def setup_database():
     print("Running database migrations...")
     cmd = (
         "docker exec technical-service-assistant-reranker-1 "
-        "python -c \"from migrations.run_migrations import main; main()\""
+        'python -c "from migrations.run_migrations import main; main()"'
     )
     if not run_command(cmd, check=False):
         print("⚠️ Database migrations failed, may need manual setup")
 
     print("✅ Database setup completed")
     return True
+
 
 def setup_monitoring():
     """Configure monitoring dashboards and alerts."""
@@ -110,13 +115,15 @@ def setup_monitoring():
     print("✅ Monitoring setup completed")
     return True
 
+
 def create_admin_user():
     """Create initial admin user."""
     print("Creating admin user...")
 
     # This would integrate with your user management system
     # For now, just provide instructions
-    print("""
+    print(
+        """
     📝 Admin User Setup Required:
 
     1. Navigate to http://your-server-ip/
@@ -124,15 +131,17 @@ def create_admin_user():
     3. Configure user permissions as needed
 
     For automated user creation, see the API documentation.
-    """)
+    """
+    )
 
     return True
+
 
 def run_health_checks():
     """Perform comprehensive health checks."""
     print("Running health checks...")
 
-    api_url = os.getenv("RERANKER_URL", "http://localhost:8008").rstrip('/')
+    api_url = os.getenv("RERANKER_URL", "http://localhost:8008").rstrip("/")
     web_url = os.getenv("FRONTEND_URL", "http://localhost:8080")
     ollama_primary = os.getenv("OLLAMA_PRIMARY_URL", "http://localhost:11434")
     checks = [
@@ -146,20 +155,22 @@ def run_health_checks():
     for name, url in checks:
         try:
             import requests
+
             response = requests.get(url, timeout=10)
             status = "✅ PASS" if response.status_code == 200 else f"❌ FAIL ({response.status_code})"
             results.append((name, status))
         except Exception as e:
             results.append((name, f"❌ FAIL ({str(e)[:50]}...)"))
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("HEALTH CHECK RESULTS")
-    print("="*50)
+    print("=" * 50)
     for name, status in results:
         print(f"{name:20} {status}")
-    print("="*50)
+    print("=" * 50)
 
     return all("✅" in result[1] for result in results)
+
 
 def main():
     """Main setup function."""
@@ -171,7 +182,7 @@ def main():
     args = parser.parse_args()
 
     print("🚀 Technical Service Assistant - Post-Installation Setup")
-    print("="*60)
+    print("=" * 60)
 
     if args.health_check_only:
         success = run_health_checks()
@@ -195,7 +206,7 @@ def main():
         success = False
 
     # Final health check
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if run_health_checks():
         print("\n🎉 Setup completed successfully!")
         print("\n📖 Quick Start:")
@@ -209,6 +220,7 @@ def main():
         success = False
 
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

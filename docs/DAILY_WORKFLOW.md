@@ -10,7 +10,7 @@ make morning
 
 **What it checks:**
 - ✅ Container health and service endpoints
-- ✅ Database integrity (orphans, empty docs, missing embeddings)  
+- ✅ Database integrity (orphans, empty docs, missing embeddings)
 - ✅ System cleanup monitoring (backup files, logs, cache)
 - ✅ Performance metrics (API response times, memory usage)
 - ✅ Security and configuration status

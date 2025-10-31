@@ -83,7 +83,7 @@ CHAT_MODEL=llama3:8B
 cp .env.example .env
 # Edit .env with local settings
 
-# Production  
+# Production
 cp .env.example .env.production
 # Edit .env.production with production values
 docker compose --env-file .env.production up -d

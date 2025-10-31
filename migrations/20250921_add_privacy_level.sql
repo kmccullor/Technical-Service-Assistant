@@ -6,7 +6,7 @@ DO $$
 BEGIN
     -- Add privacy_level to document_chunks if missing
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name='document_chunks' AND column_name='privacy_level'
     ) THEN
         ALTER TABLE document_chunks ADD COLUMN privacy_level text DEFAULT 'public';
@@ -15,7 +15,7 @@ BEGIN
 
     -- Add privacy_level to pdf_documents for future aggregation
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name='pdf_documents' AND column_name='privacy_level'
     ) THEN
         ALTER TABLE pdf_documents ADD COLUMN privacy_level text DEFAULT 'public';
@@ -24,19 +24,19 @@ BEGIN
 
     -- Add document_type & product_name classification metadata if not present
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name='document_chunks' AND column_name='document_type'
     ) THEN
         ALTER TABLE document_chunks ADD COLUMN document_type text;
     END IF;
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name='document_chunks' AND column_name='product_name'
     ) THEN
         ALTER TABLE document_chunks ADD COLUMN product_name text;
     END IF;
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
+        SELECT 1 FROM information_schema.columns
         WHERE table_name='document_chunks' AND column_name='ai_classification'
     ) THEN
         ALTER TABLE document_chunks ADD COLUMN ai_classification jsonb;

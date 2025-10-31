@@ -25,13 +25,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import shutil
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 DIR = Path(__file__).parent
 BACKUP_DIR = DIR / "dashboards_backup_normalized"
@@ -78,6 +76,7 @@ def normalize_dashboard(path: Path, existing_uids: set[str]) -> bool:
 
     # UID handling
     uid = data.get("uid")
+
     def finalize_uid(raw: str) -> str:
         # Enforce length <= MAX_UID_LEN. If truncated, append short hash to keep uniqueness if needed.
         cleaned = raw[:MAX_UID_LEN]
@@ -89,8 +88,10 @@ def normalize_dashboard(path: Path, existing_uids: set[str]) -> bool:
         candidate = base_uid
         idx = 1
         while candidate in existing_uids:
-            suffix = f"-{idx}" if len(base_uid) + len(str(idx)) + 1 <= MAX_UID_LEN else f"-{compute_hash({'i': idx})[:4]}"
-            candidate = (base_uid[: MAX_UID_LEN - len(suffix)] + suffix)
+            suffix = (
+                f"-{idx}" if len(base_uid) + len(str(idx)) + 1 <= MAX_UID_LEN else f"-{compute_hash({'i': idx})[:4]}"
+            )
+            candidate = base_uid[: MAX_UID_LEN - len(suffix)] + suffix
             idx += 1
         data["uid"] = candidate
         existing_uids.add(candidate)

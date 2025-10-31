@@ -67,7 +67,7 @@ for container in "${EXPECTED_CONTAINERS[@]}"; do
         MISSING_CONTAINERS+=("$container")
         ((CRITICAL_ISSUES++))
         ((TESTS_FAILED++))
-        
+
         # Try to start the container
         info "Attempting to start $container..."
         if docker compose start "$container" > /dev/null 2>&1; then
@@ -121,7 +121,7 @@ OLLAMA4_URL="${OLLAMA4_URL:-http://localhost:11437}"
 ENDPOINTS=(
     "${RERANKER_URL%/}/health:Reranker"
     "${OLLAMA1_URL%/}/api/tags:Ollama-1"
-    "${OLLAMA2_URL%/}/api/tags:Ollama-2" 
+    "${OLLAMA2_URL%/}/api/tags:Ollama-2"
     "${OLLAMA3_URL%/}/api/tags:Ollama-3"
     "${OLLAMA4_URL%/}/api/tags:Ollama-4"
     "${SEARXNG_URL%/}:SearXNG"
@@ -162,48 +162,48 @@ for container in "${CONTAINERS_TO_CHECK[@]}"; do
     if docker ps --filter "name=$container" -q | grep -q .; then
         error_count=$(docker logs --since="24h" "$container" 2>/dev/null | grep -E "(ERROR|FATAL|Exception|Failed)" | wc -l || echo "0")
         warning_count=$(docker logs --since="24h" "$container" 2>/dev/null | grep -E "(WARNING|Warning)" | wc -l || echo "0")
-        
+
         # Container-specific analysis
         case $container in
             "pdf_processor")
                 PDF_PROCESSOR_ERRORS=$error_count
                 PDF_PROCESSOR_WARNINGS=$warning_count
-                
+
                 # Check for specific PDF processor issues
                 network_errors=$(docker logs --since="24h" "$container" 2>/dev/null | grep -c "Failed to resolve" || echo "0")
                 embedding_errors=$(docker logs --since="24h" "$container" 2>/dev/null | grep -c "Failed to get embedding" || echo "0")
                 db_connection_errors=$(docker logs --since="24h" "$container" 2>/dev/null | grep -c "Failed to connect to database" || echo "0")
-                
+
                 if [ "$network_errors" -gt 0 ]; then
                     error "PDF Processor: $network_errors DNS resolution failures (Ollama connectivity)"
                     NETWORK_ISSUES=$((NETWORK_ISSUES + network_errors))
                     ((CRITICAL_ISSUES++))
                 fi
-                
+
                 if [ "$embedding_errors" -gt 0 ]; then
                     error "PDF Processor: $embedding_errors embedding generation failures"
                     MODEL_LOADING_ISSUES=$((MODEL_LOADING_ISSUES + embedding_errors))
                     ((CRITICAL_ISSUES++))
                 fi
-                
+
                 if [ "$db_connection_errors" -gt 0 ]; then
                     error "PDF Processor: $db_connection_errors database connection failures"
                     ((CRITICAL_ISSUES++))
                 fi
                 ;;
-                
+
             "pgvector")
                 DATABASE_ERRORS=$error_count
                 if [ "$error_count" -gt 0 ]; then
                     warning "$container has $error_count database errors"
                     ((WARNING_ISSUES++))
-                    
+
                     # Show recent database errors
                     echo "Recent database errors:"
                     docker logs --since="24h" "$container" 2>/dev/null | grep -E "(ERROR|FATAL)" | tail -3 || true
                 fi
                 ;;
-                
+
             "redis-cache")
                 REDIS_WARNINGS=$warning_count
                 if [ "$warning_count" -gt 0 ]; then
@@ -212,7 +212,7 @@ for container in "${CONTAINERS_TO_CHECK[@]}"; do
                 fi
                 ;;
         esac
-        
+
         if [ "$error_count" -gt 0 ] || [ "$warning_count" -gt 5 ]; then
             if [ "$error_count" -gt 0 ]; then
                 error "$container has $error_count errors in last 24h"
@@ -222,7 +222,7 @@ for container in "${CONTAINERS_TO_CHECK[@]}"; do
                 warning "$container has $warning_count warnings in last 24h"
                 ((WARNING_ISSUES++))
             fi
-            
+
             # Show sample of recent issues
             echo "Recent issues from $container:"
             docker logs --since="24h" "$container" 2>/dev/null | grep -E "(ERROR|FATAL|Exception|Failed|WARNING)" | tail -3 || true
@@ -303,7 +303,7 @@ if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >
 
     # Check database content using new target DB
     db_stats=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "
-        SELECT 
+        SELECT
             COALESCE((SELECT COUNT(*) FROM documents), 0) || ',' ||
             COALESCE((SELECT COUNT(*) FROM document_chunks), 0) || ',' ||
             COALESCE((SELECT COUNT(*) FROM search_events), 0);
@@ -375,7 +375,7 @@ echo -e "\n${BLUE}=== DATABASE INTEGRITY CHECKS ===${NC}"
 info "Checking database integrity and orphan records..."
 
 INTEGRITY_CHECK=$(docker exec -it "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "
-SELECT 
+SELECT
     COALESCE(SUM(CASE WHEN d.id IS NULL THEN 1 ELSE 0 END), 0) as orphan_chunks,
     COALESCE(COUNT(DISTINCT CASE WHEN NOT EXISTS(SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id) THEN d.id END), 0) as empty_documents,
     COALESCE(SUM(CASE WHEN dc.embedding IS NULL THEN 1 ELSE 0 END), 0) as chunks_missing_embeddings,
@@ -387,16 +387,16 @@ FULL OUTER JOIN document_chunks dc ON d.id = dc.document_id;
 
 if [ ! -z "$INTEGRITY_CHECK" ] && [ "$INTEGRITY_CHECK" != "" ]; then
     IFS='|' read -r ORPHAN_CHUNKS EMPTY_DOCS MISSING_EMBEDDINGS TOTAL_DOCS TOTAL_CHUNKS <<< "$INTEGRITY_CHECK"
-    
+
     # Clean up any whitespace/newlines
     ORPHAN_CHUNKS=$(echo "$ORPHAN_CHUNKS" | tr -d ' \t\n\r')
     EMPTY_DOCS=$(echo "$EMPTY_DOCS" | tr -d ' \t\n\r')
     MISSING_EMBEDDINGS=$(echo "$MISSING_EMBEDDINGS" | tr -d ' \t\n\r')
     TOTAL_DOCS=$(echo "$TOTAL_DOCS" | tr -d ' \t\n\r')
     TOTAL_CHUNKS=$(echo "$TOTAL_CHUNKS" | tr -d ' \t\n\r')
-    
+
     info "Database status: $TOTAL_DOCS documents, $TOTAL_CHUNKS chunks"
-    
+
     if [ "${ORPHAN_CHUNKS:-0}" -gt 0 ]; then
         error "Found $ORPHAN_CHUNKS orphan chunks (chunks without documents)"
         ((CRITICAL_ISSUES++))
@@ -404,7 +404,7 @@ if [ ! -z "$INTEGRITY_CHECK" ] && [ "$INTEGRITY_CHECK" != "" ]; then
         success "No orphan chunks found"
         ((TESTS_PASSED++))
     fi
-    
+
     if [ "${EMPTY_DOCS:-0}" -gt 0 ]; then
         warning "Found $EMPTY_DOCS empty documents (documents without chunks)"
         ((WARNING_ISSUES++))
@@ -412,7 +412,7 @@ if [ ! -z "$INTEGRITY_CHECK" ] && [ "$INTEGRITY_CHECK" != "" ]; then
         success "No empty documents found"
         ((TESTS_PASSED++))
     fi
-    
+
     if [ "${MISSING_EMBEDDINGS:-0}" -gt 0 ]; then
         error "Found $MISSING_EMBEDDINGS chunks missing embeddings"
         ((CRITICAL_ISSUES++))
@@ -420,7 +420,7 @@ if [ ! -z "$INTEGRITY_CHECK" ] && [ "$INTEGRITY_CHECK" != "" ]; then
         success "All chunks have embeddings"
         ((TESTS_PASSED++))
     fi
-    
+
     log "Database integrity: ${ORPHAN_CHUNKS:-0} orphans, ${EMPTY_DOCS:-0} empty docs, ${MISSING_EMBEDDINGS:-0} missing embeddings"
 else
     warning "Could not perform database integrity checks"
@@ -636,7 +636,7 @@ else
     success "Memory usage acceptable: ${MEMORY_PERCENT}%"
 fi
 
-# Security and Configuration Monitoring  
+# Security and Configuration Monitoring
 echo -e "\n${BLUE}=== 🔒 Security & Configuration Monitoring ===${NC}"
 info "Checking security and configuration status..."
 

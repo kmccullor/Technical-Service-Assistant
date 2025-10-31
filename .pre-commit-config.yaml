@@ -73,6 +73,21 @@ repos:
         args: ['-c', 'pyproject.toml']
         description: Security linting with bandit
 
+  # Dependency vulnerability scanning with safety
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+        description: Check for known security vulnerabilities in dependencies
+
+  # Additional dependency security scanning with pip-audit
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
+    hooks:
+      - id: pip-audit
+        args: ['--ignore-vulns', 'PYSEC-2021-123']  # Add specific vulnerability IDs to ignore if needed
+        description: Audit Python packages for known vulnerabilities
+
   # Docstring style checking
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0

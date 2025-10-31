@@ -188,7 +188,7 @@ system = Phase3AMultimodalSystem(VisionModel.BLIP)
 summary = await system.process_document_multimodal("technical_manual.pdf")
 
 print(f"Extracted {summary['images_extracted']} images")
-print(f"Extracted {summary['tables_extracted']} tables") 
+print(f"Extracted {summary['tables_extracted']} tables")
 print(f"Processing time: {summary['processing_time']:.2f}s")
 ```
 
@@ -197,7 +197,7 @@ print(f"Processing time: {summary['processing_time']:.2f}s")
 ```python
 # Search across all content types
 results, metrics = await system.search_multimodal(
-    query="network configuration diagram", 
+    query="network configuration diagram",
     content_types=[ContentType.DIAGRAM, ContentType.TABLE],
     top_k=10
 )
@@ -308,7 +308,7 @@ Phase 3A integrates with existing configuration through `config.py`:
 # Add to config.py
 class Settings(BaseSettings):
     # Existing Phase 2B/2C settings...
-    
+
     # Phase 3A Multimodal Settings
     vision_model: str = "basic"
     multimodal_search_enabled: bool = True
@@ -348,7 +348,7 @@ Phase 3A includes comprehensive testing:
 ### Quality Metrics
 
 - **Accuracy**: Vision model description quality, table extraction precision
-- **Performance**: Processing speed, memory usage, search response times  
+- **Performance**: Processing speed, memory usage, search response times
 - **Reliability**: Error handling, fallback mechanisms, system stability
 - **Integration**: Compatibility with existing Phase 2B/2C infrastructure
 

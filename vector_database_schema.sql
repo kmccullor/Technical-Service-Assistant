@@ -12,14 +12,14 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- ==========================================
 CREATE TABLE documents (
     id BIGSERIAL PRIMARY KEY,
-    
+
     -- Basic identification
     file_name TEXT NOT NULL,
     original_path TEXT,
     file_hash TEXT UNIQUE NOT NULL, -- Prevent duplicates
     file_size BIGINT,
     mime_type TEXT,
-    
+
     -- Document metadata
     title TEXT,
     version TEXT,
@@ -27,33 +27,33 @@ CREATE TABLE documents (
     ga_date DATE,
     publisher TEXT,
     copyright_year INTEGER,
-    
+
     -- Product information
     product_family TEXT[], -- e.g., ['RNI', 'FlexNet']
     product_name TEXT,
     product_version TEXT,
-    
+
     -- Classification
     document_type TEXT, -- user_guide, release_notes, technical_specification, etc.
     document_category TEXT,
     service_lines TEXT[], -- ['Electric', 'Gas', 'Water', 'Common']
     audiences TEXT[], -- ['RNI administrators', 'Utility operations', etc.]
-    
+
     -- Privacy and security
     privacy_level TEXT DEFAULT 'public',
     security_classification TEXT,
-    
+
     -- AI classification metadata
     classification_confidence FLOAT,
     classification_method TEXT, -- 'ai', 'rule_based', 'manual'
-    
+
     -- Processing status
     processing_status TEXT DEFAULT 'pending', -- pending, processing, completed, failed
     processed_at TIMESTAMP WITH TIME ZONE,
-    
+
     -- Rich metadata (JSONB for flexible schema)
     metadata JSONB DEFAULT '{}',
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -65,32 +65,32 @@ CREATE TABLE documents (
 CREATE TABLE document_chunks (
     id BIGSERIAL PRIMARY KEY,
     document_id BIGINT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    
+
     -- Chunk identification
     chunk_index INTEGER NOT NULL, -- Order within document
     page_number INTEGER,
     section_title TEXT,
     chunk_type TEXT DEFAULT 'text', -- text, table, image, code, header, footer
-    
+
     -- Content
     content TEXT NOT NULL,
     content_hash TEXT NOT NULL, -- For deduplication
     content_length INTEGER,
-    
+
     -- Vector embedding
     embedding vector(768), -- nomic-embed-text dimensions
-    
+
     -- Chunk-level metadata
     language TEXT DEFAULT 'en',
     tokens INTEGER,
     metadata JSONB DEFAULT '{}',
-    
+
     -- Search optimization
     content_tsvector tsvector, -- Full-text search
-    
+
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     -- Ensure unique chunks per document
     UNIQUE(document_id, chunk_index),
     UNIQUE(document_id, content_hash)
@@ -108,7 +108,7 @@ CREATE TABLE entities (
     aliases TEXT[],
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     UNIQUE(name, entity_type)
 );
 
@@ -121,7 +121,7 @@ CREATE TABLE document_entities (
     relevance_score FLOAT, -- How relevant this entity is to the document
     first_mention_chunk_id BIGINT REFERENCES document_chunks(id),
     mention_count INTEGER DEFAULT 1,
-    
+
     PRIMARY KEY(document_id, entity_id)
 );
 
@@ -143,7 +143,7 @@ CREATE TABLE document_keywords (
     document_id BIGINT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     keyword_id BIGINT NOT NULL REFERENCES keywords(id) ON DELETE CASCADE,
     relevance_score FLOAT DEFAULT 1.0,
-    
+
     PRIMARY KEY(document_id, keyword_id)
 );
 
@@ -167,12 +167,12 @@ CREATE TABLE search_sessions (
 -- ==========================================
 
 -- Primary vector similarity index (HNSW for better performance)
-CREATE INDEX document_chunks_embedding_hnsw_idx 
+CREATE INDEX document_chunks_embedding_hnsw_idx
 ON document_chunks USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
 -- IVF index for large datasets (alternative)
--- CREATE INDEX document_chunks_embedding_ivf_idx 
+-- CREATE INDEX document_chunks_embedding_ivf_idx
 -- ON document_chunks USING ivfflat (embedding vector_cosine_ops)
 -- WITH (lists = 100);
 
@@ -286,7 +286,7 @@ INSERT INTO keywords (keyword, category, weight) VALUES
 
 -- Document summary view
 CREATE VIEW document_summary AS
-SELECT 
+SELECT
     d.id,
     d.file_name,
     d.title,
@@ -305,7 +305,7 @@ GROUP BY d.id;
 
 -- Search-ready chunks view
 CREATE VIEW searchable_chunks AS
-SELECT 
+SELECT
     dc.id,
     dc.document_id,
     d.file_name,

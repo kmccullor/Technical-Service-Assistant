@@ -1,5 +1,5 @@
 # Technical Service Assistant - Accuracy Improvement Plan
-# Target: Increase Overall Accuracy from 72.7% to 95%+ 
+# Target: Increase Overall Accuracy from 72.7% to 95%+
 
 ## Phase 2A Results (Completed - 2025-09-21)
 
@@ -65,7 +65,7 @@ Advance to Phase 2B focusing on precision improvements (quality weighting, adapt
 **Specific Misclassifications Found:**
 1. **Security Document Confusion (42.9% accuracy)**
    - "Hardware Security Module Installation Guide" → Classified as "installation_guide" instead of "security_guide"
-   - "System Security User Guide" → Correctly classified as "security_guide" 
+   - "System Security User Guide" → Correctly classified as "security_guide"
    - Pattern: Documents with dual purpose (security + installation) create ambiguity
 
 2. **User Guide Edge Cases (82.4% accuracy)**
@@ -99,13 +99,13 @@ Advance to Phase 2B focusing on precision improvements (quality weighting, adapt
 def enhanced_document_classification(text: str, filename: str) -> Dict[str, Any]:
     # Primary classification: Document type
     primary_type = classify_primary_type(text, filename)
-    
-    # Secondary classification: Domain specialization  
+
+    # Secondary classification: Domain specialization
     domain_tags = classify_domain_specialization(text)
-    
+
     # Tertiary classification: Audience and purpose
     audience_type = classify_target_audience(text)
-    
+
     # Combine with confidence weighting
     return combine_classifications(primary_type, domain_tags, audience_type)
 
@@ -150,40 +150,40 @@ ENHANCED_CLASSIFICATION_PATTERNS = {
 def enhanced_metadata_extraction(pdf_path: str, text: str) -> Dict[str, Any]:
     # Stage 1: PDF Structure Analysis
     structure_metadata = extract_pdf_structure(pdf_path)
-    
+
     # Stage 2: OCR Header/Footer Extraction
     header_footer_data = extract_headers_footers_ocr(pdf_path)
-    
+
     # Stage 3: Content Pattern Analysis
     content_patterns = analyze_content_patterns(text)
-    
+
     # Stage 4: Cross-Reference Validation
     validated_metadata = cross_validate_metadata(
         structure_metadata, header_footer_data, content_patterns
     )
-    
+
     return validated_metadata
 
 def extract_pdf_structure(pdf_path: str) -> Dict[str, Any]:
     """Extract title, document info, and metadata from PDF structure"""
     import fitz
     doc = fitz.open(pdf_path)
-    
+
     # Extract PDF metadata
     pdf_metadata = doc.metadata
-    
+
     # Extract first page for title detection
     first_page = doc[0]
-    
+
     # Analyze text blocks for title identification
     blocks = first_page.get_text("dict")["blocks"]
-    
+
     # Find largest font size text (likely title)
     title_candidates = find_title_candidates(blocks)
-    
+
     return {
         'pdf_title': pdf_metadata.get('title'),
-        'pdf_subject': pdf_metadata.get('subject'), 
+        'pdf_subject': pdf_metadata.get('subject'),
         'pdf_creator': pdf_metadata.get('creator'),
         'extracted_title': select_best_title(title_candidates),
         'document_info': pdf_metadata
@@ -197,30 +197,30 @@ def extract_headers_footers_ocr(pdf_path: str) -> Dict[str, Any]:
     import fitz
     from PIL import Image
     import pytesseract
-    
+
     doc = fitz.open(pdf_path)
-    
+
     # Extract header regions (top 10% of pages)
     header_text = []
     footer_text = []
-    
+
     for page_num in range(min(3, len(doc))):  # First 3 pages
         page = doc[page_num]
         pix = page.get_pixmap()
-        
+
         # Convert to PIL Image
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        
+
         # Extract header region (top 15%)
         header_height = int(img.height * 0.15)
         header_img = img.crop((0, 0, img.width, header_height))
         header_text.append(pytesseract.image_to_string(header_img))
-        
-        # Extract footer region (bottom 10%) 
+
+        # Extract footer region (bottom 10%)
         footer_top = int(img.height * 0.9)
         footer_img = img.crop((0, footer_top, img.width, img.height))
         footer_text.append(pytesseract.image_to_string(footer_img))
-    
+
     return {
         'header_text': ' '.join(header_text),
         'footer_text': ' '.join(footer_text),
@@ -235,16 +235,16 @@ def extract_headers_footers_ocr(pdf_path: str) -> Dict[str, Any]:
 ```python
 def enhanced_query_processing(query: str) -> Dict[str, Any]:
     """Advanced query processing for better semantic matching"""
-    
+
     # Extract key entities from query
     entities = extract_query_entities(query)
-    
+
     # Expand query with synonyms and related terms
     expanded_query = expand_query_with_synonyms(query, entities)
-    
+
     # Weight terms by importance
     weighted_terms = assign_term_weights(expanded_query, entities)
-    
+
     return {
         'original_query': query,
         'expanded_query': expanded_query,
@@ -262,13 +262,13 @@ PRODUCT_SYNONYMS = {
 def expand_query_with_synonyms(query: str, entities: List[str]) -> str:
     """Expand query with product and technical synonyms"""
     expanded = query.lower()
-    
+
     for entity in entities:
         if entity in PRODUCT_SYNONYMS:
             synonyms = PRODUCT_SYNONYMS[entity]
             # Add OR clause with synonyms
             expanded += f" OR {' OR '.join(synonyms)}"
-    
+
     return expanded
 ```
 
@@ -276,49 +276,49 @@ def expand_query_with_synonyms(query: str, entities: List[str]) -> str:
 ```python
 def metadata_weighted_search(query_embedding: List[float], metadata_filters: Dict) -> List[Dict]:
     """Combine vector similarity with metadata relevance scoring"""
-    
+
     # Base vector similarity search
     base_results = vector_similarity_search(query_embedding, limit=20)
-    
+
     # Apply metadata scoring
     enhanced_results = []
     for result in base_results:
         metadata_score = calculate_metadata_relevance(result, metadata_filters)
-        
+
         # Combine vector distance with metadata relevance
         combined_score = (
             (1 - result['distance']) * 0.7 +  # Vector similarity (70%)
             metadata_score * 0.3               # Metadata relevance (30%)
         )
-        
+
         result['combined_score'] = combined_score
         enhanced_results.append(result)
-    
+
     # Re-rank by combined score
     return sorted(enhanced_results, key=lambda x: x['combined_score'], reverse=True)
 
 def calculate_metadata_relevance(result: Dict, query_metadata: Dict) -> float:
     """Calculate metadata relevance score"""
     score = 0.0
-    
+
     # Product match bonus
     if query_metadata.get('product') == result.get('product_name'):
         score += 0.3
-    
-    # Document type match bonus  
+
+    # Document type match bonus
     if query_metadata.get('doc_type') == result.get('document_type'):
         score += 0.25
-    
+
     # Version proximity bonus
     version_score = calculate_version_proximity(
         query_metadata.get('version'), result.get('product_version')
     )
     score += version_score * 0.2
-    
+
     # Privacy level match
     if query_metadata.get('privacy') == result.get('privacy_level'):
         score += 0.1
-    
+
     return min(score, 1.0)
 ```
 
@@ -329,7 +329,7 @@ def calculate_metadata_relevance(result: Dict, query_metadata: Dict) -> float:
 # Implement domain-specific fine-tuning for technical documents
 def train_technical_document_classifier():
     """Fine-tune base model on technical documentation corpus"""
-    
+
     training_data = [
         {
             'text': 'RNI Hardware Security Module Installation Guide content...',
@@ -342,15 +342,15 @@ def train_technical_document_classifier():
         },
         # ... more training examples
     ]
-    
+
     # Use transformer model with technical vocabulary
     model = AutoModelForSequenceClassification.from_pretrained(
         'microsoft/DialoGPT-medium'  # Or similar technical model
     )
-    
+
     # Fine-tune on technical documentation patterns
     trained_model = fine_tune_model(model, training_data)
-    
+
     return trained_model
 ```
 
@@ -358,27 +358,27 @@ def train_technical_document_classifier():
 ```python
 def ensemble_classification(text: str, filename: str) -> Dict[str, Any]:
     """Use multiple models for consensus-based classification"""
-    
+
     # Model 1: Filename-based classification
     filename_result = classify_by_filename(filename)
-    
-    # Model 2: Content-based classification  
+
+    # Model 2: Content-based classification
     content_result = classify_by_content(text)
-    
+
     # Model 3: Fine-tuned technical document classifier
     technical_result = classify_by_technical_model(text)
-    
+
     # Model 4: Rule-based pattern matching
     pattern_result = classify_by_patterns(text, filename)
-    
+
     # Ensemble voting with confidence weighting
     final_classification = ensemble_vote([
         (filename_result, 0.2),
-        (content_result, 0.3), 
+        (content_result, 0.3),
         (technical_result, 0.35),
         (pattern_result, 0.15)
     ])
-    
+
     return final_classification
 ```
 
@@ -388,7 +388,7 @@ def ensemble_classification(text: str, filename: str) -> Dict[str, Any]:
 ```python
 def implement_feedback_learning():
     """Learn from user search behavior and feedback"""
-    
+
     # Track search result clicks and relevance
     search_analytics = {
         'query': 'RNI security installation',
@@ -397,10 +397,10 @@ def implement_feedback_learning():
         'user_rating': 4.2,
         'timestamp': datetime.now()
     }
-    
+
     # Use feedback to adjust ranking algorithms
     adjust_ranking_weights(search_analytics)
-    
+
     # Update classification confidence based on user corrections
     update_classification_confidence(search_analytics)
 ```
@@ -409,18 +409,18 @@ def implement_feedback_learning():
 ```python
 def continuous_improvement_pipeline():
     """Automated model retraining pipeline"""
-    
+
     # Collect performance metrics
     weekly_metrics = calculate_weekly_performance()
-    
+
     # Identify degradation patterns
     if weekly_metrics['accuracy'] < threshold:
         # Retrain with new data
         retrain_models_with_feedback()
-        
+
         # A/B test new model
         deploy_model_for_testing()
-        
+
         # Monitor improvement
         track_model_performance()
 ```

@@ -7,12 +7,12 @@ This setup script creates a deployable package for the Technical Service Assista
 that can be installed on other servers with all necessary dependencies and configuration.
 """
 
-from setuptools import setup, find_packages
-import os
-import sys
+
+from setuptools import find_packages, setup
 
 # Read version from config.py
 version = "1.0.0"
+
 
 # Read README for long description
 def read_readme():
@@ -22,6 +22,7 @@ def read_readme():
     except FileNotFoundError:
         return "Technical Service Assistant - AI-powered PDF processing and search system"
 
+
 # Read requirements
 def read_requirements(filename):
     try:
@@ -29,6 +30,7 @@ def read_requirements(filename):
             return [line.strip() for line in f if line.strip() and not line.startswith("#")]
     except FileNotFoundError:
         return []
+
 
 # Core dependencies
 install_requires = read_requirements("requirements.txt")
@@ -45,11 +47,9 @@ setup(
     author="Technical Service Assistant Team",
     author_email="support@technical-service-assistant.local",
     url="https://github.com/technical-service-assistant/technical-service-assistant",
-    
     # Package discovery
     packages=find_packages(exclude=["tests*", "backup*", "logs*", "uploads*", "htmlcov*"]),
     include_package_data=True,
-    
     # Dependencies
     install_requires=install_requires,
     extras_require={
@@ -63,10 +63,8 @@ setup(
             "cryptography>=41.0.0",
         ],
     },
-    
     # Python version requirement
     python_requires=">=3.9",
-    
     # Entry points for command-line scripts
     entry_points={
         "console_scripts": [
@@ -77,17 +75,27 @@ setup(
             "tsa-migrate=migrations.run_migrations:main",
         ],
     },
-    
     # Package data
     package_data={
         "": [
-            "*.md", "*.txt", "*.yml", "*.yaml", "*.json", "*.sql",
-            "*.html", "*.css", "*.js", "*.conf", "*.ini",
-            "docs/**/*", "migrations/**/*", "ollama_config/**/*",
-            "deployment/**/*", "frontend/**/*",
+            "*.md",
+            "*.txt",
+            "*.yml",
+            "*.yaml",
+            "*.json",
+            "*.sql",
+            "*.html",
+            "*.css",
+            "*.js",
+            "*.conf",
+            "*.ini",
+            "docs/**/*",
+            "migrations/**/*",
+            "ollama_config/**/*",
+            "deployment/**/*",
+            "frontend/**/*",
         ],
     },
-    
     # Classifiers
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -103,17 +111,14 @@ setup(
         "Topic :: Text Processing :: Indexing",
         "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     ],
-    
     # Keywords
     keywords="ai pdf search rag vector-database ollama embeddings nlp",
-    
     # Project URLs
     project_urls={
         "Documentation": "https://github.com/technical-service-assistant/technical-service-assistant/docs",
         "Source": "https://github.com/technical-service-assistant/technical-service-assistant",
         "Tracker": "https://github.com/technical-service-assistant/technical-service-assistant/issues",
     },
-    
     # Zip safe
     zip_safe=False,
 )

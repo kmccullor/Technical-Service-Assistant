@@ -6,9 +6,9 @@ import { existsSync } from 'fs'
 
 // Allowed file types for troubleshooting uploads
 const ALLOWED_EXTENSIONS = [
-  '.txt', '.log', '.csv', '.json', '.sql', '.pdf', 
+  '.txt', '.log', '.csv', '.json', '.sql', '.pdf',
   '.xml', '.conf', '.config', '.ini', '.properties',
-  '.out', '.err', '.trace', '.dump', '.png', '.jpg', 
+  '.out', '.err', '.trace', '.dump', '.png', '.jpg',
   '.jpeg', '.gif', '.bmp', '.tiff', '.webp'
 ]
 
@@ -33,11 +33,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
 
     const formData = await request.formData()
     const file = formData.get('file') as File
-    
+
     if (!file) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'No file provided' 
+      return NextResponse.json({
+        success: false,
+        error: 'No file provided'
       }, { status: 400 })
     }
 
@@ -65,10 +65,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    
+
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filePath = join(sessionDir, safeFileName)
-    
+
     await writeFile(filePath, buffer)
 
     // Store metadata
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     }
 
     await writeFile(
-      join(sessionDir, 'metadata.json'), 
+      join(sessionDir, 'metadata.json'),
       JSON.stringify(metadata, null, 2)
     )
 
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
-    
+
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 })
     }

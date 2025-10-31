@@ -72,9 +72,9 @@ interface ChatInterfaceProps {
 }
 
 const ALLOWED_EXTENSIONS = [
-  '.txt', '.log', '.csv', '.json', '.sql', '.pdf', 
+  '.txt', '.log', '.csv', '.json', '.sql', '.pdf',
   '.xml', '.conf', '.config', '.ini', '.properties',
-  '.out', '.err', '.trace', '.dump', '.png', '.jpg', 
+  '.out', '.err', '.trace', '.dump', '.png', '.jpg',
   '.jpeg', '.gif', '.bmp', '.tiff', '.webp'
 ]
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -456,18 +456,18 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
-              
+
               if (data.type === 'token') {
                 // Handle streaming tokens from the backend
-                setMessages(prev => prev.map(m => 
-                  m.id === assistantMessage.id 
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMessage.id
                     ? { ...m, content: m.content + data.token }
                     : m
                 ))
               } else if (data.type === 'sources') {
                 // Handle sources/citations
-                setMessages(prev => prev.map(m => 
-                  m.id === assistantMessage.id 
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMessage.id
                     ? { ...m, citations: data.sources, searchType: data.method }
                     : m
                 ))
@@ -530,7 +530,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
   }
 
   return (
-    <div 
+    <div
       ref={chatContainerRef}
       className="flex flex-col h-full relative"
       onDragEnter={handleDragEnter}
@@ -651,7 +651,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -717,10 +717,10 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
             <Textarea
               value={input}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-              placeholder={uploadedFile ? 
-                (uploadedFile.fileName.match(/\.(png|jpg|jpeg|gif|bmp|tiff|webp)$/i) ? 
-                  "Describe what you see in the image or ask questions about it..." : 
-                  "Ask questions about the uploaded document...") : 
+              placeholder={uploadedFile ?
+                (uploadedFile.fileName.match(/\.(png|jpg|jpeg|gif|bmp|tiff|webp)$/i) ?
+                  "Describe what you see in the image or ask questions about it..." :
+                  "Ask questions about the uploaded document...") :
                 "Ask a question about your documents..."}
               className={`w-full pr-12 resize-y ${inputExpanded ? 'min-h-[180px]' : 'min-h-[80px]'} max-h-[320px]`}
               onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {

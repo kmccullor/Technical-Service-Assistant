@@ -40,7 +40,7 @@ Common issues encountered while running or extending the AI PDF Vector Stack, wi
 # Test Docker container load balancing (WORKING)
 docker logs technical-service-assistant | grep "Selected instance"
 
-# Test high confidence RAG (WORKING) 
+# Test high confidence RAG (WORKING)
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"messages": [{"role": "user", "content": "What is load balancing?"}]}'
@@ -52,7 +52,7 @@ docker exec technical-service-assistant env | grep -E "(DATABASE_URL|OLLAMA_INST
 docker exec technical-service-assistant nc -zv pgvector 5432
 ```
 
-### Legacy Diagnostics  
+### Legacy Diagnostics
 ```bash
 # Test intelligent routing endpoints
 curl -X GET http://localhost:8008/api/ollama-health | jq .
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8008/api/intelligent-route \
 # Should show: selected_model="deepseek-coder:6.7b", question_type="code"
 
 # Test load balancing
-for i in {1..5}; do 
+for i in {1..5}; do
   curl -s -X POST http://localhost:8008/api/intelligent-route \
     -H "Content-Type: application/json" \
     -d '{"query": "test"}' | jq -r .selected_instance

@@ -8,7 +8,7 @@ The Technical Service Assistant now includes an advanced **document privacy clas
 
 ### **Automatic Confidentiality Detection**
 - **Keyword-based scanning**: Detects common confidentiality indicators
-- **Pattern matching**: Uses regex patterns for complex confidentiality phrases  
+- **Pattern matching**: Uses regex patterns for complex confidentiality phrases
 - **Header/footer analysis**: Scans document headers and footers for classification markings
 - **Case-insensitive detection**: Works regardless of text capitalization
 - **Multi-language support**: Handles unicode and special characters
@@ -58,11 +58,11 @@ The Technical Service Assistant now includes an advanced **document privacy clas
 ### **New Columns**
 ```sql
 -- pdf_documents table
-ALTER TABLE pdf_documents 
+ALTER TABLE pdf_documents
 ADD COLUMN privacy_level text DEFAULT 'public' CHECK (privacy_level IN ('public', 'private'));
 
--- document_chunks table  
-ALTER TABLE document_chunks 
+-- document_chunks table
+ALTER TABLE document_chunks
 ADD COLUMN privacy_level text DEFAULT 'public' CHECK (privacy_level IN ('public', 'private'));
 ```
 
@@ -155,7 +155,7 @@ curl -X POST http://localhost:8008/api/rag-chat \
 # Run privacy classification tests
 pytest tests/test_privacy_classification.py -v
 
-# Run database integration tests  
+# Run database integration tests
 pytest tests/test_privacy_integration.py -v
 
 # Run all privacy-related tests
@@ -193,7 +193,7 @@ python scripts/verify_privacy_schema.py
 SELECT * FROM get_privacy_statistics();
 
 -- Manual query for detailed stats
-SELECT 
+SELECT
   d.privacy_level,
   COUNT(DISTINCT d.id) as document_count,
   COUNT(c.id) as chunk_count,
@@ -228,7 +228,7 @@ GROUP BY d.privacy_level;
 # Enable/disable privacy classification (future enhancement)
 ENABLE_PRIVACY_CLASSIFICATION=true
 
-# Custom confidentiality keywords file (future enhancement)  
+# Custom confidentiality keywords file (future enhancement)
 PRIVACY_KEYWORDS_FILE=/app/config/custom_privacy_keywords.txt
 
 # Default privacy level for ambiguous documents (future enhancement)

@@ -14,12 +14,16 @@ Rationale: Grafana provisioning sometimes rejects dashboards with missing/implic
 "Dashboard title cannot be empty" even when title nested incorrectly. This wrapper enforces consistent format.
 """
 from __future__ import annotations
-import json, re, pathlib, sys
+
+import json
+import pathlib
+import re
 
 DASHBOARD_DIR = pathlib.Path(__file__).parent
 FOLDER_NAME = "Technical Service Assistant"
 
 PANEL_LIKE_TITLES = {"CPU Usage %", "PostgreSQL Active Connections"}
+
 
 def normalize_datasources(obj):
     if isinstance(obj, dict):
@@ -31,17 +35,19 @@ def normalize_datasources(obj):
         return [normalize_datasources(v) for v in obj]
     return obj
 
+
 def to_title(filename: str, existing: str | None) -> str:
     if existing and existing not in PANEL_LIKE_TITLES:
         return existing
-    stem = re.sub(r'[_-]+', ' ', filename.rsplit('.', 1)[0]).title()
+    stem = re.sub(r"[_-]+", " ", filename.rsplit(".", 1)[0]).title()
     return f"Technical Service Assistant - {stem}"
 
+
 modified = []
-for path in DASHBOARD_DIR.glob('*.json'):
-    if path.name.startswith('_'):  # skip helper files
+for path in DASHBOARD_DIR.glob("*.json"):
+    if path.name.startswith("_"):  # skip helper files
         continue
-    raw = path.read_text(encoding='utf-8')
+    raw = path.read_text(encoding="utf-8")
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
@@ -49,13 +55,13 @@ for path in DASHBOARD_DIR.glob('*.json'):
         continue
 
     # Already wrapped?
-    if isinstance(data, dict) and 'dashboard' in data and 'overwrite' in data:
+    if isinstance(data, dict) and "dashboard" in data and "overwrite" in data:
         print(f"➡️  {path.name}: already wrapped – skipping")
         continue
 
     dashboard = data
-    existing_title = dashboard.get('title')
-    dashboard['title'] = to_title(path.name, existing_title)
+    existing_title = dashboard.get("title")
+    dashboard["title"] = to_title(path.name, existing_title)
 
     dashboard = normalize_datasources(dashboard)
 
@@ -64,7 +70,7 @@ for path in DASHBOARD_DIR.glob('*.json'):
         "overwrite": True,
         "folder": FOLDER_NAME,
     }
-    path.write_text(json.dumps(wrapped, indent=2), encoding='utf-8')
+    path.write_text(json.dumps(wrapped, indent=2), encoding="utf-8")
     modified.append(path.name)
     print(f"✅ Wrapped {path.name} -> title='{dashboard['title']}'")
 

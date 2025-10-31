@@ -10,12 +10,14 @@ Target Architecture:
 - Instance 4 (11437): Embeddings & Search Optimization
 """
 
-import requests
 import json
-import time
 import sys
-from typing import Dict, List, Set
+import time
 from dataclasses import dataclass
+from typing import Dict, List
+
+import requests
+
 
 @dataclass
 class ModelSpec:
@@ -23,6 +25,7 @@ class ModelSpec:
     purpose: str
     instance: int
     priority: int  # 1=critical, 2=important, 3=optional
+
 
 # Target model distribution based on current inventory and specialization plan
 TARGET_DISTRIBUTION = {
@@ -49,8 +52,9 @@ TARGET_DISTRIBUTION = {
         ModelSpec("nomic-embed-text:latest", "Backup embeddings", 4, 1),
         ModelSpec("gemma2:2b", "Fast semantic processing", 4, 2),
         ModelSpec("llama3.2:1b", "Lightweight processing", 4, 3),
-    ]
+    ],
 }
+
 
 class OllamaModelManager:
     def __init__(self):
@@ -69,7 +73,7 @@ class OllamaModelManager:
             response.raise_for_status()
 
             data = response.json()
-            return [model['name'] for model in data.get('models', [])]
+            return [model["name"] for model in data.get("models", [])]
         except Exception as e:
             print(f"❌ Error listing models on instance {instance}: {e}")
             return []
@@ -93,9 +97,9 @@ class OllamaModelManager:
             for line in response.iter_lines():
                 if line:
                     data = json.loads(line)
-                    if 'status' in data:
+                    if "status" in data:
                         print(f"   Status: {data['status']}")
-                    if data.get('status') == 'success':
+                    if data.get("status") == "success":
                         print(f"✅ Successfully pulled {model_name} to instance {instance}")
                         return True
 
@@ -120,6 +124,7 @@ class OllamaModelManager:
             print(f"❌ Error deleting {model_name} from instance {instance}: {e}")
             return False
 
+
 def analyze_current_distribution(manager: OllamaModelManager) -> Dict[int, List[str]]:
     """Analyze current model distribution across instances"""
     print("🔍 Analyzing current model distribution...")
@@ -132,13 +137,15 @@ def analyze_current_distribution(manager: OllamaModelManager) -> Dict[int, List[
 
     return current_dist
 
-def calculate_redistribution_plan(current_dist: Dict[int, List[str]],
-                                 target_dist: Dict[int, List[ModelSpec]]) -> Dict[str, List]:
+
+def calculate_redistribution_plan(
+    current_dist: Dict[int, List[str]], target_dist: Dict[int, List[ModelSpec]]
+) -> Dict[str, List]:
     """Calculate what models need to be moved/added/removed"""
     plan = {
-        'pull': [],      # (instance, model_name, priority)
-        'delete': [],    # (instance, model_name)
-        'keep': []       # (instance, model_name)
+        "pull": [],  # (instance, model_name, priority)
+        "delete": [],  # (instance, model_name)
+        "keep": [],  # (instance, model_name)
     }
 
     # Build target sets per instance
@@ -154,23 +161,23 @@ def calculate_redistribution_plan(current_dist: Dict[int, List[str]],
         # Models to keep (intersection)
         keep_models = current_models & target_set
         for model in keep_models:
-            plan['keep'].append((instance, model))
+            plan["keep"].append((instance, model))
 
         # Models to pull (target - current)
         pull_models = target_set - current_models
         for model in pull_models:
             priority = target_models[instance][model]
-            plan['pull'].append((instance, model, priority))
+            plan["pull"].append((instance, model, priority))
 
         # Models to delete (current - target)
         delete_models = current_models - target_set
         for model in delete_models:
-            plan['delete'].append((instance, model))
+            plan["delete"].append((instance, model))
 
     return plan
 
-def execute_redistribution_plan(manager: OllamaModelManager, plan: Dict[str, List],
-                               dry_run: bool = False) -> bool:
+
+def execute_redistribution_plan(manager: OllamaModelManager, plan: Dict[str, List], dry_run: bool = False) -> bool:
     """Execute the model redistribution plan"""
 
     if dry_run:
@@ -183,15 +190,15 @@ def execute_redistribution_plan(manager: OllamaModelManager, plan: Dict[str, Lis
 
     # Show detailed plan
     print(f"\n📥 Models to Pull:")
-    for instance, model, priority in sorted(plan['pull'], key=lambda x: x[2]):
+    for instance, model, priority in sorted(plan["pull"], key=lambda x: x[2]):
         print(f"   Instance {instance}: {model} (priority {priority})")
 
     print(f"\n🗑️  Models to Delete:")
-    for instance, model in plan['delete']:
+    for instance, model in plan["delete"]:
         print(f"   Instance {instance}: {model}")
 
     print(f"\n✅ Models to Keep:")
-    for instance, model in plan['keep']:
+    for instance, model in plan["keep"]:
         print(f"   Instance {instance}: {model}")
 
     if dry_run:
@@ -199,23 +206,23 @@ def execute_redistribution_plan(manager: OllamaModelManager, plan: Dict[str, Lis
 
     # Confirm execution
     confirm = input(f"\n⚠️  Proceed with redistribution? (y/N): ").strip().lower()
-    if confirm != 'y':
+    if confirm != "y":
         print("❌ Redistribution cancelled")
         return False
 
     success_count = 0
-    total_operations = len(plan['pull']) + len(plan['delete'])
+    total_operations = len(plan["pull"]) + len(plan["delete"])
 
     # Phase 1: Pull new models (sorted by priority)
     print(f"\n📥 Phase 1: Pulling new models...")
-    for instance, model, priority in sorted(plan['pull'], key=lambda x: x[2]):
+    for instance, model, priority in sorted(plan["pull"], key=lambda x: x[2]):
         if manager.pull_model(instance, model):
             success_count += 1
         time.sleep(2)  # Brief pause between operations
 
     # Phase 2: Delete unused models
     print(f"\n🗑️  Phase 2: Removing unused models...")
-    for instance, model in plan['delete']:
+    for instance, model in plan["delete"]:
         if manager.delete_model(instance, model):
             success_count += 1
         time.sleep(1)  # Brief pause between operations
@@ -228,6 +235,7 @@ def execute_redistribution_plan(manager: OllamaModelManager, plan: Dict[str, Lis
     )
 
     return success_rate > 0.8
+
 
 def validate_specialization(manager: OllamaModelManager) -> bool:
     """Validate that specialization was successful"""
@@ -253,6 +261,7 @@ def validate_specialization(manager: OllamaModelManager) -> bool:
                     print(f"   ⚠️  Optional missing: {spec.name} ({spec.purpose})")
 
     return validation_passed
+
 
 def main():
     """Main execution function"""
@@ -298,6 +307,7 @@ def main():
             return False
 
     return success
+
 
 if __name__ == "__main__":
     success = main()

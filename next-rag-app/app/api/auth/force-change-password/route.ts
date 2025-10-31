@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
     const authHeader = request.headers.get('authorization')
-    
+
     const backendResponse = await fetch(`${BACKEND_URL}/api/auth/force-change-password`, {
       method: 'POST',
       headers: {

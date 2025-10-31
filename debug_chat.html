@@ -17,7 +17,7 @@
 
     <script>
         function q(sel) { return document.querySelector(sel); }
-        
+
         function addMsg(text, role='assistant') {
             console.log('addMsg called with:', text, role);
             const list = q('#chat-messages');
@@ -33,12 +33,12 @@
             list.scrollTop = list.scrollHeight;
             console.log('Message added successfully');
         }
-        
+
         function testAddMsg() {
             addMsg('Test user message', 'user');
             addMsg('Test assistant response', 'assistant');
         }
-        
+
         async function testAPICall() {
             document.getElementById('status').textContent = 'Calling API...';
             try {
@@ -55,7 +55,7 @@
                         max_tokens: 256
                     })
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     console.log('API Response:', data);

@@ -7,7 +7,7 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from eval_suite import compute_recall_at_k, compute_mrr, compute_ndcg
+from eval_suite import compute_mrr, compute_ndcg, compute_recall_at_k
 
 # Synthetic hits
 HITS = [

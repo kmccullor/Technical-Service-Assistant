@@ -2,7 +2,7 @@
 # End of Day Automation Script for Technical Service Assistant
 # This script generates comprehensive end-of-day reports and system snapshots
 # Designed to run from crontab at end of business day
-# 
+#
 # Usage: ./scripts/end_of_day.sh [--no-git] [--no-backup] [--no-push]
 # Crontab example: 0 17 * * 1-5 /path/to/Technical-Service-Assistant/scripts/end_of_day.sh
 
@@ -67,12 +67,12 @@ log_message() {
 # Environment check function
 check_environment() {
     cd "$PROJECT_ROOT" || { error "Cannot change to project root: $PROJECT_ROOT"; exit 1; }
-    
+
     if [[ ! -f "docker-compose.yml" ]]; then
         error "Not in Technical Service Assistant project root"
         exit 1
     fi
-    
+
     if ! command -v docker &> /dev/null; then
         error "Docker not available"
         exit 1
@@ -82,12 +82,12 @@ check_environment() {
 # Health check function for cron automation
 run_automated_health_checks() {
     section "🔍 Automated Health Checks"
-    
+
     local health_status="HEALTHY"
     local health_log="$LOG_DIR/health_check_$DATE_STAMP.log"
-    
+
     echo "=== AUTOMATED HEALTH CHECK - $TIMESTAMP ===" > "$health_log"
-    
+
     # Resolve URLs from environment for remote operation
     RERANKER_URL="${RERANKER_URL:-http://localhost:8008}"
     if curl -sf "${RERANKER_URL%/}/health" > /dev/null 2>&1; then
@@ -98,7 +98,7 @@ run_automated_health_checks() {
         echo "❌ Reranker service: UNAVAILABLE" >> "$health_log"
         health_status="DEGRADED"
     fi
-    
+
     # Test database
     if docker exec pgvector pg_isready -U postgres > /dev/null 2>&1; then
         success "PostgreSQL database healthy"
@@ -108,7 +108,7 @@ run_automated_health_checks() {
         echo "❌ PostgreSQL database: UNAVAILABLE" >> "$health_log"
         health_status="DEGRADED"
     fi
-    
+
     # Test Ollama instances
     local ollama_healthy=0
     for port in 11434 11435 11436 11437; do
@@ -120,14 +120,14 @@ run_automated_health_checks() {
             echo "❌ Ollama instance (port $port): UNAVAILABLE" >> "$health_log"
         fi
     done
-    
+
     if [[ $ollama_healthy -lt 2 ]]; then
         health_status="CRITICAL"
         error "Only $ollama_healthy Ollama instances healthy"
     else
         success "$ollama_healthy Ollama instances healthy"
     fi
-    
+
     echo "$health_status" > "$LOG_DIR/system_health_status.txt"
     return $([[ "$health_status" == "HEALTHY" ]] && echo 0 || echo 1)
 }
@@ -135,10 +135,10 @@ run_automated_health_checks() {
 # Performance validation for cron
 run_automated_performance_tests() {
     section "⚡ Performance Validation"
-    
+
     local perf_log="$LOG_DIR/performance_test_$DATE_STAMP.log"
     echo "=== AUTOMATED PERFORMANCE TEST - $TIMESTAMP ===" > "$perf_log"
-    
+
     # Test RAG validation if available
     if [[ -f "rag_validation_framework.py" ]]; then
         info "Running RAG performance benchmark..."
@@ -149,7 +149,7 @@ run_automated_performance_tests() {
             warning "RAG performance test failed or timed out"
         fi
     fi
-    
+
     # Basic API response time
     if command -v curl &> /dev/null; then
         local response_time
@@ -164,7 +164,7 @@ run_automated_performance_tests() {
 send_eod_notification() {
     local status="$1"
     local summary="$2"
-    
+
     # Slack/Teams webhook notification
     if [[ -n "${EOD_WEBHOOK_URL:-}" ]]; then
         curl -X POST "$EOD_WEBHOOK_URL" \
@@ -173,7 +173,7 @@ send_eod_notification() {
              >> "$EOD_LOG" 2>&1
         info "Notification sent to webhook"
     fi
-    
+
     # Email notification with sendmail fallback
     if [[ -n "${EOD_EMAIL:-}" ]]; then
         local email_subject="Technical Service Assistant - EOD Report ($status)"
@@ -194,7 +194,7 @@ Detailed report available at: logs/daily_report_$DATE_STAMP.md"
                 echo "$email_body"
             } | sendmail -t
             info "Email notification sent to $EOD_EMAIL (via sendmail)"
-        
+
         # Fallback to traditional mail command
         elif command -v mail &> /dev/null; then
             echo -e "$email_body" | mail -s "$email_subject" "$EOD_EMAIL"
@@ -222,8 +222,8 @@ mkdir -p "$LOG_DIR"
 cat > "$REPORT_FILE" << EOF
 # Daily Work Report - $(date '+%A, %B %d, %Y')
 
-**Report Generated:** $(date '+%Y-%m-%d %H:%M:%S')  
-**System:** Technical Service Assistant RAG Pipeline  
+**Report Generated:** $(date '+%Y-%m-%d %H:%M:%S')
+**System:** Technical Service Assistant RAG Pipeline
 **Environment:** Development/Production Hybrid
 
 ---
@@ -332,7 +332,7 @@ info "Creating backup in $BACKUP_DIR"
 # Backup critical files and directories
 BACKUP_TARGETS=(
     "config.py"
-    "docker-compose.yml" 
+    "docker-compose.yml"
     "requirements.txt"
     "requirements-dev.txt"
     "Makefile"
@@ -507,7 +507,7 @@ cat >> "$REPORT_FILE" << EOF
 
 ### Development Activity
 - **Features/Enhancements:** $FEATURES_ADDED commits
-- **Bug Fixes:** $BUGS_FIXED commits  
+- **Bug Fixes:** $BUGS_FIXED commits
 - **Documentation Updates (files today):** $DOCS_UPDATED
 - **Markdown Files (total):** $DOC_FILE_COUNT
 - **Markdown Files Changed (7d):** $DOC_RECENT_CHANGED
@@ -602,7 +602,7 @@ $([ "$GIT_CHANGES" -gt 0 ] && echo "- [ ] Address any remaining uncommitted chan
 $([ "$FAILED_EMBEDDINGS_TODAY" -gt 20 ] && echo "- [ ] Investigate embedding generation issues")
 $([ "${DISK_USAGE%\%}" -gt 80 ] && echo "- [ ] Consider system cleanup: \`make cleanup\`")
 
-**Generated by:** End of Day Automation Script  
+**Generated by:** End of Day Automation Script
 **Next Report:** $(date -d '+1 day' '+%Y-%m-%d')
 EOF
 
@@ -612,34 +612,34 @@ EOF
 # Main automated execution function
 run_automated_eod() {
     log_message "🌅 Starting automated End of Day process..."
-    
+
     # Change to project directory
     check_environment
-    
+
     # Run automated health checks
     run_automated_health_checks
     local health_exit_code=$?
-    
+
     # Run performance tests
     run_automated_performance_tests
-    
+
     # Generate comprehensive daily report
     generate_automated_report
 
     # If applicable, roll up a weekly summary
     generate_weekly_summary_if_needed
-    
+
     # Create system snapshot
     create_system_snapshot
-    
+
     # Cleanup old logs (keep last 30 days)
     cleanup_old_logs
-    
+
     # Calculate summary metrics
     local total_containers=$(docker ps -q | wc -l)
     local healthy_services=$(grep -c "✅" "$LOG_DIR/health_check_$DATE_STAMP.log" 2>/dev/null || echo "0")
     local system_status
-    
+
     if [[ $health_exit_code -eq 0 && $healthy_services -gt 5 ]]; then
         system_status="HEALTHY"
         status_emoji="✅"
@@ -650,12 +650,12 @@ run_automated_eod() {
         system_status="CRITICAL"
         status_emoji="❌"
     fi
-    
+
     # Send notifications
     send_eod_notification "$system_status" "$healthy_services services healthy, $total_containers containers running"
-    
+
     log_message "$status_emoji Automated EOD completed - Status: $system_status"
-    
+
     # Final summary for cron logs
     echo ""
     echo "🎯 AUTOMATED END OF DAY SUMMARY:"
@@ -665,19 +665,19 @@ run_automated_eod() {
     echo "   Reports: $LOG_DIR/daily_report_$DATE_STAMP.md"
     echo "   Logs: $EOD_LOG"
     echo ""
-    
+
     return $([[ "$system_status" == "HEALTHY" ]] && echo 0 || echo 1)
 }
 
 # Generate comprehensive automated report
 generate_automated_report() {
     log_message "📊 Generating automated daily report..."
-    
+
     cat > "$REPORT_FILE" << EOF
 # 🌅 Automated End of Day Report - $(date +"%B %d, %Y")
 
-**Report Generated**: $(date +"%B %d, %Y at %I:%M %p %Z")  
-**System Status**: $(docker ps -q | wc -l) containers running  
+**Report Generated**: $(date +"%B %d, %Y at %I:%M %p %Z")
+**System Status**: $(docker ps -q | wc -l) containers running
 **Automation**: Generated via crontab scheduled task
 
 ---
@@ -727,8 +727,8 @@ $(if [[ -f "$LOG_DIR/performance_test_$DATE_STAMP.log" ]]; then echo "Performanc
 
 ---
 
-**Next automated report**: Tomorrow at scheduled time  
-**Manual reports**: Run \`./scripts/end_of_day.sh\` anytime  
+**Next automated report**: Tomorrow at scheduled time
+**Manual reports**: Run \`./scripts/end_of_day.sh\` anytime
 **System monitoring**: Available at http://localhost:3001 (Grafana)
 
 EOF
@@ -740,7 +740,7 @@ EOF
 generate_weekly_summary_if_needed() {
     local day_of_week
     day_of_week=$(date +%u)
-    
+
     # Only run on Sundays (7) to capture the week that just ended
     if [[ "$day_of_week" != "7" ]]; then
         return 0
@@ -767,7 +767,7 @@ generate_weekly_summary_if_needed() {
     cat > "$summary_file" << EOF
 # 📅 Weekly Operational Summary - $week_id
 
-**Generated:** $(date +"%Y-%m-%d %H:%M:%S %Z")  
+**Generated:** $(date +"%Y-%m-%d %H:%M:%S %Z")
 **Daily Reports Included:** ${#weekly_reports[@]}
 
 ---
@@ -833,9 +833,9 @@ EOF
 # Create system snapshot
 create_system_snapshot() {
     log_message "📸 Creating system snapshot..."
-    
+
     local snapshot_file="$LOG_DIR/system_snapshot_$DATE_STAMP.json"
-    
+
     cat > "$snapshot_file" << EOF
 {
   "timestamp": "$(date -Iseconds)",
@@ -870,7 +870,7 @@ EOF
 # Cleanup old logs (keep last 30 days)
 cleanup_old_logs() {
     log_message "🧹 Cleaning up old log files..."
-    
+
     find "$LOG_DIR" -type f -name "*.log" -mtime +30 -delete 2>/dev/null
     find "$LOG_DIR" -type f -name "*.json" -mtime +30 -delete 2>/dev/null
     find "$LOG_DIR" -type f -name "*.md" ! -name "weekly_summary_*.md" -mtime +30 -delete 2>/dev/null
@@ -879,7 +879,7 @@ cleanup_old_logs() {
     if [[ -d "$PROJECT_ROOT/backup" ]]; then
         find "$PROJECT_ROOT/backup" -maxdepth 1 -mindepth 1 -type d -name "*_end_of_day" -mtime +30 -exec rm -rf {} \; 2>/dev/null
     fi
-    
+
     log_message "✅ Log cleanup completed"
 }
 
@@ -910,7 +910,7 @@ fi
 # Final summary for interactive mode
 if [[ -t 1 ]]; then
     section "📋 End of Day Summary"
-    
+
     success "Daily report generated: $REPORT_FILE"
     if [[ "$NO_BACKUP" == false ]]; then
         success "Backup completed: $BACKUP_DIR"
@@ -918,7 +918,7 @@ if [[ -t 1 ]]; then
     if [[ "$NO_GIT" == true ]]; then
         info "Git commit/push skipped (--no-git)"
     fi
-    
+
     echo -e "\n${GREEN}🎉 End of day routine completed successfully!${NC}"
     echo -e "${BLUE}📖 Full report available at: $REPORT_FILE${NC}"
     echo -e "\n${CYAN}Have a great evening! 🌙${NC}"

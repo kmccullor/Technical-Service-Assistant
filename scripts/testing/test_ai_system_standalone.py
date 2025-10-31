@@ -2,17 +2,18 @@
 """
 Simple test for AI categorization system without Docker
 """
-import sys
 import os
+import sys
 
 # Add the project root to Python path
-project_root = '/home/kmccullor/Projects/Technical-Service-Assistant'
+project_root = "/home/kmccullor/Projects/Technical-Service-Assistant"
 sys.path.insert(0, project_root)
-sys.path.insert(0, os.path.join(project_root, 'pdf_processor'))
+sys.path.insert(0, os.path.join(project_root, "pdf_processor"))
 
 # Test imports
 try:
     from pdf_processor.pdf_utils import classify_document_with_ai, detect_confidentiality
+
     print("✅ Successfully imported AI categorization functions")
 except ImportError as e:
     print(f"❌ Failed to import AI functions: {e}")

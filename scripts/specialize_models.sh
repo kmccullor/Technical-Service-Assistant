@@ -43,9 +43,9 @@ warning() {
 check_instance_health() {
     local instance_url=$1
     local instance_name=$2
-    
+
     log "Checking health of $instance_name ($instance_url)"
-    
+
     if curl -s "$instance_url/api/tags" > /dev/null 2>&1; then
         success "$instance_name is healthy"
         return 0
@@ -66,9 +66,9 @@ remove_model() {
     local instance_url=$1
     local model_name=$2
     local instance_name=$3
-    
+
     log "Removing $model_name from $instance_name"
-    
+
     # Use docker exec to remove model to avoid API limitations
     local container_name=""
     case $instance_url in
@@ -77,7 +77,7 @@ remove_model() {
         *:11436) container_name="ollama-server-3" ;;
         *:11437) container_name="ollama-server-4" ;;
     esac
-    
+
     if docker exec "$container_name" ollama rm "$model_name" > /dev/null 2>&1; then
         success "Removed $model_name from $instance_name"
     else
@@ -90,9 +90,9 @@ pull_model() {
     local instance_url=$1
     local model_name=$2
     local instance_name=$3
-    
+
     log "Pulling $model_name to $instance_name"
-    
+
     # Use docker exec to pull model
     local container_name=""
     case $instance_url in
@@ -101,7 +101,7 @@ pull_model() {
         *:11436) container_name="ollama-server-3" ;;
         *:11437) container_name="ollama-server-4" ;;
     esac
-    
+
     if docker exec "$container_name" ollama pull "$model_name"; then
         success "Successfully pulled $model_name to $instance_name"
     else
@@ -116,12 +116,12 @@ specialize_instance() {
     local instance_name=$2
     shift 2
     local target_models=("$@")
-    
+
     log "Specializing $instance_name with ${#target_models[@]} models"
-    
+
     # Get current models
     local current_models=($(get_current_models "$instance_url"))
-    
+
     # Remove models not in target list
     for model in "${current_models[@]}"; do
         local keep_model=false
@@ -131,12 +131,12 @@ specialize_instance() {
                 break
             fi
         done
-        
+
         if [[ "$keep_model" == false ]]; then
             remove_model "$instance_url" "$model" "$instance_name"
         fi
     done
-    
+
     # Ensure all target models are present
     for target in "${target_models[@]}"; do
         local has_model=false
@@ -146,105 +146,105 @@ specialize_instance() {
                 break
             fi
         done
-        
+
         if [[ "$has_model" == false ]]; then
             pull_model "$instance_url" "$target" "$instance_name"
         else
             log "$target already present in $instance_name"
         fi
     done
-    
+
     success "Completed specialization of $instance_name"
 }
 
 # Main execution
 main() {
     log "Starting Model Specialization Process"
-    
+
     # Check all instances are healthy
     log "Step 1: Health Check"
     check_instance_health "$INSTANCE_1" "Instance 1 (General)" || exit 1
     check_instance_health "$INSTANCE_2" "Instance 2 (Code)" || exit 1
     check_instance_health "$INSTANCE_3" "Instance 3 (Reasoning)" || exit 1
     check_instance_health "$INSTANCE_4" "Instance 4 (Embeddings)" || exit 1
-    
+
     log "All instances are healthy. Proceeding with specialization..."
     sleep 2
-    
+
     # Define specialized model sets
     log "Step 2: Define Model Specialization"
-    
+
     # Instance 1: General Chat & Document QA
     INSTANCE_1_MODELS=(
         "mistral:7b"
         "llama3.1:8b"
         "nomic-embed-text:v1.5"
     )
-    
+
     # Instance 2: Code & Technical Analysis
     INSTANCE_2_MODELS=(
         "gemma2:2b"
         "phi3:mini"
         "mistral:7b"
     )
-    
+
     # Instance 3: Advanced Reasoning & Math
     INSTANCE_3_MODELS=(
         "llama3.2:3b"
         "llama3.1:8b"
     )
-    
+
     # Instance 4: Embeddings & Search Optimization
     INSTANCE_4_MODELS=(
         "nomic-embed-text:v1.5"
         "llama3.2:1b"
         "gemma2:2b"
     )
-    
+
     # Execute specialization
     log "Step 3: Execute Specialization"
-    
+
     specialize_instance "$INSTANCE_1" "Instance 1 (General)" "${INSTANCE_1_MODELS[@]}"
     specialize_instance "$INSTANCE_2" "Instance 2 (Code)" "${INSTANCE_2_MODELS[@]}"
     specialize_instance "$INSTANCE_3" "Instance 3 (Reasoning)" "${INSTANCE_3_MODELS[@]}"
     specialize_instance "$INSTANCE_4" "Instance 4 (Embeddings)" "${INSTANCE_4_MODELS[@]}"
-    
+
     # Verification
     log "Step 4: Verification"
     echo ""
     echo "🔍 Final Model Distribution:"
     echo "=========================="
-    
+
     echo ""
     echo "Instance 1 (General Chat & Document QA):"
     get_current_models "$INSTANCE_1" | sed 's/^/  - /'
-    
+
     echo ""
     echo "Instance 2 (Code & Technical Analysis):"
     get_current_models "$INSTANCE_2" | sed 's/^/  - /'
-    
+
     echo ""
     echo "Instance 3 (Advanced Reasoning & Math):"
     get_current_models "$INSTANCE_3" | sed 's/^/  - /'
-    
+
     echo ""
     echo "Instance 4 (Embeddings & Search Optimization):"
     get_current_models "$INSTANCE_4" | sed 's/^/  - /'
-    
+
     echo ""
     success "Model Specialization Complete!"
     echo ""
-    
+
     # Next steps guidance
     log "Next Steps:"
     echo "  1. Update intelligent routing logic in reranker/app.py"
     echo "  2. Test specialized model performance"
     echo "  3. Update documentation with new model distribution"
     echo "  4. Implement monitoring for specialized instances"
-    
+
     # Save specialization record
     log "Saving specialization record to data/model_specialization_$(date +%Y%m%d_%H%M%S).json"
-    
+
     cat > "data/model_specialization_$(date +%Y%m%d_%H%M%S).json" << EOF
 {
   "specialization_date": "$(date -Iseconds)",
@@ -255,13 +255,13 @@ main() {
       "models": $(printf '%s\n' "${INSTANCE_1_MODELS[@]}" | jq -R . | jq -s .)
     },
     "instance_2": {
-      "url": "$INSTANCE_2", 
+      "url": "$INSTANCE_2",
       "purpose": "Code & Technical Analysis",
       "models": $(printf '%s\n' "${INSTANCE_2_MODELS[@]}" | jq -R . | jq -s .)
     },
     "instance_3": {
       "url": "$INSTANCE_3",
-      "purpose": "Advanced Reasoning & Math", 
+      "purpose": "Advanced Reasoning & Math",
       "models": $(printf '%s\n' "${INSTANCE_3_MODELS[@]}" | jq -R . | jq -s .)
     },
     "instance_4": {
@@ -272,7 +272,7 @@ main() {
   }
 }
 EOF
-    
+
     success "Specialization record saved!"
 }
 

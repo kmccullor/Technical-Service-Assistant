@@ -63,12 +63,12 @@ switchMode(mode) {
 ## API Integration Status
 
 ### Working Endpoints
-✅ `/api/ollama-health` - Instance health monitoring  
-✅ `/api/intelligent-route` - Model/instance selection  
-✅ `/api/rag-chat` - Document-aware responses  
-✅ `/search` - Legacy document search  
-✅ `/ollama/api/generate` - Direct model access  
-✅ `/ollama-2/`, `/ollama-3/`, `/ollama-4/` - Multi-instance routing  
+✅ `/api/ollama-health` - Instance health monitoring
+✅ `/api/intelligent-route` - Model/instance selection
+✅ `/api/rag-chat` - Document-aware responses
+✅ `/search` - Legacy document search
+✅ `/ollama/api/generate` - Direct model access
+✅ `/ollama-2/`, `/ollama-3/`, `/ollama-4/` - Multi-instance routing
 
 ### Health Check Status
 All 8 containers healthy:

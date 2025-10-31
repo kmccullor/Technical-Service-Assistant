@@ -19,21 +19,20 @@ Usage:
     Open http://localhost:8090 for dashboard interface
 """
 
-from flask import Flask, render_template_string, jsonify, request
 import sqlite3
-import json
 import subprocess
+import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-import threading
+from typing import Dict
+
 import schedule
-from pathlib import Path
+from flask import Flask, jsonify, render_template_string
 
 
 class TestMaintenanceDashboard:
     """Web-based dashboard for comprehensive test maintenance."""
-    
+
     def __init__(self, port: int = 8090, db_path: str = "test_optimization.db"):
         """Initialize test maintenance dashboard."""
         self.app = Flask(__name__)
@@ -41,162 +40,163 @@ class TestMaintenanceDashboard:
         self.db_path = db_path
         self.setup_routes()
         self.setup_background_tasks()
-        
+
         # Initialize background data collection
         self.collecting_data = False
         self.last_analysis = None
-        
+
     def setup_routes(self):
         """Setup Flask routes for dashboard."""
-        
-        @self.app.route('/')
+
+        @self.app.route("/")
         def dashboard():
             """Main dashboard page."""
             return render_template_string(DASHBOARD_HTML_TEMPLATE)
-        
-        @self.app.route('/api/suite-health')
+
+        @self.app.route("/api/suite-health")
         def suite_health():
             """Get current test suite health metrics."""
             try:
                 # Run quick analysis
                 result = subprocess.run(
-                    ["python", "test_optimizer.py", "--analyze"],
-                    capture_output=True, text=True, timeout=60
+                    ["python", "test_optimizer.py", "--analyze"], capture_output=True, text=True, timeout=60
                 )
-                
+
                 health_data = self.parse_health_output(result.stdout)
                 return jsonify(health_data)
-                
+
             except Exception as e:
                 return jsonify({"error": f"Health check failed: {e}"}), 500
-        
-        @self.app.route('/api/flaky-tests')
+
+        @self.app.route("/api/flaky-tests")
         def flaky_tests():
             """Get current flaky test data."""
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT test_name, failure_rate, total_runs, failed_runs, 
+
+            cursor.execute(
+                """
+                SELECT test_name, failure_rate, total_runs, failed_runs,
                        last_failure, confidence_score, status
-                FROM flaky_tests 
+                FROM flaky_tests
                 WHERE status = 'active'
                 ORDER BY confidence_score DESC
                 LIMIT 20
-            """)
-            
+            """
+            )
+
             flaky_data = []
             for row in cursor.fetchall():
-                flaky_data.append({
-                    "test_name": row[0],
-                    "failure_rate": row[1],
-                    "total_runs": row[2],
-                    "failed_runs": row[3],
-                    "last_failure": row[4],
-                    "confidence_score": row[5],
-                    "status": row[6]
-                })
-            
+                flaky_data.append(
+                    {
+                        "test_name": row[0],
+                        "failure_rate": row[1],
+                        "total_runs": row[2],
+                        "failed_runs": row[3],
+                        "last_failure": row[4],
+                        "confidence_score": row[5],
+                        "status": row[6],
+                    }
+                )
+
             conn.close()
             return jsonify(flaky_data)
-        
-        @self.app.route('/api/performance-trends')
+
+        @self.app.route("/api/performance-trends")
         def performance_trends():
             """Get test performance trend data."""
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
+
             # Get performance data for last 30 days
             thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
-            
-            cursor.execute("""
-                SELECT DATE(timestamp) as date, 
+
+            cursor.execute(
+                """
+                SELECT DATE(timestamp) as date,
                        AVG(execution_time) as avg_time,
                        COUNT(*) as test_count
-                FROM test_performance 
+                FROM test_performance
                 WHERE timestamp >= ?
                 GROUP BY DATE(timestamp)
                 ORDER BY date
-            """, (thirty_days_ago,))
-            
+            """,
+                (thirty_days_ago,),
+            )
+
             trend_data = []
             for row in cursor.fetchall():
-                trend_data.append({
-                    "date": row[0],
-                    "avg_execution_time": row[1],
-                    "test_count": row[2]
-                })
-            
+                trend_data.append({"date": row[0], "avg_execution_time": row[1], "test_count": row[2]})
+
             conn.close()
             return jsonify(trend_data)
-        
-        @self.app.route('/api/optimization-recommendations')
+
+        @self.app.route("/api/optimization-recommendations")
         def optimization_recommendations():
             """Get current optimization recommendations."""
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
-            cursor.execute("""
+
+            cursor.execute(
+                """
                 SELECT test_name, recommendation_type, description, priority, status
-                FROM optimization_recommendations 
+                FROM optimization_recommendations
                 WHERE status = 'pending'
                 ORDER BY priority DESC, timestamp DESC
                 LIMIT 50
-            """)
-            
+            """
+            )
+
             recommendations = []
             for row in cursor.fetchall():
-                recommendations.append({
-                    "test_name": row[0],
-                    "type": row[1],
-                    "description": row[2],
-                    "priority": row[3],
-                    "status": row[4]
-                })
-            
+                recommendations.append(
+                    {"test_name": row[0], "type": row[1], "description": row[2], "priority": row[3], "status": row[4]}
+                )
+
             conn.close()
             return jsonify(recommendations)
-        
-        @self.app.route('/api/run-optimization', methods=['POST'])
+
+        @self.app.route("/api/run-optimization", methods=["POST"])
         def run_optimization():
             """Trigger test suite optimization."""
             try:
                 if self.collecting_data:
                     return jsonify({"error": "Optimization already in progress"}), 409
-                
+
                 # Start optimization in background
                 threading.Thread(target=self.run_background_optimization).start()
-                
+
                 return jsonify({"message": "Optimization started", "status": "running"})
-                
+
             except Exception as e:
                 return jsonify({"error": f"Failed to start optimization: {e}"}), 500
-        
-        @self.app.route('/api/test-execution-status')
+
+        @self.app.route("/api/test-execution-status")
         def test_execution_status():
             """Get current test execution status."""
-            return jsonify({
-                "collecting_data": self.collecting_data,
-                "last_analysis": self.last_analysis,
-                "background_tasks_active": len(schedule.jobs) > 0
-            })
-        
-        @self.app.route('/api/coverage-data')
+            return jsonify(
+                {
+                    "collecting_data": self.collecting_data,
+                    "last_analysis": self.last_analysis,
+                    "background_tasks_active": len(schedule.jobs) > 0,
+                }
+            )
+
+        @self.app.route("/api/coverage-data")
         def coverage_data():
             """Get test coverage data."""
             try:
                 # Run coverage analysis
                 result = subprocess.run(
-                    ["python", "test_runner.py", "--all", "--coverage"],
-                    capture_output=True, text=True, timeout=120
+                    ["python", "test_runner.py", "--all", "--coverage"], capture_output=True, text=True, timeout=120
                 )
-                
+
                 coverage_data = self.parse_coverage_output(result.stdout)
                 return jsonify(coverage_data)
-                
+
             except Exception as e:
                 return jsonify({"error": f"Coverage analysis failed: {e}"}), 500
-    
+
     def parse_health_output(self, output: str) -> Dict:
         """Parse test suite health output."""
         health_data = {
@@ -204,24 +204,24 @@ class TestMaintenanceDashboard:
             "total_tests": 0,
             "complexity_distribution": {},
             "duplicates": 0,
-            "status": "unknown"
+            "status": "unknown",
         }
-        
-        lines = output.split('\n')
+
+        lines = output.split("\n")
         for line in lines:
             if "Total test files:" in line:
-                health_data["total_files"] = int(line.split(':')[1].strip())
+                health_data["total_files"] = int(line.split(":")[1].strip())
             elif "Total tests:" in line:
-                health_data["total_tests"] = int(line.split(':')[1].strip())
+                health_data["total_tests"] = int(line.split(":")[1].strip())
             elif "Duplicate tests detected:" in line:
-                health_data["duplicates"] = int(line.split(':')[1].strip())
+                health_data["duplicates"] = int(line.split(":")[1].strip())
             elif "Complexity" in line and ":" in line:
-                parts = line.strip().split(':')
+                parts = line.strip().split(":")
                 if len(parts) == 2:
                     complexity = parts[0].replace("Complexity", "").strip()
                     count = int(parts[1].replace("tests", "").strip())
                     health_data["complexity_distribution"][complexity] = count
-        
+
         # Determine overall health status
         if health_data["total_tests"] > 0:
             if health_data["duplicates"] == 0:
@@ -230,105 +230,94 @@ class TestMaintenanceDashboard:
                 health_data["status"] = "good"
             else:
                 health_data["status"] = "needs_attention"
-        
+
         return health_data
-    
+
     def parse_coverage_output(self, output: str) -> Dict:
         """Parse coverage analysis output."""
-        coverage_data = {
-            "overall_coverage": 0.0,
-            "file_coverage": [],
-            "missing_coverage": []
-        }
-        
-        lines = output.split('\n')
+        coverage_data = {"overall_coverage": 0.0, "file_coverage": [], "missing_coverage": []}
+
+        lines = output.split("\n")
         for line in lines:
             if "TOTAL" in line and "%" in line:
                 # Extract overall coverage percentage
                 parts = line.split()
                 for part in parts:
                     if "%" in part:
-                        coverage_data["overall_coverage"] = float(part.replace('%', ''))
+                        coverage_data["overall_coverage"] = float(part.replace("%", ""))
                         break
-        
+
         return coverage_data
-    
+
     def setup_background_tasks(self):
         """Setup background maintenance tasks."""
         # Schedule regular health checks
         schedule.every(30).minutes.do(self.background_health_check)
-        
+
         # Schedule daily flaky test detection
         schedule.every().day.at("02:00").do(self.background_flaky_detection)
-        
+
         # Schedule weekly optimization
         schedule.every().week.do(self.background_optimization)
-        
+
         # Start scheduler thread
         scheduler_thread = threading.Thread(target=self.run_scheduler)
         scheduler_thread.daemon = True
         scheduler_thread.start()
-    
+
     def run_scheduler(self):
         """Run background scheduler."""
         while True:
             schedule.run_pending()
             time.sleep(60)  # Check every minute
-    
+
     def background_health_check(self):
         """Perform background health check."""
         try:
-            subprocess.run(
-                ["python", "test_optimizer.py", "--analyze"],
-                capture_output=True, text=True, timeout=60
-            )
+            subprocess.run(["python", "test_optimizer.py", "--analyze"], capture_output=True, text=True, timeout=60)
             self.last_analysis = datetime.now().isoformat()
         except Exception as e:
             print(f"Background health check failed: {e}")
-    
+
     def background_flaky_detection(self):
         """Perform background flaky test detection."""
         try:
             subprocess.run(
                 ["python", "test_optimizer.py", "--detect-flaky", "--days", "7"],
-                capture_output=True, text=True, timeout=300
+                capture_output=True,
+                text=True,
+                timeout=300,
             )
         except Exception as e:
             print(f"Background flaky detection failed: {e}")
-    
+
     def background_optimization(self):
         """Perform background optimization."""
         try:
-            subprocess.run(
-                ["python", "test_optimizer.py", "--optimize"],
-                capture_output=True, text=True, timeout=300
-            )
+            subprocess.run(["python", "test_optimizer.py", "--optimize"], capture_output=True, text=True, timeout=300)
         except Exception as e:
             print(f"Background optimization failed: {e}")
-    
+
     def run_background_optimization(self):
         """Run optimization in background thread."""
         self.collecting_data = True
-        
+
         try:
             # Run comprehensive optimization
-            subprocess.run(
-                ["python", "test_optimizer.py", "--optimize"],
-                capture_output=True, text=True, timeout=300
-            )
-            
+            subprocess.run(["python", "test_optimizer.py", "--optimize"], capture_output=True, text=True, timeout=300)
+
             self.last_analysis = datetime.now().isoformat()
-            
+
         except Exception as e:
             print(f"Background optimization failed: {e}")
-        
+
         finally:
             self.collecting_data = False
-    
+
     def run(self):
         """Start the dashboard server."""
         print(f"🚀 Starting Test Maintenance Dashboard on http://localhost:{self.port}")
-        self.app.run(host='0.0.0.0', port=self.port, debug=False)
+        self.app.run(host="0.0.0.0", port=self.port, debug=False)
 
 
 # HTML Template for Dashboard
@@ -370,7 +359,7 @@ DASHBOARD_HTML_TEMPLATE = """
             <p>Comprehensive test suite health monitoring and intelligent optimization</p>
             <span class="refresh-indicator">Last updated: <span id="lastUpdate">Loading...</span></span>
         </div>
-        
+
         <div class="grid">
             <!-- Suite Health Card -->
             <div class="card">
@@ -380,7 +369,7 @@ DASHBOARD_HTML_TEMPLATE = """
                 </div>
                 <button class="btn" onclick="refreshHealth()">Refresh Health Check</button>
             </div>
-            
+
             <!-- Flaky Tests Card -->
             <div class="card">
                 <h3>⚠️ Flaky Tests Detection</h3>
@@ -389,7 +378,7 @@ DASHBOARD_HTML_TEMPLATE = """
                 </div>
                 <button class="btn" onclick="runFlakyDetection()">Run Flaky Detection</button>
             </div>
-            
+
             <!-- Performance Trends Card -->
             <div class="card">
                 <h3>📈 Performance Trends</h3>
@@ -397,7 +386,7 @@ DASHBOARD_HTML_TEMPLATE = """
                     <canvas id="performanceChart"></canvas>
                 </div>
             </div>
-            
+
             <!-- Optimization Recommendations Card -->
             <div class="card">
                 <h3>💡 Optimization Recommendations</h3>
@@ -406,7 +395,7 @@ DASHBOARD_HTML_TEMPLATE = """
                 </div>
                 <button class="btn" onclick="runOptimization()" id="optimizeBtn">Run Optimization</button>
             </div>
-            
+
             <!-- Test Coverage Card -->
             <div class="card">
                 <h3>🎯 Test Coverage Analysis</h3>
@@ -415,7 +404,7 @@ DASHBOARD_HTML_TEMPLATE = """
                 </div>
                 <button class="btn" onclick="refreshCoverage()">Refresh Coverage</button>
             </div>
-            
+
             <!-- System Status Card -->
             <div class="card">
                 <h3>⚙️ System Status</h3>
@@ -428,15 +417,15 @@ DASHBOARD_HTML_TEMPLATE = """
 
     <script>
         let performanceChart;
-        
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             loadAllData();
-            
+
             // Auto-refresh every 5 minutes
             setInterval(loadAllData, 300000);
         });
-        
+
         function loadAllData() {
             loadSuiteHealth();
             loadFlakyTests();
@@ -446,24 +435,24 @@ DASHBOARD_HTML_TEMPLATE = """
             loadSystemStatus();
             updateLastUpdate();
         }
-        
+
         function updateLastUpdate() {
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
-        
+
         function loadSuiteHealth() {
             fetch('/api/suite-health')
                 .then(response => response.json())
                 .then(data => {
                     const healthDiv = document.getElementById('suiteHealth');
-                    
+
                     if (data.error) {
                         healthDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
                         return;
                     }
-                    
+
                     const statusClass = `status-${data.status}`;
-                    
+
                     healthDiv.innerHTML = `
                         <div class="metric">
                             <span>Overall Status:</span>
@@ -482,7 +471,7 @@ DASHBOARD_HTML_TEMPLATE = """
                             <span class="metric-value">${data.duplicates}</span>
                         </div>
                         <h4>Complexity Distribution:</h4>
-                        ${Object.entries(data.complexity_distribution || {}).map(([complexity, count]) => 
+                        ${Object.entries(data.complexity_distribution || {}).map(([complexity, count]) =>
                             `<div class="metric">
                                 <span>Complexity ${complexity}:</span>
                                 <span class="metric-value">${count} tests</span>
@@ -494,22 +483,22 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('suiteHealth').innerHTML = `<div class="error">Failed to load health data: ${error}</div>`;
                 });
         }
-        
+
         function loadFlakyTests() {
             fetch('/api/flaky-tests')
                 .then(response => response.json())
                 .then(data => {
                     const flakyDiv = document.getElementById('flakyTests');
-                    
+
                     if (!data || data.length === 0) {
                         flakyDiv.innerHTML = '<div class="status-excellent">✅ No flaky tests detected</div>';
                         return;
                     }
-                    
+
                     flakyDiv.innerHTML = data.map(flaky => `
                         <div class="flaky-test">
                             <strong>${flaky.test_name}</strong><br>
-                            Failure Rate: ${(flaky.failure_rate * 100).toFixed(1)}% 
+                            Failure Rate: ${(flaky.failure_rate * 100).toFixed(1)}%
                             (${flaky.failed_runs}/${flaky.total_runs} runs)<br>
                             Confidence: ${flaky.confidence_score.toFixed(2)}
                         </div>
@@ -519,17 +508,17 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('flakyTests').innerHTML = `<div class="error">Failed to load flaky tests: ${error}</div>`;
                 });
         }
-        
+
         function loadPerformanceTrends() {
             fetch('/api/performance-trends')
                 .then(response => response.json())
                 .then(data => {
                     const ctx = document.getElementById('performanceChart').getContext('2d');
-                    
+
                     if (performanceChart) {
                         performanceChart.destroy();
                     }
-                    
+
                     performanceChart = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -572,18 +561,18 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('performanceChart').innerHTML = `<div class="error">Failed to load performance trends: ${error}</div>`;
                 });
         }
-        
+
         function loadRecommendations() {
             fetch('/api/optimization-recommendations')
                 .then(response => response.json())
                 .then(data => {
                     const recDiv = document.getElementById('recommendations');
-                    
+
                     if (!data || data.length === 0) {
                         recDiv.innerHTML = '<div class="status-excellent">✅ No optimization recommendations</div>';
                         return;
                     }
-                    
+
                     recDiv.innerHTML = data.slice(0, 10).map(rec => `
                         <div class="recommendation">
                             <strong>${rec.type.replace('_', ' ').toUpperCase()}</strong><br>
@@ -596,21 +585,21 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('recommendations').innerHTML = `<div class="error">Failed to load recommendations: ${error}</div>`;
                 });
         }
-        
+
         function loadCoverage() {
             fetch('/api/coverage-data')
                 .then(response => response.json())
                 .then(data => {
                     const coverageDiv = document.getElementById('coverage');
-                    
+
                     if (data.error) {
                         coverageDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
                         return;
                     }
-                    
-                    const coverageClass = data.overall_coverage >= 80 ? 'status-excellent' : 
+
+                    const coverageClass = data.overall_coverage >= 80 ? 'status-excellent' :
                                          data.overall_coverage >= 60 ? 'status-good' : 'status-needs_attention';
-                    
+
                     coverageDiv.innerHTML = `
                         <div class="metric">
                             <span>Overall Coverage:</span>
@@ -622,13 +611,13 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('coverage').innerHTML = `<div class="error">Failed to load coverage: ${error}</div>`;
                 });
         }
-        
+
         function loadSystemStatus() {
             fetch('/api/test-execution-status')
                 .then(response => response.json())
                 .then(data => {
                     const statusDiv = document.getElementById('systemStatus');
-                    
+
                     statusDiv.innerHTML = `
                         <div class="metric">
                             <span>Data Collection:</span>
@@ -652,25 +641,25 @@ DASHBOARD_HTML_TEMPLATE = """
                     document.getElementById('systemStatus').innerHTML = `<div class="error">Failed to load system status: ${error}</div>`;
                 });
         }
-        
+
         function refreshHealth() {
             loadSuiteHealth();
         }
-        
+
         function runFlakyDetection() {
             alert('Flaky test detection will run in background. Check back in a few minutes.');
         }
-        
+
         function runOptimization() {
             const btn = document.getElementById('optimizeBtn');
             btn.disabled = true;
             btn.textContent = 'Running Optimization...';
-            
+
             fetch('/api/run-optimization', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message || 'Optimization started');
-                    
+
                     // Re-enable button after 30 seconds
                     setTimeout(() => {
                         btn.disabled = false;
@@ -683,7 +672,7 @@ DASHBOARD_HTML_TEMPLATE = """
                     btn.textContent = 'Run Optimization';
                 });
         }
-        
+
         function refreshCoverage() {
             loadCoverage();
             alert('Coverage analysis will run in background. Results will update when complete.');
@@ -697,13 +686,13 @@ DASHBOARD_HTML_TEMPLATE = """
 def main():
     """Main entry point for test maintenance dashboard."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Test Maintenance Dashboard")
     parser.add_argument("--port", type=int, default=8090, help="Dashboard port")
     parser.add_argument("--db-path", default="test_optimization.db", help="Database path")
-    
+
     args = parser.parse_args()
-    
+
     dashboard = TestMaintenanceDashboard(port=args.port, db_path=args.db_path)
     dashboard.run()
 

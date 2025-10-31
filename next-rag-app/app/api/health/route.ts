@@ -11,8 +11,8 @@ export async function GET() {
     })
   } catch (error) {
     return Response.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Health check failed',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

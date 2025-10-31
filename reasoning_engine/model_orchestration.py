@@ -366,7 +366,6 @@ class EnhancedModelOrchestrator:
 
         for model_name, capability in self.model_capabilities.items():
             if reasoning_type in capability.reasoning_strengths and complexity_level in capability.complexity_levels:
-
                 metrics = self.model_metrics.get(model_name)
                 performance_score = 0.7  # Default
 

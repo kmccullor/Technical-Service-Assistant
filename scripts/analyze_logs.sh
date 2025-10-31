@@ -86,7 +86,7 @@ MODELS_MISSING=0
 for i in {1..4}; do
     PORT=$((11434 + i - 1))
     MODEL_COUNT=$(curl -s --connect-timeout 3 "http://localhost:$PORT/api/tags" 2>/dev/null | jq -r '.models[]?.name' 2>/dev/null | wc -l || echo "0")
-    
+
     if [ "$MODEL_COUNT" -eq 0 ]; then
         echo -e "${RED}❌ Ollama-server-$i: No models loaded${NC}"
         ((MODELS_MISSING++))
@@ -157,7 +157,7 @@ fi
 # Summary
 echo -e "\n${BLUE}=== ANALYSIS SUMMARY ===${NC}"
 echo "Network Issues: $NETWORK_ISSUES"
-echo "Model Issues: $MODEL_ISSUES" 
+echo "Model Issues: $MODEL_ISSUES"
 echo "Database Issues: $DATABASE_ISSUES"
 echo "Processing Issues: $PROCESSING_ISSUES"
 echo "Performance Issues: $PERFORMANCE_ISSUES"
@@ -170,7 +170,7 @@ if [ "$TOTAL_CRITICAL" -gt 0 ]; then
     echo -e "\n${RED}🔴 SYSTEM STATUS: $TOTAL_CRITICAL critical issues require immediate attention${NC}"
     exit 1
 elif [ "$TOTAL_WARNINGS" -gt 3 ]; then
-    echo -e "\n${YELLOW}🟡 SYSTEM STATUS: $TOTAL_WARNINGS warning issues should be addressed${NC}" 
+    echo -e "\n${YELLOW}🟡 SYSTEM STATUS: $TOTAL_WARNINGS warning issues should be addressed${NC}"
     exit 2
 else
     echo -e "\n${GREEN}🟢 SYSTEM STATUS: No critical issues detected${NC}"

@@ -165,10 +165,7 @@ class RetrievalComparison:
         print(f"\n📊 COMPARISON SUMMARY")
         print("=" * 60)
 
-        print(
-            f"{'Metric':<25} {'Baseline':<15} "
-            f"{'Enhanced':<15} {'Improvement':<15}"
-        )
+        print(f"{'Metric':<25} {'Baseline':<15} " f"{'Enhanced':<15} {'Improvement':<15}")
         print("-" * 70)
 
         print(

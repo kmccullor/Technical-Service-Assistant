@@ -33,7 +33,7 @@ When switching models:
 
 ## Evaluation Dimensions
 | Criterion | Why it matters | Implemented Metric |
-|----------|----------------|--------------------|  
+|----------|----------------|--------------------|
 | Semantic fidelity | Topical closeness | Recall@K, nDCG |
 | Early precision | Quality of top ranks | MRR |
 | Speed | Ingestion / query throughput | Timing (embed/search/total) |

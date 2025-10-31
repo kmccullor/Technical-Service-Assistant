@@ -7,31 +7,33 @@ for reprocessing with the new privacy classification system.
 """
 
 import os
-import sys
 import shutil
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
 # Add app path for imports
-sys.path.append('/app')
+sys.path.append("/app")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Setup basic logging without the containerized logging system
 import logging
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f'archive_reprocessor_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
-    ]
+        logging.FileHandler(f'archive_reprocessor_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'),
+    ],
 )
 logger = logging.getLogger("archive_reprocessor")
 
 # Try to import settings, fall back to manual config if needed
 try:
     from config import get_settings
+
     settings = get_settings()
     UPLOADS_DIR = settings.uploads_dir
     ARCHIVE_DIR = settings.archive_dir
@@ -51,8 +53,7 @@ def get_archived_documents():
             logger.warning(f"Archive directory does not exist: {ARCHIVE_DIR}")
             return []
 
-        pdf_files = [f for f in archive_path.iterdir()
-                    if f.is_file() and f.suffix.lower() == '.pdf']
+        pdf_files = [f for f in archive_path.iterdir() if f.is_file() and f.suffix.lower() == ".pdf"]
 
         logger.info(f"Found {len(pdf_files)} PDF files in archive directory")
         return pdf_files
@@ -66,22 +67,23 @@ def get_db_config():
     """Get database configuration, trying multiple methods."""
     try:
         from config import get_settings
+
         settings = get_settings()
         return {
-            'dbname': settings.db_name,
-            'user': settings.db_user,
-            'password': settings.db_password,
-            'host': settings.db_host,
-            'port': settings.db_port,
+            "dbname": settings.db_name,
+            "user": settings.db_user,
+            "password": settings.db_password,
+            "host": settings.db_host,
+            "port": settings.db_port,
         }
     except (ImportError, AttributeError, Exception):  # broad fallback with logging
         logger.warning("Falling back to environment variable database configuration")
         return {
-            'dbname': os.environ.get('DB_NAME', 'vector_db'),
-            'user': os.environ.get('DB_USER', 'postgres'),
-            'password': os.environ.get('DB_PASSWORD', 'postgres'),
-            'host': os.environ.get('DB_HOST', 'localhost'),  # localhost for Docker port mapping
-            'port': os.environ.get('DB_PORT', '5432'),
+            "dbname": os.environ.get("DB_NAME", "vector_db"),
+            "user": os.environ.get("DB_USER", "postgres"),
+            "password": os.environ.get("DB_PASSWORD", "postgres"),
+            "host": os.environ.get("DB_HOST", "localhost"),  # localhost for Docker port mapping
+            "port": os.environ.get("DB_PORT", "5432"),
         }
 
 
@@ -93,22 +95,22 @@ def backup_current_database():
 
         db_cfg = get_db_config()
         conn = psycopg2.connect(
-            dbname=db_cfg['dbname'],
-            user=db_cfg['user'],
-            password=db_cfg['password'],
-            host=db_cfg['host'],
-            port=db_cfg['port'],
+            dbname=db_cfg["dbname"],
+            user=db_cfg["user"],
+            password=db_cfg["password"],
+            host=db_cfg["host"],
+            port=db_cfg["port"],
         )
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Get current document and chunk counts
         cursor.execute("SELECT COUNT(*) AS count FROM pdf_documents")
         row = cursor.fetchone()
-        doc_count = row['count'] if row and 'count' in row else 0
+        doc_count = row["count"] if row and "count" in row else 0
 
         cursor.execute("SELECT COUNT(*) AS count FROM document_chunks")
         row = cursor.fetchone()
-        chunk_count = row['count'] if row and 'count' in row else 0
+        chunk_count = row["count"] if row and "count" in row else 0
 
         # Get privacy level distribution
         cursor.execute(
@@ -119,7 +121,7 @@ def backup_current_database():
             """
         )
         privacy_dist_rows = cursor.fetchall() or []
-        privacy_dist = {r['privacy_level']: r['count'] for r in privacy_dist_rows if r.get('privacy_level') is not None}
+        privacy_dist = {r["privacy_level"]: r["count"] for r in privacy_dist_rows if r.get("privacy_level") is not None}
 
         cursor.close()
         conn.close()
@@ -130,9 +132,9 @@ def backup_current_database():
         logger.info(f"  - Privacy distribution: {privacy_dist}")
 
         return {
-            'document_count': doc_count,
-            'chunk_count': chunk_count,
-            'privacy_distribution': privacy_dist,
+            "document_count": doc_count,
+            "chunk_count": chunk_count,
+            "privacy_distribution": privacy_dist,
         }
 
     except Exception as e:
@@ -163,7 +165,7 @@ def move_files_for_reprocessing(pdf_files, batch_size=5, delay_between_batches=3
 
     # Process files in batches to avoid overwhelming the processor
     for i in range(0, total_files, batch_size):
-        batch = pdf_files[i:i + batch_size]
+        batch = pdf_files[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_files + batch_size - 1) // batch_size
 
@@ -224,24 +226,23 @@ def monitor_processing_progress(expected_count, max_wait_minutes=60):
             try:
                 db_cfg = get_db_config()
                 conn = psycopg2.connect(
-                    dbname=db_cfg['dbname'],
-                    user=db_cfg['user'],
-                    password=db_cfg['password'],
-                    host=db_cfg['host'],
-                    port=db_cfg['port'],
+                    dbname=db_cfg["dbname"],
+                    user=db_cfg["user"],
+                    password=db_cfg["password"],
+                    host=db_cfg["host"],
+                    port=db_cfg["port"],
                 )
 
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
 
                 # Check uploads directory for remaining files
                 uploads_path = Path(UPLOADS_DIR)
-                remaining_files = len([f for f in uploads_path.iterdir()
-                                     if f.is_file() and f.suffix.lower() == '.pdf'])
+                remaining_files = len([f for f in uploads_path.iterdir() if f.is_file() and f.suffix.lower() == ".pdf"])
 
                 # Get current database stats
                 cursor.execute("SELECT COUNT(*) AS count FROM pdf_documents WHERE file_name LIKE '%_reprocess_%'")
                 row = cursor.fetchone()
-                processed_docs = row['count'] if row and 'count' in row else 0
+                processed_docs = row["count"] if row and "count" in row else 0
 
                 cursor.execute(
                     """
@@ -253,9 +254,7 @@ def monitor_processing_progress(expected_count, max_wait_minutes=60):
                 )
                 privacy_rows = cursor.fetchall() or []
                 privacy_stats = {
-                    r['privacy_level']: r['count']
-                    for r in privacy_rows
-                    if r.get('privacy_level') is not None
+                    r["privacy_level"]: r["count"] for r in privacy_rows if r.get("privacy_level") is not None
                 }
 
                 cursor.close()
@@ -293,17 +292,18 @@ def generate_reprocessing_report():
 
         db_cfg = get_db_config()
         conn = psycopg2.connect(
-            dbname=db_cfg['dbname'],
-            user=db_cfg['user'],
-            password=db_cfg['password'],
-            host=db_cfg['host'],
-            port=db_cfg['port'],
+            dbname=db_cfg["dbname"],
+            user=db_cfg["user"],
+            password=db_cfg["password"],
+            host=db_cfg["host"],
+            port=db_cfg["port"],
         )
 
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Get reprocessed documents stats
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 privacy_level,
                 COUNT(*) as document_count,
@@ -311,11 +311,13 @@ def generate_reprocessing_report():
             FROM pdf_documents
             WHERE file_name LIKE '%_reprocess_%'
             GROUP BY privacy_level
-        """)
+        """
+        )
         reprocessed_stats = cursor.fetchall()
 
         # Get chunk stats for reprocessed documents
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 c.privacy_level,
                 COUNT(*) as chunk_count,
@@ -324,17 +326,18 @@ def generate_reprocessing_report():
             JOIN pdf_documents d ON c.document_id = d.id
             WHERE d.file_name LIKE '%_reprocess_%'
             GROUP BY c.privacy_level
-        """)
+        """
+        )
         chunk_stats = cursor.fetchall()
 
         # Get total stats
         cursor.execute("SELECT COUNT(*) AS count FROM pdf_documents")
         row = cursor.fetchone()
-        total_docs = row['count'] if row and 'count' in row else 0
+        total_docs = row["count"] if row and "count" in row else 0
 
         cursor.execute("SELECT COUNT(*) AS count FROM document_chunks")
         row = cursor.fetchone()
-        total_chunks = row['count'] if row and 'count' in row else 0
+        total_chunks = row["count"] if row and "count" in row else 0
 
         cursor.close()
         conn.close()
@@ -353,17 +356,17 @@ def generate_reprocessing_report():
 
         logger.info("\nReprocessed Chunks by Privacy Level:")
         for stat in chunk_stats:
-            avg_size = stat['avg_chunk_size']
+            avg_size = stat["avg_chunk_size"]
             logger.info(
                 "  - %s: %s chunks (avg size: %.0f chars)",
-                stat['privacy_level'].upper(),
-                stat['chunk_count'],
+                stat["privacy_level"].upper(),
+                stat["chunk_count"],
                 avg_size,
             )
 
         # Privacy distribution analysis
-        private_docs = sum(stat['document_count'] for stat in reprocessed_stats if stat['privacy_level'] == 'private')
-        public_docs = sum(stat['document_count'] for stat in reprocessed_stats if stat['privacy_level'] == 'public')
+        private_docs = sum(stat["document_count"] for stat in reprocessed_stats if stat["privacy_level"] == "private")
+        public_docs = sum(stat["document_count"] for stat in reprocessed_stats if stat["privacy_level"] == "public")
         total_reprocessed = private_docs + public_docs
 
         if total_reprocessed > 0:
@@ -377,10 +380,10 @@ def generate_reprocessing_report():
         logger.info("=" * 60)
 
         return {
-            'reprocessed_stats': reprocessed_stats,
-            'chunk_stats': chunk_stats,
-            'total_documents': total_docs,
-            'total_chunks': total_chunks
+            "reprocessed_stats": reprocessed_stats,
+            "chunk_stats": chunk_stats,
+            "total_documents": total_docs,
+            "total_chunks": total_chunks,
         }
 
     except Exception as e:
@@ -418,7 +421,7 @@ def main():
             print(f"   - Privacy distribution: {backup_info['privacy_distribution']}")
 
         response = input("\n❓ Proceed with reprocessing? (y/N): ")
-        if not response.lower().startswith('y'):
+        if not response.lower().startswith("y"):
             logger.info("Reprocessing cancelled by user")
             return True
 
@@ -432,7 +435,7 @@ def main():
 
         # Step 5: Monitor processing (optional)
         response = input("\n❓ Monitor processing progress? (y/N): ")
-        if response.lower().startswith('y'):
+        if response.lower().startswith("y"):
             monitor_processing_progress(len(pdf_files))
 
         # Step 6: Generate final report

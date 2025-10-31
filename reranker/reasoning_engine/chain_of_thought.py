@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
@@ -20,9 +18,15 @@ import re
 import time
 from typing import Any, Dict, List
 
-from reasoning_types import (ChainOfThoughtRequest, ComplexityLevel,
-                             ReasoningResponse, ReasoningStep, ReasoningType,
-                             classify_reasoning_type, estimate_complexity)
+from reasoning_types import (
+    ChainOfThoughtRequest,
+    ComplexityLevel,
+    ReasoningResponse,
+    ReasoningStep,
+    ReasoningType,
+    classify_reasoning_type,
+    estimate_complexity,
+)
 
 
 class ChainOfThoughtReasoner:

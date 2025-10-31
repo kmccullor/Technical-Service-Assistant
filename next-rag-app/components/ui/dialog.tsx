@@ -96,8 +96,8 @@ const DialogContent = ({ className = "", children }: DialogContentProps) => {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/60" 
+      <div
+        className="fixed inset-0 bg-black/60"
         style={{ zIndex: 9998 }}
         onClick={() => onOpenChange(false)}
       />

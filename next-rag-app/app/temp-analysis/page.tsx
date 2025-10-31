@@ -24,7 +24,7 @@ export default function TempAnalysisPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <TempUpload 
+          <TempUpload
             onFileUploaded={handleFileUploaded}
             onAnalysisResult={handleAnalysisResult}
           />
@@ -55,7 +55,7 @@ export default function TempAnalysisPage() {
             </div>
           </div>
           <div className="mt-4 p-3 bg-blue-100 rounded text-sm text-blue-800">
-            <strong>Privacy Note:</strong> Files are processed temporarily and automatically deleted after 2 hours. 
+            <strong>Privacy Note:</strong> Files are processed temporarily and automatically deleted after 2 hours.
             No data is permanently stored.
           </div>
         </div>

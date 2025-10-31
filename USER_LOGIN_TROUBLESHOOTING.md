@@ -8,7 +8,7 @@
 **Solution Applied:**
 - Used `manual_user_verification.py` to verify and activate users
 - Both Kevin McCullor and Jim Hitchcock are now:
-  - ✅ Status: `active` 
+  - ✅ Status: `active`
   - ✅ Verified: `true`
   - ✅ Login attempts: reset to 0
   - ✅ Account unlocked
@@ -49,7 +49,7 @@ curl -X POST http://localhost:8008/api/auth/login \
   -d '{"email": "kevin.mccullor@xylem.com", "password": "password123"}'
 # Returns: JWT tokens and user profile
 
-# Jim's login - SUCCESS  
+# Jim's login - SUCCESS
 curl -X POST http://localhost:8008/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "jim.hitchcock@xylem.com", "password": "password123"}'
@@ -93,7 +93,7 @@ python verify_users.py
 **Base URL:** `http://localhost:8008/api/auth/`
 
 - `POST /login` - User login (returns JWT tokens)
-- `POST /register` - Create new user (admin only)  
+- `POST /register` - Create new user (admin only)
 - `POST /refresh` - Refresh access token
 - `POST /verify-email` - Email verification (when email available)
 - `GET /me` - Get current user profile
@@ -108,7 +108,7 @@ python verify_users.py
 ## Recommendations
 
 1. **For Production:** Set up proper email verification when email server is available
-2. **Password Policy:** Consider enforcing stronger passwords  
+2. **Password Policy:** Consider enforcing stronger passwords
 3. **Security:** Change default passwords after initial login
 4. **Monitoring:** Use the debug tools to monitor user status regularly
 5. **Automation:** Run `verify_users.py` periodically if email remains unavailable

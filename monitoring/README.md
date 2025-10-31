@@ -57,13 +57,13 @@ docker compose up -d prometheus grafana postgres-exporter redis-exporter node-ex
 
 ### 1. System Overview Dashboard
 - **Location**: `monitoring/grafana/dashboards/system_overview.json`
-- **Features**: 
+- **Features**:
   - System health status
   - CPU and memory usage trends
   - Container status table
   - Disk usage gauges
 
-### 2. AI Services Dashboard  
+### 2. AI Services Dashboard
 - **Location**: `monitoring/grafana/dashboards/ai_services.json`
 - **Features**:
   - Ollama instance status
@@ -86,7 +86,7 @@ docker compose up -d prometheus grafana postgres-exporter redis-exporter node-ex
 # CPU Usage
 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
 
-# Memory Usage  
+# Memory Usage
 (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
 
 # Disk Usage

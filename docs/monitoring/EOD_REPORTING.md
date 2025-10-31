@@ -70,7 +70,7 @@ Add to crontab for automated daily execution:
 # End of day report (weekdays at 5 PM)
 0 17 * * 1-5 /path/to/Technical-Service-Assistant/scripts/end_of_day.sh --automated
 
-# Morning health check (weekdays at 8 AM)  
+# Morning health check (weekdays at 8 AM)
 0 8 * * 1-5 /path/to/Technical-Service-Assistant/scripts/end_of_day.sh --automated --quick
 ```
 
@@ -160,7 +160,7 @@ def send_slack_notification(webhook_url, message):
     payload = {"text": message}
     requests.post(webhook_url, json=payload)
 
-# Teams Integration  
+# Teams Integration
 def send_teams_notification(webhook_url, message):
     payload = {"@type": "MessageCard", "text": message}
     requests.post(webhook_url, json=payload)
@@ -214,6 +214,6 @@ EOF
 
 ---
 
-**Maintained by**: Technical Service Assistant Operations Team  
-**Last Updated**: October 8, 2025  
+**Maintained by**: Technical Service Assistant Operations Team
+**Last Updated**: October 8, 2025
 **Version**: 2.1 (Enhanced Monitoring Integration)

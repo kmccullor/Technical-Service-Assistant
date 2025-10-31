@@ -15,17 +15,19 @@ Security:
 - Permission minimization: only exposes limited update fields.
 - Input validation handled via Pydantic models.
 """
-from typing import List, Optional, Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, status, Response
-from pydantic import BaseModel, Field
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from typing import Any, List, Optional
 
-from config import get_settings
-from utils.auth_system import get_current_user, get_auth_manager, AuthManager
+import psycopg2
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from psycopg2.extras import RealDictCursor
+from pydantic import BaseModel, Field
 from rbac_models import User  # type: ignore
 
+from config import get_settings
+from utils.auth_system import AuthManager, get_auth_manager, get_current_user
+
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
 
 # Pydantic models
 class UserListItem(BaseModel):
@@ -40,15 +42,18 @@ class UserListItem(BaseModel):
     created_at: str
     updated_at: str
 
+
 class UserListResponse(BaseModel):
     total: int
     limit: int
     offset: int
     items: List[UserListItem]
 
+
 class UserUpdateRequest(BaseModel):
     role_id: Optional[int] = Field(None, gt=0)
     status: Optional[str] = Field(None, pattern=r"^(active|inactive|suspended|pending_verification)$")
+
 
 class RoleListItem(BaseModel):
     id: int
@@ -58,14 +63,18 @@ class RoleListItem(BaseModel):
     permissions: List[str]
     user_count: int
 
+
 class RoleListResponse(BaseModel):
     items: List[RoleListItem]
+
 
 class RoleUpdateRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=255)
     permissions: Optional[List[str]] = None
 
+
 # Helpers
+
 
 def get_db():
     settings = get_settings()
@@ -78,6 +87,7 @@ def get_db():
         cursor_factory=RealDictCursor,
     )
 
+
 async def assert_admin(user: User = Depends(get_current_user), auth: AuthManager = Depends(get_auth_manager)) -> User:
     """Ensure the current user is an admin. Raises 403 otherwise."""
     # Quick role name lookup
@@ -89,8 +99,10 @@ async def assert_admin(user: User = Depends(get_current_user), auth: AuthManager
         if not row or row["name"] != "admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
     return user
+
 
 # Endpoints
 @router.get("/users", response_model=UserListResponse)
@@ -100,7 +112,8 @@ async def list_users(
     search: Optional[str] = Query(None, description="Search by email or name"),
     current_admin: User = Depends(assert_admin),
 ):
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
     try:
         where = []
         params: List[Any] = []
@@ -130,14 +143,16 @@ async def list_users(
         for row in rows:
             row_dict = dict(row)
             # Convert datetime objects to strings
-            if row_dict.get('created_at'):
-                row_dict['created_at'] = row_dict['created_at'].isoformat()
-            if row_dict.get('updated_at'):
-                row_dict['updated_at'] = row_dict['updated_at'].isoformat()
+            if row_dict.get("created_at"):
+                row_dict["created_at"] = row_dict["created_at"].isoformat()
+            if row_dict.get("updated_at"):
+                row_dict["updated_at"] = row_dict["updated_at"].isoformat()
             items.append(UserListItem(**row_dict))
         return UserListResponse(total=total, limit=limit, offset=offset, items=items)
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+
 
 @router.patch("/users/{user_id}", response_model=UserListItem)
 async def update_user(
@@ -147,7 +162,8 @@ async def update_user(
 ):
     if not payload or (payload.role_id is None and payload.status is None):
         raise HTTPException(status_code=400, detail="No update fields provided")
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
     try:
         sets = []
         params: List[Any] = []
@@ -156,9 +172,11 @@ async def update_user(
             cur.execute("SELECT id FROM roles WHERE id=%s", (payload.role_id,))
             if not cur.fetchone():
                 raise HTTPException(status_code=400, detail="Invalid role_id")
-            sets.append("role_id=%s"); params.append(payload.role_id)
+            sets.append("role_id=%s")
+            params.append(payload.role_id)
         if payload.status is not None:
-            sets.append("status=%s"); params.append(payload.status)
+            sets.append("status=%s")
+            params.append(payload.status)
         if not sets:
             raise HTTPException(status_code=400, detail="No valid fields to update")
         params.extend([user_id])
@@ -180,13 +198,15 @@ async def update_user(
             raise HTTPException(status_code=404, detail="User not found post-update")
         row_dict = dict(row)
         # Convert datetime objects to strings
-        if row_dict.get('created_at'):
-            row_dict['created_at'] = row_dict['created_at'].isoformat()
-        if row_dict.get('updated_at'):
-            row_dict['updated_at'] = row_dict['updated_at'].isoformat()
+        if row_dict.get("created_at"):
+            row_dict["created_at"] = row_dict["created_at"].isoformat()
+        if row_dict.get("updated_at"):
+            row_dict["updated_at"] = row_dict["updated_at"].isoformat()
         return UserListItem(**row_dict)
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+
 
 @router.delete("/users/{user_id}", status_code=204)
 async def delete_user(
@@ -201,18 +221,22 @@ async def delete_user(
     - Cannot delete the last remaining admin user
     - Returns 204 on success, 404 if not found
     """
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
     try:
         # Prevent self-deletion to avoid accidental lockout
         if user_id == current_admin.id:
             raise HTTPException(status_code=400, detail="You cannot delete your own account")
 
         # Check target user
-        cur.execute("""
+        cur.execute(
+            """
             SELECT u.id, r.name as role_name
             FROM users u JOIN roles r ON u.role_id = r.id
             WHERE u.id = %s
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="User not found")
@@ -221,11 +245,14 @@ async def delete_user(
         target_role = row_dict.get("role_name")
         if target_role == "admin":
             # Count other admins
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT COUNT(*) AS admin_count
                 FROM users u JOIN roles r ON u.role_id = r.id
                 WHERE r.name = 'admin' AND u.id <> %s
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
             admin_row = cur.fetchone()
             admin_row_dict = dict(admin_row) if admin_row else {"admin_count": 0}
             admin_count = admin_row_dict.get("admin_count", 0)
@@ -248,11 +275,14 @@ async def delete_user(
             pass
         return Response(status_code=204)
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+
 
 @router.get("/roles", response_model=RoleListResponse)
 async def list_roles(current_admin: User = Depends(assert_admin)):
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
     try:
         cur.execute(
             """
@@ -275,7 +305,9 @@ async def list_roles(current_admin: User = Depends(assert_admin)):
             items.append(RoleListItem(**row_d))
         return RoleListResponse(items=items)
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+
 
 @router.patch("/roles/{role_id}", response_model=RoleListItem)
 async def update_role(
@@ -286,7 +318,8 @@ async def update_role(
     if not payload or (payload.description is None and (payload.permissions is None or len(payload.permissions) == 0)):
         raise HTTPException(status_code=400, detail="No update fields provided")
 
-    conn = get_db(); cur = conn.cursor()
+    conn = get_db()
+    cur = conn.cursor()
     try:
         # Fetch role
         cur.execute("SELECT id, name, description, is_system FROM roles WHERE id=%s", (role_id,))
@@ -336,4 +369,5 @@ async def update_role(
         updated_d = dict(updated)
         return RoleListItem(**updated_d)
     finally:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()

@@ -6,10 +6,10 @@
 **If not provided, ask:** "Which RNI version are you working with?"
 - Available: 1.0.0, 1.1.0, 2.0.0, 2.1.0, 2.2.0
 
-### Step 2: Identify Database  
+### Step 2: Identify Database
 **Supported Sensus AMI Databases:**
 - **FlexnetDB** (Microsoft SQL Server) - Primary AMI database
-- **AMDS** (PostgreSQL) - Advanced Metering Data System  
+- **AMDS** (PostgreSQL) - Advanced Metering Data System
 - **Router** (PostgreSQL) - Communication management
 - **FWDL** (PostgreSQL) - Firmware Download management
 
@@ -23,7 +23,7 @@
 | Status | Icon | Action Required |
 |--------|------|-----------------|
 | ✅ **data_dictionary_available** | 🟢 | Ready for queries - provide schema info |
-| ⚠️ **schema_extraction_needed** | 🟡 | Run extraction query & upload CSV |  
+| ⚠️ **schema_extraction_needed** | 🟡 | Run extraction query & upload CSV |
 | ❌ **database_not_configured** | 🔴 | Add database instance |
 | ❌ **rni_version_not_found** | 🔴 | Use valid RNI version |
 

@@ -7,7 +7,9 @@ helpful error messages if attempting to use incorrect database names.
 """
 
 import sys
+
 from config import get_settings
+
 
 def validate_db_config():
     """Validate database configuration and provide guidance."""
@@ -50,6 +52,7 @@ def validate_db_config():
 
     return True
 
+
 def main():
     """Main validation function."""
     if validate_db_config():
@@ -58,6 +61,7 @@ def main():
     else:
         print("\n❌ Database configuration has issues!")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

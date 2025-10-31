@@ -16,41 +16,42 @@ Features:
 
 Usage:
     from utils.auth_system import AuthManager, get_current_user
-    
+
     auth = AuthManager(db_connection, jwt_secret)
     token = await auth.authenticate_user(email, password)
     user = await get_current_user(token, auth)
 """
 
-import os
-import jwt
-import bcrypt
-import secrets
 import asyncio
 import hashlib
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any, Callable, TypeVar
-from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import psycopg2
-from psycopg2.extras import RealDictCursor, Json
-import logging
-from contextlib import asynccontextmanager
+import os
+import secrets
 import smtplib
-from email.mime.text import MIMEText
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+
+import bcrypt
+import jwt
+import psycopg2
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from psycopg2.extras import Json, RealDictCursor
 
 from config import get_settings
+from utils.exceptions import AccountLockedError, AuthenticationError, RateLimitError, ValidationError
 from utils.logging_config import setup_logging
 from utils.rbac_models import (
-    User, Role, Permission, TokenData, TokenResponse, LoginRequest,
-    CreateUserRequest, ChangePasswordRequest, ResetPasswordRequest,
-    ConfirmPasswordResetRequest, UserResponse, AuditLog, SecurityEvent,
-    UserStatus, PermissionLevel, APIResponse, ErrorResponse
-)
-from utils.exceptions import (
-    AuthenticationError, AuthorizationError, ValidationError,
-    RateLimitError, AccountLockedError
+    CreateUserRequest,
+    LoginRequest,
+    PermissionLevel,
+    ResetPasswordRequest,
+    TokenData,
+    TokenResponse,
+    User,
+    UserResponse,
+    UserStatus,
 )
 
 # Configure logging with standardized setup
@@ -75,21 +76,21 @@ _auth_manager_lock = asyncio.Lock()
 
 class AuthManager:
     """Comprehensive authentication and authorization manager."""
-    
+
     def __init__(self, db_connection_string: str, jwt_secret_key: str):
         """Initialize authentication manager."""
         self.db_connection_string = db_connection_string
         self.jwt_secret_key = jwt_secret_key
         self.jwt_algorithm = "HS256"
         self.settings = get_settings()
-        
+
         # Security configuration
         self.max_login_attempts = 5
         self.lockout_duration = timedelta(minutes=15)
         self.access_token_expire = timedelta(minutes=30)
         self.refresh_token_expire = timedelta(days=7)
         self.password_reset_expire = timedelta(hours=1)
-        
+
         # Rate limiting (simple in-memory store)
         self.login_attempts = {}
         self.rate_limit_window = timedelta(minutes=5)
@@ -110,10 +111,7 @@ class AuthManager:
             user_part = creds.split("://")[-1].split(":")[0]
             masked_dsn = masked_dsn.replace(creds, f"{user_part}:***")
         logger.debug("Opening psycopg2 connection to %s", masked_dsn)
-        return psycopg2.connect(
-            self.db_connection_string,
-            cursor_factory=RealDictCursor
-        )
+        return psycopg2.connect(self.db_connection_string, cursor_factory=RealDictCursor)
 
     async def _run_in_thread(self, func: Callable[..., T], *args, **kwargs) -> T:
         """Execute blocking work in a worker thread."""
@@ -126,21 +124,21 @@ class AuthManager:
     async def get_db_connection(self):
         """Get database connection (legacy – prefer helper methods that run in thread pools)."""
         return await self._run_in_thread(self._open_connection)
-    
+
     # Password Management
     def hash_password(self, password: str) -> str:
         """Hash password using bcrypt."""
         salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-    
+        return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
     def verify_password(self, password: str, hashed: str) -> bool:
         """Verify password against hash."""
-        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-    
+        return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+
     def generate_secure_token(self, length: int = 32) -> str:
         """Generate cryptographically secure token."""
         return secrets.token_urlsafe(length)
-    
+
     # JWT Token Management
     def create_access_token(self, user: User, permissions: List[str]) -> str:
         """Create JWT access token."""
@@ -152,15 +150,11 @@ class AuthManager:
             permissions=permissions,
             exp=now + self.access_token_expire,
             iat=now,
-            jti=self.generate_secure_token(16)
+            jti=self.generate_secure_token(16),
         )
-        
-        return jwt.encode(
-            payload.dict(),
-            self.jwt_secret_key,
-            algorithm=self.jwt_algorithm
-        )
-    
+
+        return jwt.encode(payload.dict(), self.jwt_secret_key, algorithm=self.jwt_algorithm)
+
     def create_refresh_token(self, user: User) -> str:
         """Create JWT refresh token."""
         now = datetime.utcnow()
@@ -169,23 +163,15 @@ class AuthManager:
             "type": "refresh",
             "exp": now + self.refresh_token_expire,
             "iat": now,
-            "jti": self.generate_secure_token(16)
+            "jti": self.generate_secure_token(16),
         }
-        
-        return jwt.encode(
-            payload,
-            self.jwt_secret_key,
-            algorithm=self.jwt_algorithm
-        )
-    
+
+        return jwt.encode(payload, self.jwt_secret_key, algorithm=self.jwt_algorithm)
+
     def decode_token(self, token: str) -> Dict[str, Any]:
         """Decode and validate JWT token."""
         try:
-            payload = jwt.decode(
-                token,
-                self.jwt_secret_key,
-                algorithms=[self.jwt_algorithm]
-            )
+            payload = jwt.decode(token, self.jwt_secret_key, algorithms=[self.jwt_algorithm])
             return payload
         except jwt.ExpiredSignatureError:
             raise AuthenticationError("Token has expired")
@@ -223,24 +209,23 @@ class AuthManager:
     def check_rate_limit(self, identifier: str) -> bool:
         """Check if identifier is within rate limits."""
         now = datetime.utcnow()
-        
+
         if identifier not in self.login_attempts:
             self.login_attempts[identifier] = []
-        
+
         # Clean old attempts
         self.login_attempts[identifier] = [
-            attempt for attempt in self.login_attempts[identifier]
-            if now - attempt < self.rate_limit_window
+            attempt for attempt in self.login_attempts[identifier] if now - attempt < self.rate_limit_window
         ]
-        
+
         # Check if over limit
         if len(self.login_attempts[identifier]) >= self.max_attempts_per_window:
             return False
-        
+
         # Record this attempt
         self.login_attempts[identifier].append(now)
         return True
-    
+
     # User Management
     async def create_user(self, user_data: CreateUserRequest, created_by: Optional[int] = None) -> User:
         """Create new user account."""
@@ -251,7 +236,7 @@ class AuthManager:
         )
         try:
             user = await self._run_in_thread(self._create_user_sync, user_data)
-        except Exception as e:
+        except Exception:
             logger.exception("Error creating user %s", user_data.email)
             raise
 
@@ -260,7 +245,7 @@ class AuthManager:
             action="user_created",
             resource_type="user",
             resource_id=str(user.id),
-            details={"created_user_email": user.email}
+            details={"created_user_email": user.email},
         )
 
         await self.send_verification_email(user)
@@ -272,11 +257,9 @@ class AuthManager:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                "SELECT column_name FROM information_schema.columns WHERE table_name='users'"
-            )
-            cols = {r['column_name'] if isinstance(r, dict) else r[0] for r in cursor.fetchall()}
-            extended = {'password_hash', 'role_id', 'verified', 'login_attempts', 'preferences'}.issubset(cols)
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+            cols = {r["column_name"] if isinstance(r, dict) else r[0] for r in cursor.fetchall()}
+            extended = {"password_hash", "role_id", "verified", "login_attempts", "preferences"}.issubset(cols)
 
             cursor.execute("SELECT id FROM users WHERE email = %s", (user_data.email.lower(),))
             if cursor.fetchone():
@@ -292,7 +275,9 @@ class AuthManager:
                 raise ValidationError("Invalid role ID")
 
             password_hash = self.hash_password(user_data.password)
-            display_name = (f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or user_data.email.split('@')[0])
+            display_name = (
+                f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or user_data.email.split("@")[0]
+            )
 
             if extended:
                 cursor.execute(
@@ -322,7 +307,7 @@ class AuthManager:
                     (
                         user_data.email.lower(),
                         display_name,
-                        'active',
+                        "active",
                     ),
                 )
 
@@ -336,25 +321,25 @@ class AuthManager:
             if isinstance(user_row, dict):
                 base = user_row
             else:
-                keys = ['id', 'email', 'name', 'status', 'created_at', 'updated_at']
+                keys = ["id", "email", "name", "status", "created_at", "updated_at"]
                 base = dict(zip(keys, user_row))
 
             return User(
-                id=base.get('id'),
-                email=base.get('email'),
+                id=base.get("id"),
+                email=base.get("email"),
                 first_name=user_data.first_name,
                 last_name=user_data.last_name,
                 role_id=user_data.role_id,
-                status=base.get('status', UserStatus.PENDING_VERIFICATION),
-                verified=base.get('verified', not extended),
-                last_login=base.get('last_login'),
-                login_attempts=base.get('login_attempts', 0),
-                locked_until=base.get('locked_until'),
-                password_change_required=base.get('password_change_required', True),
-                password_changed_at=base.get('password_changed_at'),
-                preferences=base.get('preferences', {}),
-                created_at=base.get('created_at'),
-                updated_at=base.get('updated_at'),
+                status=base.get("status", UserStatus.PENDING_VERIFICATION),
+                verified=base.get("verified", not extended),
+                last_login=base.get("last_login"),
+                login_attempts=base.get("login_attempts", 0),
+                locked_until=base.get("locked_until"),
+                password_change_required=base.get("password_change_required", True),
+                password_changed_at=base.get("password_changed_at"),
+                preferences=base.get("preferences", {}),
+                created_at=base.get("created_at"),
+                updated_at=base.get("updated_at"),
             )
         except Exception:
             conn.rollback()
@@ -363,7 +348,7 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID."""
         return await self._run_in_thread(self._get_user_by_id_sync, user_id)
@@ -431,7 +416,7 @@ class AuthManager:
                 """,
                 (user_id,),
             )
-            return [row['name'] for row in cursor.fetchall()]
+            return [row["name"] for row in cursor.fetchall()]
         finally:
             cursor.close()
             conn.close()
@@ -454,11 +439,11 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     # Authentication
     async def authenticate_user(self, email: str, password: str, ip_address: Optional[str] = None) -> TokenResponse:
         """Authenticate user and return tokens."""
-        
+
         # Check rate limiting
         rate_limit_key = ip_address or email
         if not self.check_rate_limit(rate_limit_key):
@@ -466,10 +451,10 @@ class AuthManager:
                 event_type="rate_limit_exceeded",
                 severity="medium",
                 ip_address=ip_address,
-                details={"email": email, "type": "login"}
+                details={"email": email, "type": "login"},
             )
             raise RateLimitError("Too many login attempts. Please try again later.")
-        
+
         # Get user
         user = await self.get_user_by_email(email)
         if not user:
@@ -477,10 +462,10 @@ class AuthManager:
                 event_type="login_failed",
                 severity="low",
                 ip_address=ip_address,
-                details={"email": email, "reason": "user_not_found"}
+                details={"email": email, "reason": "user_not_found"},
             )
             raise AuthenticationError("Invalid email or password")
-        
+
         # Check if account is locked
         if user.is_locked:
             await self.log_security_event(
@@ -488,10 +473,10 @@ class AuthManager:
                 severity="medium",
                 user_id=user.id,
                 ip_address=ip_address,
-                details={"email": email}
+                details={"email": email},
             )
             raise AccountLockedError("Account is locked due to too many failed login attempts")
-        
+
         # Verify password
         if not self.verify_password(password, user.password_hash):
             await self.increment_login_attempts(user.id)
@@ -500,10 +485,10 @@ class AuthManager:
                 severity="low",
                 user_id=user.id,
                 ip_address=ip_address,
-                details={"email": email, "reason": "invalid_password"}
+                details={"email": email, "reason": "invalid_password"},
             )
             raise AuthenticationError("Invalid email or password")
-        
+
         # Check account status
         if not user.is_active:
             await self.log_security_event(
@@ -511,32 +496,32 @@ class AuthManager:
                 severity="medium",
                 user_id=user.id,
                 ip_address=ip_address,
-                details={"email": email, "status": user.status.value}
+                details={"email": email, "status": user.status.value},
             )
             raise AuthenticationError("Account is not active")
-        
+
         # Reset login attempts on successful login
         await self.reset_login_attempts(user.id)
-        
+
         # Update last login
         await self.update_last_login(user.id)
-        
+
         # Get user permissions
         permissions = await self.get_user_permissions(user.id)
-        
+
         # Create tokens
         access_token = self.create_access_token(user, permissions)
         refresh_token = self.create_refresh_token(user)
-        
+
         # Log successful login
         await self.log_audit_event(
             user_id=user.id,
             action="login_success",
             resource_type="auth",
             ip_address=ip_address,
-            details={"method": "password"}
+            details={"method": "password"},
         )
-        
+
         # Create response
         user_response = UserResponse(
             id=user.id,
@@ -552,36 +537,36 @@ class AuthManager:
             is_locked=user.is_locked,
             password_change_required=user.password_change_required,
             created_at=user.created_at,
-            updated_at=user.updated_at
+            updated_at=user.updated_at,
         )
-        
+
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=int(self.access_token_expire.total_seconds()),
-            user=user_response
+            user=user_response,
         )
-    
+
     async def refresh_access_token(self, refresh_token: str) -> TokenResponse:
         """Create new access token from refresh token."""
         try:
             payload = self.decode_token(refresh_token)
-            
+
             if payload.get("type") != "refresh":
                 raise AuthenticationError("Invalid refresh token")
-            
+
             user_id = payload.get("user_id")
             user = await self.get_user_by_id(user_id)
-            
+
             if not user or not user.is_active:
                 raise AuthenticationError("User account is not active")
-            
+
             # Get fresh permissions
             permissions = await self.get_user_permissions(user.id)
-            
+
             # Create new access token
             access_token = self.create_access_token(user, permissions)
-            
+
             # Create response
             user_response = UserResponse(
                 id=user.id,
@@ -597,20 +582,20 @@ class AuthManager:
                 is_locked=user.is_locked,
                 password_change_required=user.password_change_required,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
             )
-            
+
             return TokenResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,  # Keep same refresh token
                 expires_in=int(self.access_token_expire.total_seconds()),
-                user=user_response
+                user=user_response,
             )
-            
+
         except Exception as e:
             logger.error(f"Error refreshing token: {str(e)}")
             raise AuthenticationError("Invalid refresh token")
-    
+
     # Account Security
     async def increment_login_attempts(self, user_id: int):
         """Increment failed login attempts and lock if necessary."""
@@ -622,12 +607,12 @@ class AuthManager:
         try:
             cursor.execute(
                 """
-                UPDATE users 
+                UPDATE users
                 SET login_attempts = login_attempts + 1,
-                    locked_until = CASE 
-                        WHEN login_attempts + 1 >= %s 
-                        THEN %s 
-                        ELSE locked_until 
+                    locked_until = CASE
+                        WHEN login_attempts + 1 >= %s
+                        THEN %s
+                        ELSE locked_until
                     END
                 WHERE id = %s
                 """,
@@ -641,7 +626,7 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     async def reset_login_attempts(self, user_id: int):
         """Reset login attempts on successful login."""
         await self._run_in_thread(self._reset_login_attempts_sync, user_id)
@@ -652,7 +637,7 @@ class AuthManager:
         try:
             cursor.execute(
                 """
-                UPDATE users 
+                UPDATE users
                 SET login_attempts = 0, locked_until = NULL
                 WHERE id = %s
                 """,
@@ -662,7 +647,7 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     async def update_last_login(self, user_id: int):
         """Update user's last login timestamp."""
         await self._run_in_thread(self._update_last_login_sync, user_id)
@@ -673,7 +658,7 @@ class AuthManager:
         try:
             cursor.execute(
                 """
-                UPDATE users 
+                UPDATE users
                 SET last_login = %s
                 WHERE id = %s
                 """,
@@ -704,27 +689,27 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     # Password Management
     async def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """Change user password."""
         user = await self.get_user_by_id(user_id)
         if not user:
             raise AuthenticationError("User not found")
-        
+
         # Verify old password
         if not self.verify_password(old_password, user.password_hash):
             await self.log_security_event(
                 event_type="password_change_failed",
                 severity="medium",
                 user_id=user_id,
-                details={"reason": "invalid_old_password"}
+                details={"reason": "invalid_old_password"},
             )
             raise AuthenticationError("Current password is incorrect")
-        
+
         # Hash new password
         new_hash = self.hash_password(new_password)
-        
+
         await self._run_in_thread(
             self._update_password_sync,
             user_id,
@@ -737,7 +722,7 @@ class AuthManager:
             action="password_changed",
             resource_type="user",
             resource_id=str(user_id),
-            details={"method": "self_service"}
+            details={"method": "self_service"},
         )
         return True
 
@@ -747,12 +732,12 @@ class AuthManager:
         try:
             cursor.execute(
                 """
-                UPDATE users 
-                SET password_hash = %s, password_change_required = %s, 
+                UPDATE users
+                SET password_hash = %s, password_change_required = %s,
                     password_changed_at = %s, updated_at = %s
                 WHERE id = %s
                 """,
-                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id)
+                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id),
             )
             conn.commit()
         finally:
@@ -764,10 +749,10 @@ class AuthManager:
         user = await self.get_user_by_id(user_id)
         if not user:
             raise AuthenticationError("User not found")
-        
+
         # Hash new password
         new_hash = self.hash_password(new_password)
-        
+
         try:
             await self._run_in_thread(
                 self._update_password_sync,
@@ -784,7 +769,7 @@ class AuthManager:
             action="password_force_changed",
             resource_type="user",
             resource_id=str(user_id),
-            details={"method": "initial_login"}
+            details={"method": "initial_login"},
         )
 
         return True
@@ -816,7 +801,7 @@ class AuthManager:
             action="password_admin_reset",
             resource_type="user",
             resource_id=str(user_id),
-            details={"force_change": force_change}
+            details={"force_change": force_change},
         )
         return True
 
@@ -831,7 +816,7 @@ class AuthManager:
                     password_changed_at = %s, updated_at = %s
                 WHERE id = %s
                 """,
-                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id)
+                (new_hash, force_change, datetime.utcnow(), datetime.utcnow(), user_id),
             )
             conn.commit()
         finally:
@@ -1188,10 +1173,10 @@ class AuthManager:
                 server.sendmail(sender, [recipient], msg.as_string())
             logger.debug("Verification email dispatched via SMTP host=%s", self.settings.smtp_host)
             return True
-        except Exception as exc:
+        except Exception:
             logger.exception("Failed to send verification email to %s", recipient)
             return False
-    
+
     # Audit Logging
     async def log_audit_event(
         self,
@@ -1203,7 +1188,7 @@ class AuthManager:
         user_agent: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         success: bool = True,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ):
         """Log audit event."""
         await self._run_in_thread(
@@ -1237,8 +1222,8 @@ class AuthManager:
             json_details = Json(details) if details is not None else None
             cursor.execute(
                 """
-                INSERT INTO audit_logs 
-                (user_id, action, resource_type, resource_id, ip_address, 
+                INSERT INTO audit_logs
+                (user_id, action, resource_type, resource_id, ip_address,
                  user_agent, details, success, error_message, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
@@ -1267,14 +1252,14 @@ class AuthManager:
         finally:
             cursor.close()
             conn.close()
-    
+
     async def log_security_event(
         self,
         event_type: str,
         severity: str,
         user_id: Optional[int] = None,
         ip_address: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ):
         """Log security event."""
         await self._run_in_thread(
@@ -1300,7 +1285,7 @@ class AuthManager:
             json_details = Json(details) if details is not None else None
             cursor.execute(
                 """
-                INSERT INTO security_events 
+                INSERT INTO security_events
                 (event_type, severity, user_id, ip_address, details, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
@@ -1466,36 +1451,35 @@ async def get_auth_manager() -> AuthManager:
                 )
                 jwt_secret = getattr(
                     settings,
-                    'JWT_SECRET_KEY',
-                    os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production'),
+                    "JWT_SECRET_KEY",
+                    os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production"),
                 )
                 _auth_manager_instance = AuthManager(db_url, jwt_secret)
     return _auth_manager_instance
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    auth_manager: AuthManager = Depends(get_auth_manager)
+    credentials: HTTPAuthorizationCredentials = Depends(security), auth_manager: AuthManager = Depends(get_auth_manager)
 ) -> User:
     """Get current authenticated user from JWT token."""
     try:
         # Decode token
         payload = auth_manager.decode_token(credentials.credentials)
         user_id = payload.get("user_id")
-        
+
         if not user_id:
             raise AuthenticationError("Invalid token payload")
-        
+
         # Get user from database
         user = await auth_manager.get_user_by_id(user_id)
         if not user:
             raise AuthenticationError("User not found")
-        
+
         if not user.is_active:
             raise AuthenticationError("User account is not active")
-        
+
         return user
-        
+
     except Exception as e:
         logger.error(f"Authentication error: {str(e)}")
         raise HTTPException(
@@ -1505,44 +1489,35 @@ async def get_current_user(
         )
 
 
-async def get_current_active_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """Get current active user (additional validation)."""
     if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     return current_user
 
 
 def require_permission(permission: PermissionLevel):
     """Decorator to require specific permission."""
+
     async def permission_dependency(
-        current_user: User = Depends(get_current_user),
-        auth_manager: AuthManager = Depends(get_auth_manager)
+        current_user: User = Depends(get_current_user), auth_manager: AuthManager = Depends(get_auth_manager)
     ) -> User:
         # Get user permissions
         permissions = await auth_manager.get_user_permissions(current_user.id)
-        
+
         if permission.value not in permissions:
             await auth_manager.log_security_event(
                 event_type="unauthorized_access",
                 severity="medium",
                 user_id=current_user.id,
-                details={
-                    "required_permission": permission.value,
-                    "user_permissions": permissions
-                }
+                details={"required_permission": permission.value, "user_permissions": permissions},
             )
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission '{permission.value}' required"
+                status_code=status.HTTP_403_FORBIDDEN, detail=f"Permission '{permission.value}' required"
             )
-        
+
         return current_user
-    
+
     return permission_dependency
 
 
@@ -1552,8 +1527,9 @@ def require_admin():
 
 
 def require_user_management():
-    """Require user management permission.""" 
+    """Require user management permission."""
     return require_permission(PermissionLevel.MANAGE_USERS)
+
 
 # Backward compatibility aliases expected by legacy import usage
 AuthSystem = AuthManager

@@ -5,9 +5,9 @@ Test script to validate 15-second performance targets for all reasoning operatio
 """
 
 import asyncio
+import os
 import time
 
-import os
 import requests
 
 # Test configuration

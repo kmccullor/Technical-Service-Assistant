@@ -6,8 +6,9 @@ This script can be run independently to update acronyms from all processed docum
 
 import os
 import sys
-import psycopg2
 from datetime import datetime
+
+import psycopg2
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,16 +17,17 @@ from config import get_settings
 from docling_processor.acronym_extractor import AcronymExtractor, load_existing_acronyms, save_acronyms_to_file
 from utils.logging_config import setup_logging
 
+
 def reprocess_documents_for_acronyms():
     """Reprocess all documents in the database to extract acronyms."""
 
     settings = get_settings()
 
     logger = setup_logging(
-        program_name='acronym_reprocessor',
-        log_level=getattr(settings, 'log_level', 'INFO'),
+        program_name="acronym_reprocessor",
+        log_level=getattr(settings, "log_level", "INFO"),
         log_file=f'/app/logs/acronym_reprocessor_{datetime.now().strftime("%Y%m%d")}.log',
-        console_output=True
+        console_output=True,
     )
 
     logger.info("Starting acronym reprocessing for all documents")
@@ -42,14 +44,16 @@ def reprocess_documents_for_acronyms():
         cur = conn.cursor()
 
         # Get all documents with their chunks
-        cur.execute("""
+        cur.execute(
+            """
             SELECT DISTINCT d.file_name, string_agg(c.content, ' ') as full_text
             FROM documents d
             JOIN document_chunks c ON d.id = c.document_id
             WHERE d.file_name LIKE '%.pdf'
             GROUP BY d.file_name
             ORDER BY d.file_name
-        """)
+        """
+        )
 
         documents = cur.fetchall()
         logger.info(f"Found {len(documents)} documents to process for acronyms")

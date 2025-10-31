@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging

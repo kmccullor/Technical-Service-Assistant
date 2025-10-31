@@ -18,15 +18,18 @@ import os
 import sys
 from dataclasses import dataclass
 from typing import List, Tuple
+
 import psycopg2
 
 DEFAULT_ARCHIVE_SUBDIR = "archive"
+
 
 @dataclass
 class IngestionIssue:
     category: str
     description: str
     details: str
+
 
 def connect(db_host: str, db_name: str, db_user: str, db_password: str, db_port: int):
     return psycopg2.connect(
@@ -36,6 +39,7 @@ def connect(db_host: str, db_name: str, db_user: str, db_password: str, db_port:
         password=db_password,
         port=db_port,
     )
+
 
 def fetch_zero_chunk_docs(conn) -> List[Tuple[int, str]]:
     with conn.cursor() as cur:
@@ -51,6 +55,7 @@ def fetch_zero_chunk_docs(conn) -> List[Tuple[int, str]]:
         )
         return cur.fetchall()
 
+
 def fetch_metrics_anomalies(conn, min_success_rate: float) -> List[Tuple[str, float]]:
     with conn.cursor() as cur:
         cur.execute(
@@ -65,9 +70,11 @@ def fetch_metrics_anomalies(conn, min_success_rate: float) -> List[Tuple[str, fl
         )
         return cur.fetchall()
 
+
 def delete_document(conn, doc_id: int):
     with conn.cursor() as cur:
         cur.execute("DELETE FROM documents WHERE id=%s;", (doc_id,))
+
 
 def restore_file(uploads_dir: str, file_name: str):
     archive_path = os.path.join(uploads_dir, DEFAULT_ARCHIVE_SUBDIR, file_name)
@@ -78,6 +85,7 @@ def restore_file(uploads_dir: str, file_name: str):
             return True, f"Restored {file_name}"
         return False, f"Already present in uploads: {file_name}"
     return False, f"Archive copy not found: {file_name}"
+
 
 def main():
     parser = argparse.ArgumentParser(description="Docling ingestion health & repair utility")
@@ -102,9 +110,7 @@ def main():
         zero_chunk = fetch_zero_chunk_docs(conn)
         if zero_chunk:
             for doc_id, fname in zero_chunk:
-                issues.append(
-                    IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname)
-                )
+                issues.append(IngestionIssue("zero_chunks", f"Document id={doc_id} has 0 chunks", fname))
 
         anomalies = fetch_metrics_anomalies(conn, args.min_success_rate)
         if anomalies:
@@ -141,6 +147,7 @@ def main():
             conn.close()
         except Exception:
             pass
+
 
 if __name__ == "__main__":
     sys.exit(main())

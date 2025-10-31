@@ -46,16 +46,16 @@ def extract_pdf_title(pdf_path: str) -> str:
     try:
         import fitz
         doc = fitz.open(pdf_path)
-        
+
         # Try PDF metadata first
         if doc.metadata.get('title'):
             return doc.metadata['title'].strip()
-        
+
         # Analyze first page text blocks
         if len(doc) > 0:
             first_page = doc[0]
             blocks = first_page.get_text("dict")["blocks"]
-            
+
             # Find largest font text (likely title)
             title_candidates = []
             for block in blocks:
@@ -67,12 +67,12 @@ def extract_pdf_title(pdf_path: str) -> str:
                                     'text': span["text"].strip(),
                                     'size': span["size"]
                                 })
-            
+
             if title_candidates:
                 # Get largest text as title
                 best_title = max(title_candidates, key=lambda x: x['size'])
                 return best_title['text']
-        
+
         doc.close()
         return None
     except:
@@ -98,13 +98,13 @@ PRODUCT_QUERY_EXPANSION = {
 def expand_search_query(query: str) -> str:
     """Expand query with product synonyms"""
     expanded = query.lower()
-    
+
     for product, synonyms in PRODUCT_QUERY_EXPANSION.items():
         if product in expanded:
             # Add OR conditions for synonyms
             synonym_terms = ' OR '.join(f'"{synonym}"' for synonym in synonyms)
             expanded = expanded.replace(product, f'({synonym_terms})')
-    
+
     return expanded
 ```
 
@@ -117,27 +117,27 @@ def expand_search_query(query: str) -> str:
 ```python
 def apply_classification_overrides(classification: Dict[str, Any], filename: str) -> Dict[str, Any]:
     """Apply high-confidence overrides for known patterns"""
-    
+
     filename_lower = filename.lower()
-    
+
     # Security document overrides
     if 'hardware security module' in filename_lower and 'installation' in filename_lower:
         if classification['document_type'] == 'installation_guide':
             classification['document_type'] = 'security_guide'
             classification['confidence'] = 0.92
             classification['metadata']['override_reason'] = 'security_document_pattern'
-    
+
     elif 'system security' in filename_lower and 'user guide' in filename_lower:
         classification['document_type'] = 'security_guide'
         classification['confidence'] = 0.90
         classification['metadata']['override_reason'] = 'security_user_guide_pattern'
-    
+
     # Base station security override
     elif 'base station security' in filename_lower:
         classification['document_type'] = 'security_guide'
         classification['confidence'] = 0.88
         classification['metadata']['override_reason'] = 'base_station_security_pattern'
-    
+
     return classification
 ```
 
@@ -150,23 +150,23 @@ def apply_classification_overrides(classification: Dict[str, Any], filename: str
 ```python
 def ensemble_document_classification(text: str, filename: str) -> Dict[str, Any]:
     """Use multiple classification methods and combine results"""
-    
+
     # Method 1: Filename-based (weight: 0.3)
     filename_result = classify_by_filename_patterns(filename)
-    
-    # Method 2: Content-based (weight: 0.4)  
+
+    # Method 2: Content-based (weight: 0.4)
     content_result = classify_by_content_analysis(text)
-    
+
     # Method 3: Enhanced patterns (weight: 0.3)
     pattern_result = classify_by_enhanced_patterns(text, filename)
-    
+
     # Weighted ensemble voting
     final_result = weighted_classification_vote([
         (filename_result, 0.3),
         (content_result, 0.4),
         (pattern_result, 0.3)
     ])
-    
+
     return final_result
 ```
 
@@ -177,23 +177,23 @@ def ensemble_document_classification(text: str, filename: str) -> Dict[str, Any]
 ```python
 def cross_validate_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
     """Cross-validate metadata fields for consistency"""
-    
+
     # Validate version consistency
     if metadata.get('version') and metadata.get('product_name'):
         expected_versions = {
             'RNI': ['4.14', '4.15', '4.16', '4.16.1', '4.17'],
             'MultiSpeak': ['3.0', '4.1', 'v3.0', 'v4.1']
         }
-        
+
         product = metadata['product_name']
         version = metadata['version']
-        
+
         if product in expected_versions:
             if not any(v in version for v in expected_versions[product]):
                 # Flag suspicious version
                 metadata['metadata_warnings'] = metadata.get('metadata_warnings', [])
                 metadata['metadata_warnings'].append(f'Unexpected version {version} for product {product}')
-    
+
     return metadata
 ```
 
@@ -231,7 +231,7 @@ def train_enhanced_classifier():
 ```python
 def collect_search_feedback(query: str, results: List[Dict], user_feedback: Dict):
     """Collect and store user feedback for continuous improvement"""
-    
+
     feedback_entry = {
         'query': query,
         'timestamp': datetime.now(),
@@ -240,10 +240,10 @@ def collect_search_feedback(query: str, results: List[Dict], user_feedback: Dict
         'user_rating': user_feedback.get('rating'),
         'relevance_scores': user_feedback.get('relevance_scores', {})
     }
-    
+
     # Store in feedback database table
     store_feedback(feedback_entry)
-    
+
     # Use feedback to adjust ranking weights
     if feedback_entry['user_rating'] < 3:  # Poor rating
         adjust_classification_confidence(results[0]['document_id'], -0.1)
@@ -287,27 +287,27 @@ python enhanced_accuracy_test.py
 ```python
 def run_ab_classification_test():
     """Compare old vs new classification on test set"""
-    
+
     test_documents = load_test_documents()
-    
+
     results = {
         'old_method': [],
         'new_method': []
     }
-    
+
     for doc in test_documents:
         # Old method
         old_result = original_classification(doc['text'], doc['filename'])
         results['old_method'].append(old_result)
-        
+
         # New method
         new_result = enhanced_classification(doc['text'], doc['filename'])
         results['new_method'].append(new_result)
-    
+
     # Compare accuracy
     old_accuracy = calculate_accuracy(results['old_method'], test_documents)
     new_accuracy = calculate_accuracy(results['new_method'], test_documents)
-    
+
     print(f"Old method accuracy: {old_accuracy:.1%}")
     print(f"New method accuracy: {new_accuracy:.1%}")
     print(f"Improvement: +{new_accuracy - old_accuracy:.1%}")

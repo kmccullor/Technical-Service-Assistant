@@ -65,7 +65,7 @@ describe('UserMenu', () => {
     })
 
     render(<UserMenu />)
-    
+
     // Check if user name is displayed
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('user')).toBeInTheDocument()
@@ -78,15 +78,15 @@ describe('UserMenu', () => {
     })
 
     render(<UserMenu />)
-    
+
     // Click on the user menu trigger
     const trigger = screen.getByText('Test User').closest('button')
     expect(trigger).toBeInTheDocument()
-    
+
     if (trigger) {
       fireEvent.click(trigger)
     }
-    
+
     // Check if dropdown items are visible
     expect(screen.getByText('Change Password')).toBeInTheDocument()
     expect(screen.getByText('Logout')).toBeInTheDocument()
@@ -102,17 +102,17 @@ describe('UserMenu', () => {
     })
 
     render(<UserMenu />)
-    
+
     // Click on the user menu trigger
     const trigger = screen.getByText('Test User').closest('button')
     if (trigger) {
       fireEvent.click(trigger)
     }
-    
+
     // Click on logout
     const logoutButton = screen.getByText('Logout')
     fireEvent.click(logoutButton)
-    
+
     expect(mockLogout).toHaveBeenCalledTimes(1)
   })
 
@@ -128,7 +128,7 @@ describe('UserMenu', () => {
     })
 
     render(<UserMenu />)
-    
+
     expect(screen.getByText('admin')).toBeInTheDocument()
   })
 
@@ -145,7 +145,7 @@ describe('UserMenu', () => {
     })
 
     render(<UserMenu />)
-    
+
     expect(screen.getByText('role 3')).toBeInTheDocument()
   })
 })

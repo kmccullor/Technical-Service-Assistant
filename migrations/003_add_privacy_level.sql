@@ -2,11 +2,11 @@
 -- This enables marking content as public or private based on confidentiality keywords
 
 -- Add privacy_level column to pdf_documents table
-ALTER TABLE pdf_documents 
+ALTER TABLE pdf_documents
 ADD COLUMN IF NOT EXISTS privacy_level text DEFAULT 'public' CHECK (privacy_level IN ('public', 'private'));
 
 -- Add privacy_level column to document_chunks table
-ALTER TABLE document_chunks 
+ALTER TABLE document_chunks
 ADD COLUMN IF NOT EXISTS privacy_level text DEFAULT 'public' CHECK (privacy_level IN ('public', 'private'));
 
 -- Create index for efficient privacy filtering
@@ -55,7 +55,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql STABLE
 AS $$
-  SELECT 
+  SELECT
     d.privacy_level,
     COUNT(DISTINCT d.id) as document_count,
     COUNT(c.id) as chunk_count

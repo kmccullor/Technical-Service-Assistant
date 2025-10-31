@@ -68,7 +68,7 @@ clean_build() {
 # Copy core application files
 copy_application_files() {
     log_step "Copying Application Files"
-    
+
     # Core directories
     [ -d "reranker" ] && cp -r reranker/ "$PACKAGE_DIR/"
     [ -d "pdf_processor" ] && cp -r pdf_processor/ "$PACKAGE_DIR/"
@@ -79,19 +79,19 @@ copy_application_files() {
     [ -d "migrations" ] && cp -r migrations/ "$PACKAGE_DIR/"
     [ -d "docs" ] && cp -r docs/ "$PACKAGE_DIR/"
     [ -d "deployment" ] && cp -r deployment/ "$PACKAGE_DIR/"
-    
+
     # Configuration files
     cp docker-compose.production.yml "$PACKAGE_DIR/docker-compose.yml"
     cp .env.production "$PACKAGE_DIR/.env.example"
     cp init.sql "$PACKAGE_DIR/"
     cp config.py "$PACKAGE_DIR/"
-    
+
     # Requirements and setup
     cp requirements.txt "$PACKAGE_DIR/"
     cp requirements-dev.txt "$PACKAGE_DIR/"
     cp setup.py "$PACKAGE_DIR/"
     cp pyproject.toml "$PACKAGE_DIR/"
-    
+
     # Documentation
     cp README.md "$PACKAGE_DIR/"
     cp ARCHITECTURE.md "$PACKAGE_DIR/"
@@ -100,50 +100,50 @@ copy_application_files() {
     cp DEVELOPMENT.md "$PACKAGE_DIR/"
     cp CODE_QUALITY.md "$PACKAGE_DIR/"
     cp CHANGELOG.md "$PACKAGE_DIR/"
-    
+
     # Installation scripts
     cp install.sh "$PACKAGE_DIR/"
     chmod +x "$PACKAGE_DIR/install.sh"
-    
+
     log_success "Application files copied"
 }
 
 # Copy configuration templates
 copy_configuration_templates() {
     log_step "Copying Configuration Templates"
-    
+
     # Create config templates directory
     mkdir -p "$PACKAGE_DIR/config-templates"
-    
+
     # Copy SearXNG config if exists
     if [ -d "searxng" ]; then
         cp -r searxng/ "$PACKAGE_DIR/"
     fi
-    
+
     # Copy Ollama config if exists
     if [ -d "ollama_config" ]; then
         cp -r ollama_config/ "$PACKAGE_DIR/"
     fi
-    
+
     # Copy monitoring config
     if [ -d "monitoring/prometheus" ]; then
         cp -r monitoring/prometheus/ "$PACKAGE_DIR/monitoring/"
     fi
-    
+
     if [ -d "monitoring/grafana" ]; then
         cp -r monitoring/grafana/ "$PACKAGE_DIR/monitoring/"
     fi
-    
+
     log_success "Configuration templates copied"
 }
 
 # Create installation package structure
 create_package_structure() {
     log_step "Creating Package Structure"
-    
+
     # Create required directories
     mkdir -p "$PACKAGE_DIR"/{logs,uploads,data,backups}
-    
+
     # Create systemd service file
     cat > "$PACKAGE_DIR/technical-service-assistant.service" << 'EOF'
 [Unit]
@@ -163,7 +163,7 @@ Group=tsa
 [Install]
 WantedBy=multi-user.target
 EOF
-    
+
     # Create nginx configuration
     mkdir -p "$PACKAGE_DIR/deployment/nginx"
     cat > "$PACKAGE_DIR/deployment/nginx/nginx.conf" << 'EOF'
@@ -175,16 +175,16 @@ http {
     upstream tsa_frontend {
         server frontend:80;
     }
-    
+
     upstream tsa_api {
         server reranker:8008;
     }
-    
+
     server {
         listen 80;
         server_name _;
         client_max_body_size 100M;
-        
+
         location / {
             proxy_pass http://tsa_frontend;
             proxy_set_header Host $host;
@@ -192,7 +192,7 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
-        
+
         location /api/ {
             proxy_pass http://tsa_api/api/;
             proxy_set_header Host $host;
@@ -200,32 +200,32 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
-        
+
         location /health {
             proxy_pass http://tsa_api/health;
         }
     }
 }
 EOF
-    
+
     log_success "Package structure created"
 }
 
 # Generate checksums
 generate_checksums() {
     log_step "Generating Checksums"
-    
+
     cd "$PACKAGE_DIR"
     find . -type f -exec sha256sum {} \; > SHA256SUMS
     cd - > /dev/null
-    
+
     log_success "Checksums generated"
 }
 
 # Create package metadata
 create_package_metadata() {
     log_step "Creating Package Metadata"
-    
+
     cat > "$PACKAGE_DIR/PACKAGE_INFO" << EOF
 Package: $PACKAGE_NAME
 Version: $VERSION
@@ -240,7 +240,7 @@ Description: Technical Service Assistant - AI-powered PDF processing and hybrid 
 Components:
 - Reranker API Service
 - PDF Processor
-- Frontend Web Interface  
+- Frontend Web Interface
 - Performance Monitor
 - PostgreSQL + pgvector
 - 4x Ollama Instances
@@ -261,16 +261,16 @@ Installation:
 
 Documentation: See README.md and deployment/INSTALLATION_GUIDE.md
 EOF
-    
+
     log_success "Package metadata created"
 }
 
 # Build Python package
 build_python_package() {
     log_step "Building Python Package"
-    
+
     cd "$PACKAGE_DIR"
-    
+
     # Create Python package
     if command -v python3 &> /dev/null; then
         python3 setup.py sdist bdist_wheel > /dev/null 2>&1 || true
@@ -278,38 +278,38 @@ build_python_package() {
     else
         log_warning "Python3 not found, skipping Python package build"
     fi
-    
+
     cd - > /dev/null
 }
 
 # Create final archive
 create_archive() {
     log_step "Creating Distribution Archive"
-    
+
     cd "$BUILD_DIR"
     tar -czf "$ARCHIVE_NAME" "$PACKAGE_NAME-$VERSION/"
     cd - > /dev/null
-    
+
     # Move archive to current directory
     mv "$BUILD_DIR/$ARCHIVE_NAME" ./
-    
+
     # Get archive size
     ARCHIVE_SIZE=$(du -h "$ARCHIVE_NAME" | cut -f1)
-    
+
     log_success "Archive created: $ARCHIVE_NAME ($ARCHIVE_SIZE)"
 }
 
 # Verify package
 verify_package() {
     log_step "Verifying Package"
-    
+
     # Test archive extraction
     TEST_DIR="$BUILD_DIR/test-extract"
     mkdir -p "$TEST_DIR"
     cd "$TEST_DIR"
-    
+
     tar -xzf "../../$ARCHIVE_NAME" > /dev/null
-    
+
     # Check key files exist
     REQUIRED_FILES=(
         "install.sh"
@@ -323,16 +323,16 @@ verify_package() {
         "PACKAGE_INFO"
         "SHA256SUMS"
     )
-    
+
     MISSING_FILES=()
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$PACKAGE_NAME-$VERSION/$file" ]; then
             MISSING_FILES+=("$file")
         fi
     done
-    
+
     cd - > /dev/null
-    
+
     if [ ${#MISSING_FILES[@]} -eq 0 ]; then
         log_success "Package verification passed"
     else
@@ -347,7 +347,7 @@ verify_package() {
 # Generate installation instructions
 generate_installation_instructions() {
     log_step "Generating Installation Instructions"
-    
+
     cat > "INSTALL_${PACKAGE_NAME}-${VERSION}.txt" << EOF
 Technical Service Assistant v${VERSION} - Installation Instructions
 ================================================================
@@ -356,11 +356,11 @@ QUICK START:
 -----------
 1. Extract the package:
    tar -xzf ${ARCHIVE_NAME}
-   
+
 2. Run the installer:
    cd ${PACKAGE_NAME}-${VERSION}
    sudo ./install.sh
-   
+
 3. Access the web interface:
    http://your-server-ip/
 
@@ -400,14 +400,14 @@ Package Details:
 For the latest version and updates, visit:
 https://github.com/technical-service-assistant/technical-service-assistant
 EOF
-    
+
     log_success "Installation instructions generated"
 }
 
 # Print summary
 print_summary() {
     log_step "Build Summary"
-    
+
     echo -e "${GREEN}✅ Package build completed successfully!${NC}"
     echo ""
     echo "📦 Package: $ARCHIVE_NAME"
@@ -434,9 +434,9 @@ print_summary() {
 # Main build function
 main() {
     print_banner
-    
+
     log_info "Building Technical Service Assistant package v$VERSION"
-    
+
     clean_build
     copy_application_files
     copy_configuration_templates
@@ -448,7 +448,7 @@ main() {
     verify_package
     generate_installation_instructions
     print_summary
-    
+
     log_success "Build process completed!"
 }
 

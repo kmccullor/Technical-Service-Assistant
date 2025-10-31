@@ -30,7 +30,7 @@ interface ConversationSummary {
 
 export function Sidebar({ onNewChat, onSelectConversation, currentConversationId, refreshKey = 0, onConversationDeleted }: SidebarProps) {
   const [mounted, setMounted] = useState(false)
-  
+
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [stats, setStats] = useState({ documents: 0, chunks: 0 })
@@ -510,8 +510,8 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
                 </div>
               </div>
               <div className="pt-4 border-t">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setSettingsOpen(false)}
                   className="w-full"
                 >

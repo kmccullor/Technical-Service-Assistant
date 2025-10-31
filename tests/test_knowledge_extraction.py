@@ -1,10 +1,4 @@
-import os
-from pathlib import Path
-
-from phase4a_knowledge_extraction import (
-    KnowledgeExtractor,
-    _demo_text,
-)
+from phase4a_knowledge_extraction import KnowledgeExtractor, _demo_text
 
 
 def test_extraction_basic(tmp_path):

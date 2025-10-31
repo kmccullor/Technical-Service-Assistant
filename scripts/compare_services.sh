@@ -38,7 +38,7 @@ TOTAL_EXPECTED=${#EXPECTED_SERVICES[@]}
 for service in "${EXPECTED_SERVICES[@]}"; do
     # Clean service name (remove any extra characters)
     clean_service=$(echo "$service" | tr -d ' \t\r\n')
-    
+
     # Check if container is running
     if docker ps --filter "name=^${clean_service}$" --filter "status=running" -q | grep -q .; then
         echo -e "  ✅ ${GREEN}${clean_service}${NC} - Running"
@@ -74,7 +74,7 @@ if [ ${#MISSING_SERVICES[@]} -gt 0 ]; then
     for service in "${MISSING_SERVICES[@]}"; do
         echo "  - $service"
     done
-    
+
     echo -e "\n${BLUE}💡 Quick fix:${NC}"
     echo "  docker compose up -d"
     echo "  # Or start specific services:"
