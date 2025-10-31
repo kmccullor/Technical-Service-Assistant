@@ -229,6 +229,13 @@ class AuthManager:
     # User Management
     async def create_user(self, user_data: CreateUserRequest, created_by: Optional[int] = None) -> User:
         """Create new user account."""
+        # Auto-assign employee role for @xylem.com emails
+        if user_data.email.lower().endswith("@xylem.com"):
+            employee_role_id = await self.get_role_id_by_name("employee")
+            if employee_role_id:
+                user_data.role_id = employee_role_id
+                logger.info("Auto-assigned employee role to @xylem.com user: %s", user_data.email)
+
         logger.info(
             "Attempting to create user email=%s role_id=%s",
             user_data.email,
@@ -435,6 +442,25 @@ class AuthManager:
                 return None
             if isinstance(row, dict):
                 return row.get("name")
+            return row[0]
+        finally:
+            cursor.close()
+            conn.close()
+
+    async def get_role_id_by_name(self, role_name: str) -> Optional[int]:
+        """Return role id for the given role name."""
+        return await self._run_in_thread(self._get_role_id_by_name_sync, role_name)
+
+    def _get_role_id_by_name_sync(self, role_name: str) -> Optional[int]:
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT id FROM roles WHERE name = %s", (role_name,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            if isinstance(row, dict):
+                return row.get("id")
             return row[0]
         finally:
             cursor.close()

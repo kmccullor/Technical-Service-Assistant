@@ -9,23 +9,17 @@ This script performs comprehensive security checks including:
 - Secret detection
 """
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
 
 def run_command(cmd: List[str], cwd: Optional[str] = None) -> tuple[int, str, str]:
     """Run a command and return exit code, stdout, stderr."""
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=300
-        )
+        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=300)
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"
@@ -66,9 +60,7 @@ def check_bandit() -> bool:
     """Run bandit security linting."""
     print("🔍 Running bandit security linting...")
 
-    exit_code, stdout, stderr = run_command([
-        "bandit", "-r", ".", "-c", "pyproject.toml", "-f", "json"
-    ])
+    exit_code, stdout, stderr = run_command(["bandit", "-r", ".", "-c", "pyproject.toml", "-f", "json"])
 
     if exit_code != 0:
         print(f"  ❌ Bandit found security issues:\n{stdout}")
@@ -93,13 +85,11 @@ def check_secrets() -> bool:
     found_secrets = False
 
     for pattern in secret_patterns:
-        exit_code, stdout, stderr = run_command([
-            "grep", "-r", "-i", pattern, "--include=*.py", "."
-        ], cwd=".")
+        exit_code, stdout, stderr = run_command(["grep", "-r", "-i", pattern, "--include=*.py", "."], cwd=".")
 
-        if stdout and not any(skip in stdout for skip in [
-            "test_", "conftest.py", "example", "template", ".env.example"
-        ]):
+        if stdout and not any(
+            skip in stdout for skip in ["test_", "conftest.py", "example", "template", ".env.example"]
+        ):
             print(f"  ⚠️  Potential secrets found with pattern '{pattern}':")
             print(f"     {stdout[:500]}...")
             found_secrets = True
@@ -127,9 +117,9 @@ def check_config_security() -> bool:
     config_files = ["config.py", "reranker/config.py"]
     for config_file in config_files:
         if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
+            with open(config_file, "r") as f:
                 content = f.read()
-                if 'DEBUG' in content and 'True' in content:
+                if "DEBUG" in content and "True" in content:
                     issues.append(f"⚠️  Debug mode may be enabled in {config_file}")
 
     if issues:

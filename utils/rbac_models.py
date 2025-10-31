@@ -39,6 +39,8 @@ class PermissionLevel(str, Enum):
     SYSTEM_CONFIG = "system_config"
     EXPORT_DATA = "export_data"
     VIEW_ANALYTICS = "view_analytics"
+    DOWNLOAD_DOCUMENTS = "download_documents"
+    MANAGE_DOCUMENTS = "manage_documents"
 
 
 class UserStatus(str, Enum):
@@ -527,7 +529,7 @@ DEFAULT_ROLES = {
     RoleType.EMPLOYEE: {
         "name": "employee",
         "description": "Standard employee with chat and document access",
-        "permissions": [PermissionLevel.READ.value, PermissionLevel.WRITE.value, PermissionLevel.EXPORT_DATA.value],
+        "permissions": [PermissionLevel.READ.value, PermissionLevel.WRITE.value, PermissionLevel.EXPORT_DATA.value, PermissionLevel.DOWNLOAD_DOCUMENTS.value],
     },
     RoleType.GUEST: {
         "name": "guest",

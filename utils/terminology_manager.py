@@ -7,20 +7,20 @@ during document ingestion, and provides them for use in chat prompts and query e
 """
 
 import re
-import logging
-from typing import Dict, List, Set, Optional, Tuple, Any
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from config import get_settings
 from utils.logging_config import setup_logging
 
 logger = setup_logging(program_name="terminology_manager")
 
+
 @dataclass
 class AcronymEntry:
     """Represents an acronym entry in the database."""
+
     acronym: str
     definition: str
     confidence_score: float = 0.5
@@ -32,12 +32,14 @@ class AcronymEntry:
         if self.source_documents is None:
             self.source_documents = []
 
+
 @dataclass
 class SynonymEntry:
     """Represents a synonym entry in the database."""
+
     term: str
     synonym: str
-    term_type: str = 'general'
+    term_type: str = "general"
     confidence_score: float = 0.5
     source_documents: List[str] = None
     context_usage: Optional[str] = None
@@ -48,9 +50,11 @@ class SynonymEntry:
         if self.source_documents is None:
             self.source_documents = []
 
+
 @dataclass
 class TermRelationship:
     """Represents a term relationship entry."""
+
     primary_term: str
     related_term: str
     relationship_type: str  # 'synonym', 'acronym', 'abbreviation', 'alias'
@@ -65,6 +69,7 @@ class TermRelationship:
         if self.context_examples is None:
             self.context_examples = []
 
+
 class TerminologyManager:
     """Manages acronyms and synonyms extraction, storage, and retrieval."""
 
@@ -76,6 +81,7 @@ class TerminologyManager:
         """Get database connection."""
         if self.db_conn is None:
             import psycopg2
+
             self.db_conn = psycopg2.connect(
                 host=self.settings.db_host,
                 database=self.settings.db_name,
@@ -107,10 +113,7 @@ class TerminologyManager:
             for acronym, definition in acronyms.items():
                 try:
                     # Check if acronym already exists
-                    cur.execute(
-                        "SELECT id, source_documents, usage_count FROM acronyms WHERE acronym = %s",
-                        (acronym,)
-                    )
+                    cur.execute("SELECT id, source_documents, usage_count FROM acronyms WHERE acronym = %s", (acronym,))
                     existing = cur.fetchone()
 
                     if existing:
@@ -123,7 +126,7 @@ class TerminologyManager:
                             SET source_documents = %s, usage_count = %s, last_updated_at = now()
                             WHERE id = %s
                             """,
-                            (new_docs, usage_count + 1, existing_id)
+                            (new_docs, usage_count + 1, existing_id),
                         )
                     else:
                         # Insert new acronym
@@ -132,7 +135,7 @@ class TerminologyManager:
                             INSERT INTO acronyms (acronym, definition, source_documents, confidence_score)
                             VALUES (%s, %s, %s, %s)
                             """,
-                            (acronym, definition, [document_name], 0.7)  # Higher confidence for extracted
+                            (acronym, definition, [document_name], 0.7),  # Higher confidence for extracted
                         )
                         stored_acronyms += 1
 
@@ -162,8 +165,8 @@ class TerminologyManager:
                             synonym_entry.term_type,
                             synonym_entry.source_documents,
                             synonym_entry.confidence_score,
-                            synonym_entry.context_usage
-                        )
+                            synonym_entry.context_usage,
+                        ),
                     )
                     stored_synonyms += 1
 
@@ -187,8 +190,8 @@ class TerminologyManager:
                             rel.related_term,
                             rel.relationship_type,
                             rel.source_documents,
-                            rel.confidence_score
-                        )
+                            rel.confidence_score,
+                        ),
                     )
                     stored_relationships += 1
 
@@ -198,23 +201,22 @@ class TerminologyManager:
             conn.commit()
             cur.close()
 
-            logger.info(f"Extracted and stored terminology from {document_name}: "
-                       f"{stored_acronyms} acronyms, {stored_synonyms} synonyms, {stored_relationships} relationships")
+            logger.info(
+                f"Extracted and stored terminology from {document_name}: "
+                f"{stored_acronyms} acronyms, {stored_synonyms} synonyms, {stored_relationships} relationships"
+            )
 
-            return {
-                'acronyms': stored_acronyms,
-                'synonyms': stored_synonyms,
-                'relationships': stored_relationships
-            }
+            return {"acronyms": stored_acronyms, "synonyms": stored_synonyms, "relationships": stored_relationships}
 
         except Exception as e:
             logger.error(f"Failed to extract and store terminology: {e}")
-            return {'acronyms': 0, 'synonyms': 0, 'relationships': 0}
+            return {"acronyms": 0, "synonyms": 0, "relationships": 0}
 
     def _extract_acronyms(self, text: str) -> Dict[str, str]:
         """Extract acronyms from text using the existing AcronymExtractor."""
         try:
             from docling_processor.acronym_extractor import AcronymExtractor
+
             extractor = AcronymExtractor()
             return extractor.extract_from_text(text)
         except Exception as e:
@@ -228,8 +230,14 @@ class TerminologyManager:
 
         # Pattern for synonyms: "term (also known as synonym)" or "term, synonym"
         synonym_patterns = [
-            re.compile(r'\b([A-Za-z][a-zA-Z\s]{2,20})\s*\((?:also known as|aka|also called)\s*([A-Za-z][a-zA-Z\s]{2,20})\)', re.IGNORECASE),
-            re.compile(r'\b([A-Za-z][a-zA-Z\s]{2,20})\s*(?:,|or)\s*([A-Za-z][a-zA-Z\s]{2,20})\s*(?:is|are|refers to)', re.IGNORECASE),
+            re.compile(
+                r"\b([A-Za-z][a-zA-Z\s]{2,20})\s*\((?:also known as|aka|also called)\s*([A-Za-z][a-zA-Z\s]{2,20})\)",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"\b([A-Za-z][a-zA-Z\s]{2,20})\s*(?:,|or)\s*([A-Za-z][a-zA-Z\s]{2,20})\s*(?:is|are|refers to)",
+                re.IGNORECASE,
+            ),
         ]
 
         for pattern in synonym_patterns:
@@ -240,29 +248,35 @@ class TerminologyManager:
 
                 if len(term1) > 2 and len(term2) > 2:
                     # Create synonym entries (bidirectional)
-                    synonyms.append(SynonymEntry(
-                        term=term1.lower(),
-                        synonym=term2.lower(),
-                        term_type='general',
-                        confidence_score=0.6,
-                        context_usage=f"Found in pattern: {match.group()}"
-                    ))
-                    synonyms.append(SynonymEntry(
-                        term=term2.lower(),
-                        synonym=term1.lower(),
-                        term_type='general',
-                        confidence_score=0.6,
-                        context_usage=f"Found in pattern: {match.group()}"
-                    ))
+                    synonyms.append(
+                        SynonymEntry(
+                            term=term1.lower(),
+                            synonym=term2.lower(),
+                            term_type="general",
+                            confidence_score=0.6,
+                            context_usage=f"Found in pattern: {match.group()}",
+                        )
+                    )
+                    synonyms.append(
+                        SynonymEntry(
+                            term=term2.lower(),
+                            synonym=term1.lower(),
+                            term_type="general",
+                            confidence_score=0.6,
+                            context_usage=f"Found in pattern: {match.group()}",
+                        )
+                    )
 
                     # Create term relationships
-                    relationships.append(TermRelationship(
-                        primary_term=term1.lower(),
-                        related_term=term2.lower(),
-                        relationship_type='synonym',
-                        confidence_score=0.6,
-                        context_examples=[match.group()]
-                    ))
+                    relationships.append(
+                        TermRelationship(
+                            primary_term=term1.lower(),
+                            related_term=term2.lower(),
+                            relationship_type="synonym",
+                            confidence_score=0.6,
+                            context_examples=[match.group()],
+                        )
+                    )
 
         # Extract product synonyms based on common patterns
         product_synonyms = self._extract_product_synonyms(text)
@@ -276,10 +290,10 @@ class TerminologyManager:
 
         # Common product synonym patterns
         product_patterns = {
-            'rni': ['regional network interface', 'rni system', 'network interface'],
-            'ami': ['advanced metering infrastructure', 'smart metering', 'metering system'],
-            'flexnet': ['flexnet system', 'flexnet platform', 'sensus flexnet'],
-            'esm': ['enterprise service management', 'esm system', 'service management'],
+            "rni": ["regional network interface", "rni system", "network interface"],
+            "ami": ["advanced metering infrastructure", "smart metering", "metering system"],
+            "flexnet": ["flexnet system", "flexnet platform", "sensus flexnet"],
+            "esm": ["enterprise service management", "esm system", "service management"],
         }
 
         text_lower = text.lower()
@@ -288,13 +302,15 @@ class TerminologyManager:
             if product in text_lower:
                 for synonym in product_synonyms:
                     if synonym in text_lower:
-                        synonyms.append(SynonymEntry(
-                            term=product,
-                            synonym=synonym,
-                            term_type='product',
-                            confidence_score=0.8,
-                            context_usage=f"Product synonym found in context"
-                        ))
+                        synonyms.append(
+                            SynonymEntry(
+                                term=product,
+                                synonym=synonym,
+                                term_type="product",
+                                confidence_score=0.8,
+                                context_usage=f"Product synonym found in context",
+                            )
+                        )
 
         return synonyms
 
@@ -314,17 +330,12 @@ class TerminologyManager:
             cur = conn.cursor()
 
             cur.execute(
-                "SELECT acronym, definition, confidence_score FROM get_relevant_acronyms(%s, %s)",
-                (query, max_results)
+                "SELECT acronym, definition, confidence_score FROM get_relevant_acronyms(%s, %s)", (query, max_results)
             )
 
             results = []
             for row in cur.fetchall():
-                results.append({
-                    'acronym': row[0],
-                    'definition': row[1],
-                    'confidence': row[2]
-                })
+                results.append({"acronym": row[0], "definition": row[1], "confidence": row[2]})
 
             cur.close()
             return results
@@ -333,7 +344,9 @@ class TerminologyManager:
             logger.warning(f"Failed to get relevant acronyms: {e}")
             return []
 
-    def get_relevant_synonyms_for_term(self, term: str, term_type: Optional[str] = None, max_results: int = 5) -> List[Dict[str, Any]]:
+    def get_relevant_synonyms_for_term(
+        self, term: str, term_type: Optional[str] = None, max_results: int = 5
+    ) -> List[Dict[str, Any]]:
         """
         Get relevant synonyms for a term.
 
@@ -351,17 +364,12 @@ class TerminologyManager:
 
             cur.execute(
                 "SELECT term, synonym, term_type, confidence_score FROM get_relevant_synonyms(%s, %s, %s)",
-                (term, term_type, max_results)
+                (term, term_type, max_results),
             )
 
             results = []
             for row in cur.fetchall():
-                results.append({
-                    'term': row[0],
-                    'synonym': row[1],
-                    'type': row[2],
-                    'confidence': row[3]
-                })
+                results.append({"term": row[0], "synonym": row[1], "type": row[2], "confidence": row[3]})
 
             cur.close()
             return results
@@ -380,28 +388,24 @@ class TerminologyManager:
         Returns:
             Dictionary with acronyms and synonyms organized for prompt inclusion
         """
-        context = {
-            'acronyms': [],
-            'synonyms': [],
-            'key_terms': []
-        }
+        context = {"acronyms": [], "synonyms": [], "key_terms": []}
 
         # Get acronyms for all terms
         all_acronyms = set()
         for term in terms:
             acronyms = self.get_relevant_acronyms_for_query(term, max_results=3)
             for acronym in acronyms:
-                if acronym['acronym'] not in all_acronyms:
-                    all_acronyms.add(acronym['acronym'])
-                    context['acronyms'].append(acronym)
+                if acronym["acronym"] not in all_acronyms:
+                    all_acronyms.add(acronym["acronym"])
+                    context["acronyms"].append(acronym)
 
         # Get synonyms for key terms
         for term in terms[:3]:  # Limit to first 3 terms to avoid prompt bloat
             synonyms = self.get_relevant_synonyms_for_term(term, max_results=3)
-            context['synonyms'].extend(synonyms)
+            context["synonyms"].extend(synonyms)
 
         # Add key terms themselves
-        context['key_terms'] = terms[:5]  # Limit to 5 key terms
+        context["key_terms"] = terms[:5]  # Limit to 5 key terms
 
         return context
 
@@ -420,18 +424,18 @@ class TerminologyManager:
 
         enhancements = []
 
-        if term_context['acronyms']:
+        if term_context["acronyms"]:
             acronym_text = "Key acronyms and their meanings:\n"
-            for acronym in term_context['acronyms'][:3]:  # Limit to avoid prompt bloat
+            for acronym in term_context["acronyms"][:3]:  # Limit to avoid prompt bloat
                 acronym_text += f"- {acronym['acronym']}: {acronym['definition']}\n"
             enhancements.append(acronym_text)
 
-        if term_context['synonyms']:
+        if term_context["synonyms"]:
             synonym_text = "Related terms and synonyms:\n"
             # Group by term type
             by_type = defaultdict(list)
-            for syn in term_context['synonyms'][:5]:
-                by_type[syn['type']].append(f"{syn['term']} ↔ {syn['synonym']}")
+            for syn in term_context["synonyms"][:5]:
+                by_type[syn["type"]].append(f"{syn['term']} ↔ {syn['synonym']}")
 
             for term_type, synonyms in by_type.items():
                 synonym_text += f"- {term_type.title()}: {', '.join(synonyms)}\n"
@@ -449,16 +453,20 @@ class TerminologyManager:
             self.db_conn.close()
             self.db_conn = None
 
+
 # Global instance for easy access
 terminology_manager = TerminologyManager()
+
 
 def extract_and_store_terminology(text: str, document_name: str) -> Dict[str, int]:
     """Convenience function for terminology extraction."""
     return terminology_manager.extract_and_store_terminology(text, document_name)
 
+
 def get_terminology_context_for_prompt(terms: List[str]) -> Dict[str, Any]:
     """Convenience function for getting terminology context."""
     return terminology_manager.get_term_context_for_prompt(terms)
+
 
 def enhance_system_prompt_with_terminology(base_prompt: str, query_terms: List[str]) -> str:
     """Convenience function for enhancing prompts with terminology."""

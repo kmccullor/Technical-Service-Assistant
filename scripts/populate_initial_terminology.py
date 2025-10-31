@@ -20,6 +20,7 @@ from utils.terminology_manager import TerminologyManager
 
 logger = setup_logging(program_name="populate_terminology")
 
+
 def populate_initial_terminology():
     """Extract terminology from existing documents in the uploads directory."""
     settings = get_settings()
@@ -32,7 +33,7 @@ def populate_initial_terminology():
         return
 
     # Get list of PDF files
-    pdf_files = [f for f in os.listdir(uploads_dir) if f.lower().endswith('.pdf')]
+    pdf_files = [f for f in os.listdir(uploads_dir) if f.lower().endswith(".pdf")]
 
     if not pdf_files:
         logger.warning("No PDF files found in uploads directory")
@@ -40,7 +41,7 @@ def populate_initial_terminology():
 
     logger.info(f"Found {len(pdf_files)} PDF files to process for terminology extraction")
 
-    total_stats = {'acronyms': 0, 'synonyms': 0, 'relationships': 0}
+    total_stats = {"acronyms": 0, "synonyms": 0, "relationships": 0}
 
     for pdf_filename in pdf_files:
         pdf_path = os.path.join(uploads_dir, pdf_filename)
@@ -49,6 +50,7 @@ def populate_initial_terminology():
         try:
             # Extract text
             from pdf_processor.pdf_utils_enhanced import extract_text
+
             text = extract_text(pdf_path)
 
             if not text or len(text.strip()) < 100:
@@ -71,6 +73,7 @@ def populate_initial_terminology():
     add_manual_terminology(terminology_manager)
 
     terminology_manager.close()
+
 
 def add_manual_terminology(manager: TerminologyManager):
     """Add manually curated high-confidence terminology entries."""
@@ -117,7 +120,7 @@ def add_manual_terminology(manager: TerminologyManager):
                     is_verified = true,
                     last_updated_at = now()
                 """,
-                (acronym, definition, sources, 0.9, True)
+                (acronym, definition, sources, 0.9, True),
             )
 
         # Add manual synonyms
@@ -131,7 +134,7 @@ def add_manual_terminology(manager: TerminologyManager):
                     is_verified = true,
                     last_updated_at = now()
                 """,
-                (term, synonym, term_type, 0.8, True)
+                (term, synonym, term_type, 0.8, True),
             )
 
         conn.commit()
@@ -141,6 +144,7 @@ def add_manual_terminology(manager: TerminologyManager):
 
     except Exception as e:
         logger.error(f"Failed to add manual terminology: {e}")
+
 
 if __name__ == "__main__":
     populate_initial_terminology()

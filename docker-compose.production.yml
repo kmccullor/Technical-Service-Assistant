@@ -203,11 +203,11 @@ services:
         reservations:
           memory: 256m
 
-  # Frontend
-  frontend:
+   # Frontend
+   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./next-rag-app
+      dockerfile: Dockerfile
     container_name: tsa-frontend
     restart: unless-stopped
     environment:
@@ -340,7 +340,7 @@ services:
       - "${EXTERNAL_SSL_PORT:-443}:443"
     volumes:
       - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./ssl:/etc/ssl:ro
     networks:
       - tsa-network
     depends_on:

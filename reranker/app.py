@@ -28,6 +28,7 @@ class RAGChatResponse(BaseModel):
     fusion_metadata: Optional[dict] = Field(
         default=None, description="Metadata about fusion when search_method='fusion'"
     )
+    source_metadata: Optional[List[dict]] = Field(default=None, description="Metadata for source documents with download links")
     event_id: Optional[int] = Field(default=None, description="Analytics event id for feedback linkage")
     tokens_input: Optional[int] = Field(default=None, description="Number of input tokens processed")
     tokens_output: Optional[int] = Field(default=None, description="Number of output tokens generated")
@@ -40,6 +41,7 @@ class RAGChatResponse(BaseModel):
 
 import asyncio
 import math
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -53,7 +55,7 @@ import ollama
 import psycopg2
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 
 # FlagEmbedding import moved to get_reranker() to avoid startup issues
 FlagReranker = None
@@ -63,9 +65,10 @@ from psycopg2.extras import RealDictCursor
 # Import RBAC components
 sys.path.append("/app/utils")
 from rbac_middleware import RBACMiddleware
-from rbac_models import User
+from rbac_models import PermissionLevel, User
 
 # Updated import path for auth system to reflect utils package structure
+from utils.auth_system import get_current_user
 
 # Document listing API models
 
@@ -619,28 +622,7 @@ class RAGChatRequest(BaseModel):
     max_tokens: int = Field(512, ge=64, le=2048, description="Maximum tokens to generate")
 
 
-class RAGChatResponse(BaseModel):
-    """RAG-enhanced chat response with context metadata."""
 
-    response: str = Field(..., description="Generated response text")
-    context_used: List[str] = Field(default_factory=list, description="Retrieved context chunks")
-    model: str = Field(..., description="Model used for generation")
-    context_retrieved: bool = Field(..., description="Whether context was retrieved and used")
-    confidence_score: float = Field(0.0, ge=0.0, le=1.0, description="Confidence in RAG response (0-1)")
-    search_method: str = Field("rag", description="Search method used: 'rag', 'web', or 'hybrid'")
-    fusion_metadata: Optional[dict] = Field(
-        default=None, description="Metadata about fusion when search_method='fusion'"
-    )
-    source_metadata: Optional[List[dict]] = Field(
-        default=None, description="Metadata about sources (titles, filenames, etc.)"
-    )
-    event_id: Optional[int] = Field(default=None, description="Analytics event id for feedback linkage")
-    # Token performance metrics
-    tokens_input: Optional[int] = Field(default=None, description="Number of input tokens processed")
-    tokens_output: Optional[int] = Field(default=None, description="Number of output tokens generated")
-    tokens_total: Optional[int] = Field(default=None, description="Total tokens (input + output)")
-    tokens_per_second: Optional[float] = Field(default=None, description="Token generation rate (tokens/second)")
-    response_time_ms: Optional[int] = Field(default=None, description="Total response time in milliseconds")
 
 
 class FeedbackRequest(BaseModel):
@@ -1121,7 +1103,7 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
             cursor.execute(
                 f"""
                 SELECT c.content, c.page_number, c.section_title,
-                       d.file_name, d.title, d.document_type, d.product_name
+                       d.id as document_id, d.file_name, d.title, d.document_type, d.product_name
                 FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
                 WHERE c.embedding IS NOT NULL
@@ -1210,6 +1192,8 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
                         "product_name": meta.get("product_name"),
                         "page_number": meta.get("page_number") or 1,
                         "section_title": meta.get("section_title") or "General",
+                        "document_id": meta.get("document_id"),
+                        "download_url": f"/api/documents/{meta.get('document_id')}/download" if meta.get("document_id") else None,
                     }
                 )
 
@@ -3606,6 +3590,98 @@ async def get_document_details(document_id: int):
     except Exception as e:
         logger.error(f"Error getting document details: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve document details")
+
+
+@app.get("/api/documents/{document_id}/download")
+async def download_document(document_id: int, current_user: User = Depends(get_current_user)):
+    """Download a document file. Requires download_documents permission."""
+    try:
+        # Check permissions
+        user_permissions = current_user.permissions if hasattr(current_user, 'permissions') else []
+        if PermissionLevel.DOWNLOAD_DOCUMENTS.value not in user_permissions:
+            raise HTTPException(status_code=403, detail="Insufficient permissions to download documents")
+
+        # Get document info
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute(
+            "SELECT file_name, file_path FROM documents WHERE id = %s AND processing_status = 'processed'",
+            [document_id]
+        )
+        document = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        file_path = document["file_path"]
+        if not file_path or not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Document file not found")
+
+        # Return file
+        return FileResponse(
+            path=file_path,
+            filename=document["file_name"],
+            media_type='application/octet-stream'
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to download document")
+
+
+@app.delete("/api/documents/{document_id}")
+async def delete_document(document_id: int, current_user: User = Depends(get_current_user)):
+    """Delete a document. Requires manage_documents permission (admin only)."""
+    try:
+        # Check permissions - only admins can delete
+        user_permissions = current_user.permissions if hasattr(current_user, 'permissions') else []
+        if PermissionLevel.MANAGE_DOCUMENTS.value not in user_permissions:
+            raise HTTPException(status_code=403, detail="Insufficient permissions to delete documents")
+
+        # Get document info
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute(
+            "SELECT file_name, file_path FROM documents WHERE id = %s AND processing_status = 'processed'",
+            [document_id]
+        )
+        document = cursor.fetchone()
+
+        if not document:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        file_path = document["file_path"]
+
+        # Delete from database
+        cursor.execute("DELETE FROM document_chunks WHERE document_id = %s", [document_id])
+        cursor.execute("DELETE FROM documents WHERE id = %s", [document_id])
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        # Delete file if it exists
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete file {file_path}: {e}")
+
+        return {"message": "Document deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete document")
 
 
 @app.post("/api/temp-process")

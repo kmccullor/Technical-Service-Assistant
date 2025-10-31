@@ -132,6 +132,13 @@ yarn-error.log*
 # Local configuration overrides
 local_config.py
 local_settings.py
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
 # Large files and backups
 backup/
 *.tar.gz
