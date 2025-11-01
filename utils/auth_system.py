@@ -535,6 +535,15 @@ class AuthManager:
         # Get user permissions
         permissions = await self.get_user_permissions(user.id)
 
+        # Get role name - hardcoded mapping for reliability
+        role_name = None
+        if user.role_id == 1:
+            role_name = "admin"
+        elif user.role_id == 2:
+            role_name = "employee"
+        elif user.role_id == 3:
+            role_name = "guest"
+
         # Create tokens
         access_token = self.create_access_token(user, permissions)
         refresh_token = self.create_refresh_token(user)
@@ -556,6 +565,7 @@ class AuthManager:
             last_name=user.last_name,
             full_name=user.full_name,
             role_id=user.role_id,
+            role_name=role_name,
             status=user.status,
             verified=user.verified,
             last_login=user.last_login,

@@ -203,8 +203,8 @@ services:
         reservations:
           memory: 256m
 
-   # Frontend
-   frontend:
+  # Frontend
+  frontend:
     build:
       context: ./next-rag-app
       dockerfile: Dockerfile

@@ -4,9 +4,17 @@ import time
 from datetime import datetime
 
 import psycopg2
+from importlib import metadata
+
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.pipeline.standard_pdf_pipeline import PdfPipelineOptions
+
+try:
+    # Docling >= 2.6 moves PdfPipelineOptions under datamodel.pipeline_options
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+except (ImportError, AttributeError):
+    # Fall back for older docling releases
+    from docling.pipeline.standard_pdf_pipeline import PdfPipelineOptions
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 from config import get_settings
@@ -43,6 +51,23 @@ logger = setup_logging(
     log_file=f'/app/logs/docling_processor_{datetime.now().strftime("%Y%m%d")}.log',
     console_output=True,
 )
+
+EXPECTED_DOCLING_VERSION = "2.60.0"
+
+try:
+    installed_docling_version = metadata.version("docling")
+except metadata.PackageNotFoundError:
+    installed_docling_version = "unknown"
+
+if installed_docling_version != EXPECTED_DOCLING_VERSION:
+    logger.warning(
+        "Docling version mismatch detected: expected %s but found %s. "
+        "Re-evaluate OCR toggles and pipeline configuration before processing documents.",
+        EXPECTED_DOCLING_VERSION,
+        installed_docling_version,
+    )
+else:
+    logger.info("Docling %s loaded; OCR pipeline configuration verified.", installed_docling_version)
 
 MIN_TEXT_CHAR_THRESHOLD = int(os.environ.get("DOCLING_MIN_TEXT_THRESHOLD", "200"))
 

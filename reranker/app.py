@@ -28,7 +28,9 @@ class RAGChatResponse(BaseModel):
     fusion_metadata: Optional[dict] = Field(
         default=None, description="Metadata about fusion when search_method='fusion'"
     )
-    source_metadata: Optional[List[dict]] = Field(default=None, description="Metadata for source documents with download links")
+    source_metadata: Optional[List[dict]] = Field(
+        default=None, description="Metadata for source documents with download links"
+    )
     event_id: Optional[int] = Field(default=None, description="Analytics event id for feedback linkage")
     tokens_input: Optional[int] = Field(default=None, description="Number of input tokens processed")
     tokens_output: Optional[int] = Field(default=None, description="Number of output tokens generated")
@@ -68,7 +70,7 @@ from rbac_middleware import RBACMiddleware
 from rbac_models import PermissionLevel, User
 
 # Updated import path for auth system to reflect utils package structure
-from utils.auth_system import get_current_user
+from utils.auth_system import AuthManager, get_auth_manager, get_current_user
 
 # Document listing API models
 
@@ -620,9 +622,6 @@ class RAGChatRequest(BaseModel):
     privacy_filter: str = Field("public", description="Privacy filter: 'public', 'private', or 'all'")
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Generation temperature")
     max_tokens: int = Field(512, ge=64, le=2048, description="Maximum tokens to generate")
-
-
-
 
 
 class FeedbackRequest(BaseModel):
@@ -1193,7 +1192,9 @@ def search_documents_core(req: RerankRequest, current_user: Optional[User] = Non
                         "page_number": meta.get("page_number") or 1,
                         "section_title": meta.get("section_title") or "General",
                         "document_id": meta.get("document_id"),
-                        "download_url": f"/api/documents/{meta.get('document_id')}/download" if meta.get("document_id") else None,
+                        "download_url": f"/api/documents/{meta.get('document_id')}/download"
+                        if meta.get("document_id")
+                        else None,
                     }
                 )
 
@@ -3593,11 +3594,15 @@ async def get_document_details(document_id: int):
 
 
 @app.get("/api/documents/{document_id}/download")
-async def download_document(document_id: int, current_user: User = Depends(get_current_user)):
+async def download_document(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    auth_manager: AuthManager = Depends(get_auth_manager),
+):
     """Download a document file. Requires download_documents permission."""
     try:
         # Check permissions
-        user_permissions = current_user.permissions if hasattr(current_user, 'permissions') else []
+        user_permissions = await auth_manager.get_user_permissions(current_user.id)
         if PermissionLevel.DOWNLOAD_DOCUMENTS.value not in user_permissions:
             raise HTTPException(status_code=403, detail="Insufficient permissions to download documents")
 
@@ -3607,7 +3612,7 @@ async def download_document(document_id: int, current_user: User = Depends(get_c
 
         cursor.execute(
             "SELECT file_name, file_path FROM documents WHERE id = %s AND processing_status = 'processed'",
-            [document_id]
+            [document_id],
         )
         document = cursor.fetchone()
         cursor.close()
@@ -3621,11 +3626,7 @@ async def download_document(document_id: int, current_user: User = Depends(get_c
             raise HTTPException(status_code=404, detail="Document file not found")
 
         # Return file
-        return FileResponse(
-            path=file_path,
-            filename=document["file_name"],
-            media_type='application/octet-stream'
-        )
+        return FileResponse(path=file_path, filename=document["file_name"], media_type="application/octet-stream")
 
     except HTTPException:
         raise
@@ -3635,11 +3636,15 @@ async def download_document(document_id: int, current_user: User = Depends(get_c
 
 
 @app.delete("/api/documents/{document_id}")
-async def delete_document(document_id: int, current_user: User = Depends(get_current_user)):
+async def delete_document(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    auth_manager: AuthManager = Depends(get_auth_manager),
+):
     """Delete a document. Requires manage_documents permission (admin only)."""
     try:
         # Check permissions - only admins can delete
-        user_permissions = current_user.permissions if hasattr(current_user, 'permissions') else []
+        user_permissions = await auth_manager.get_user_permissions(current_user.id)
         if PermissionLevel.MANAGE_DOCUMENTS.value not in user_permissions:
             raise HTTPException(status_code=403, detail="Insufficient permissions to delete documents")
 
@@ -3649,7 +3654,7 @@ async def delete_document(document_id: int, current_user: User = Depends(get_cur
 
         cursor.execute(
             "SELECT file_name, file_path FROM documents WHERE id = %s AND processing_status = 'processed'",
-            [document_id]
+            [document_id],
         )
         document = cursor.fetchone()
 

@@ -15,41 +15,6 @@ function SidebarWrapper() {
 describe('Admin link visibility', () => {
   beforeEach(() => {
     delete (globalThis as any)._tsaFetchWrapped;
-    // Polyfill Response if not present
-    if (typeof global.Response === 'undefined') {
-      global.Response = class {
-        body: any;
-        status: number;
-        headers: any;
-        ok: boolean;
-        redirected: boolean;
-        statusText: string;
-        type: string;
-        url: string;
-        bodyUsed: boolean;
-        constructor(body: any, init: any) {
-          this.body = body;
-          this.status = init.status;
-          this.headers = init.headers;
-          this.ok = (this.status >= 200 && this.status < 300);
-          this.redirected = false;
-          this.statusText = '';
-    this.type = 'default';
-          this.url = '';
-          this.bodyUsed = false;
-        }
-        async json() { return JSON.parse(this.body); }
-        async text() { return this.body; }
-    clone() { return this; }
-    async arrayBuffer() { return new ArrayBuffer(0); }
-    async blob() { return new Blob(); }
-    async formData() { return new FormData(); }
-    async bytes() { return new Uint8Array(); }
-    static error() { return new global.Response('{}', { status: 500 }); }
-    static json(data: any, init?: any) { return new global.Response(JSON.stringify(data), { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } }); }
-    static redirect(url: string | URL, status?: number) { return new global.Response('{}', { status: status || 302, headers: { Location: url.toString() } }); }
-      };
-    }
     const store: Record<string, string> = {};
     Object.defineProperty(window, 'localStorage', {
       value: {

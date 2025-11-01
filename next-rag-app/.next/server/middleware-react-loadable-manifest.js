@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST='{"components/ui/dialog-client.tsx -> @/components/ui/dialog":{"id":6110,"files":["static/chunks/110.f9d43ca6981da412.js"]}}';

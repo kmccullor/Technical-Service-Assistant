@@ -71,6 +71,7 @@ Alert suggestions (add to `alerts.yml` when alertmanager is enabled):
 * Histogram buckets currently default; adjust if latency distribution stabilizes
 * Directories inside `uploads/` are skipped; only files processed
 * Export `DOCLING_DEVICE=cpu` (already set in `docker-compose.yml`) to force Docling's accelerator settings to stay on CPU even when CUDA is available
+* Follow the [Docling upgrade regression checklist](../docs/testing/DOCLING_UPGRADE_CHECKLIST.md) before changing the pinned Docling version
 
 ## Testing
 ```bash

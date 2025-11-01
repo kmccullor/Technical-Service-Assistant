@@ -194,7 +194,7 @@ services:
 
       # App Configuration - RAG Performance Optimized
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://RNI-LLM-01.lab.sensus.net:3000
+      - NEXT_PUBLIC_APP_URL=https://RNI-LLM-01.lab.sensus.net
       - RERANKER_ENABLED=true
       - CONFIDENCE_THRESHOLD=0.2
       - VECTOR_WEIGHT=0.6
@@ -489,32 +489,32 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
-     healthcheck:
-       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
-       interval: 30s
-       timeout: 10s
-       retries: 3
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-   # Nginx Reverse Proxy with HTTPS
-   nginx:
-     image: nginx:alpine
-     container_name: nginx-https
-     restart: unless-stopped
-     ports:
-       - "80:80"
-       - "443:443"
-     volumes:
-       - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
-       - ./ssl:/etc/ssl:ro
-     depends_on:
-       - technical-service-assistant
-       - reranker
-       - reasoning-engine
-     healthcheck:
-       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
-       interval: 30s
-       timeout: 10s
-       retries: 3
+  # Nginx Reverse Proxy with HTTPS
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-https
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl:ro
+    depends_on:
+      - technical-service-assistant
+      - reranker
+      - reasoning-engine
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   pgvector_data:

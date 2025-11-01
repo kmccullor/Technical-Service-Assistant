@@ -2,13 +2,14 @@
 'use client'
 import React from 'react'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { Plus, MessageCircle, FileText, Search, Settings, X, Upload, Shield, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog-client'
+import { deleteDocument, downloadDocument, DocumentInfo, listDocuments } from '@/lib/admin'
 
 type DocumentFilterKey = 'type' | 'product' | 'version' | 'privacy'
 
@@ -36,11 +37,15 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
   const [stats, setStats] = useState({ documents: 0, chunks: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
-  const [documents, setDocuments] = useState<any[]>([])
-  const [filteredDocuments, setFilteredDocuments] = useState<any[]>([])
+  const [documents, setDocuments] = useState<DocumentInfo[]>([])
+  const [filteredDocuments, setFilteredDocuments] = useState<DocumentInfo[]>([])
   const [documentsLoading, setDocumentsLoading] = useState(false)
   const [documentsError, setDocumentsError] = useState<string | null>(null)
+  const [documentsActionError, setDocumentsActionError] = useState<string | null>(null)
   const [documentSearch, setDocumentSearch] = useState("")
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<number>>(new Set())
+  const [downloadingDocuments, setDownloadingDocuments] = useState(false)
+  const [deletingDocuments, setDeletingDocuments] = useState(false)
   const [documentFilters, setDocumentFilters] = useState({
     type: [] as string[],
     product: [] as string[],
@@ -54,6 +59,7 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     privacies: [] as string[],
   })
   const { accessToken, user } = useAuth()
+  const isAdmin = (user?.role_name || '').toLowerCase() === 'admin'
 
   // Ensure component is mounted before rendering dialogs
   useEffect(() => {
@@ -116,43 +122,38 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
   }, [loadConversations, refreshKey])
 
   useEffect(() => {
-    if (documentsOpen) {
-      setDocumentsLoading(true)
-      setDocumentsError(null)
-      const controller = new AbortController()
-      const fetchDocuments = async () => {
-        try {
-          const res = await fetch('/api/documents/list', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-            },
-            body: JSON.stringify({ limit: 50, offset: 0 }),
-            signal: controller.signal
-          })
-          if (!res.ok) {
-            let detail = ''
-            try {
-              const errJson = await res.json()
-              detail = errJson.detail || JSON.stringify(errJson)
-            } catch {}
-            throw new Error(`Failed to fetch documents (status ${res.status}) ${detail}`.trim())
-          }
-          const data = await res.json()
-          const docs = data.documents || []
-          setDocuments(docs)
-          setFilteredDocuments(docs)
-        } catch (err: any) {
-          if (err.name === 'AbortError') return
-          console.error('[Documents] fetch error:', err)
-            setDocumentsError(err.message || 'Unknown error')
-        } finally {
+    if (!documentsOpen) return
+    if (!accessToken) {
+      setDocuments([])
+      setFilteredDocuments([])
+      setDocumentsError('Not authenticated')
+      return
+    }
+    let cancelled = false
+    setDocumentsLoading(true)
+    setDocumentsError(null)
+    setDocumentsActionError(null)
+    const fetchDocuments = async () => {
+      try {
+        const response = await listDocuments({ accessToken, limit: 50, offset: 0 })
+        if (cancelled) return
+        const docs = Array.isArray(response?.documents) ? response.documents : []
+        setDocuments(docs)
+      } catch (err: any) {
+        if (cancelled) return
+        console.error('[Documents] fetch error:', err)
+        setDocuments([])
+        setFilteredDocuments([])
+        setDocumentsError(err?.message || 'Failed to load documents')
+      } finally {
+        if (!cancelled) {
           setDocumentsLoading(false)
         }
       }
-      fetchDocuments()
-      return () => controller.abort()
+    }
+    fetchDocuments()
+    return () => {
+      cancelled = true
     }
   }, [documentsOpen, accessToken])
 
@@ -195,8 +196,8 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
           doc.product_version,
           doc.privacy_level,
         ]
-          .filter(Boolean)
-          .map((value: string) => value.toString().toLowerCase())
+          .filter((value): value is string => typeof value === 'string' && value.length > 0)
+          .map((value) => value.toLowerCase())
         const matchesSearch = term ? parts.some((value) => value.includes(term)) : true
         if (!matchesSearch) return false
         if (documentFilters.type.length && (!doc.document_type || !documentFilters.type.includes(doc.document_type))) return false
@@ -217,8 +218,27 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
         version: [],
         privacy: [],
       })
+      setSelectedDocumentIds(new Set())
+      setDocumentsActionError(null)
     }
   }, [documentsOpen])
+
+  useEffect(() => {
+    setSelectedDocumentIds((prev) => {
+      if (prev.size === 0) return prev
+      const validIds = new Set(documents.map(doc => doc.id))
+      let changed = false
+      const next = new Set<number>()
+      prev.forEach(id => {
+        if (validIds.has(id)) {
+          next.add(id)
+        } else {
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [documents])
 
   const toggleDocumentFilter = (key: DocumentFilterKey, value: string) => {
     setDocumentFilters((prev) => {
@@ -231,6 +251,86 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
       return { ...prev, [key]: Array.from(current) }
     })
   }
+
+  const toggleDocumentSelection = (id: number) => {
+    setSelectedDocumentIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedDocumentIds((prev) => {
+      const next = new Set(prev)
+      const everySelected = filteredDocuments.length > 0 && filteredDocuments.every(doc => next.has(doc.id))
+      if (everySelected) {
+        filteredDocuments.forEach(doc => next.delete(doc.id))
+      } else {
+        filteredDocuments.forEach(doc => next.add(doc.id))
+      }
+      return next
+    })
+  }
+
+  const handleDownloadSelected = async () => {
+    if (!accessToken || selectedDocumentIds.size === 0) return
+    setDownloadingDocuments(true)
+    setDocumentsActionError(null)
+    try {
+      for (const id of Array.from(selectedDocumentIds)) {
+        const target = documents.find(doc => doc.id === id)
+        if (!target) continue
+        const blob = await downloadDocument(accessToken, id)
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = target.file_name || `document-${id}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }
+    } catch (err: any) {
+      console.error('[Documents] bulk download error:', err)
+      setDocumentsActionError(err?.message || 'Failed to download selected documents')
+    } finally {
+      setDownloadingDocuments(false)
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (!isAdmin || !accessToken || selectedDocumentIds.size === 0) return
+    const ids = Array.from(selectedDocumentIds)
+    if (!window.confirm(`Delete ${ids.length} document${ids.length > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return
+    }
+    setDeletingDocuments(true)
+    setDocumentsActionError(null)
+    try {
+      for (const id of ids) {
+        await deleteDocument(accessToken, id)
+      }
+      const idSet = new Set(ids)
+      setDocuments(prev => prev.filter(doc => !idSet.has(doc.id)))
+      setSelectedDocumentIds(new Set())
+    } catch (err: any) {
+      console.error('[Documents] bulk delete error:', err)
+      setDocumentsActionError(err?.message || 'Failed to delete selected documents')
+    } finally {
+      setDeletingDocuments(false)
+    }
+  }
+
+  const selectedCount = selectedDocumentIds.size
+  const allFilteredSelected = useMemo(() => {
+    if (filteredDocuments.length === 0) return false
+    return filteredDocuments.every(doc => selectedDocumentIds.has(doc.id))
+  }, [filteredDocuments, selectedDocumentIds])
 
   // Don't render dialogs until component is mounted (prevents hydration issues)
   if (!mounted) {
@@ -370,6 +470,44 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
                     </div>
                   </div>
                 </div>
+                {documentsActionError && (
+                  <div className="text-xs text-red-500 px-1">{documentsActionError}</div>
+                )}
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3"
+                      checked={allFilteredSelected}
+                      onChange={toggleSelectAllFiltered}
+                      disabled={filteredDocuments.length === 0}
+                    />
+                    <span>Select all</span>
+                  </label>
+                  <span>{selectedCount} selected</span>
+                </div>
+                <div className="flex gap-2 px-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleDownloadSelected}
+                    disabled={selectedCount === 0 || downloadingDocuments}
+                  >
+                    {downloadingDocuments ? 'Downloading...' : 'Download Selected'}
+                  </Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={handleDeleteSelected}
+                      disabled={selectedCount === 0 || deletingDocuments}
+                    >
+                      {deletingDocuments ? 'Deleting...' : 'Delete Selected'}
+                    </Button>
+                  )}
+                </div>
                 <div className="max-h-64 overflow-y-auto pr-2">
                   {documents.length === 0 ? (
                     <div className="py-2 text-muted-foreground text-sm">No documents found.</div>
@@ -379,13 +517,23 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
                     <ul className="space-y-2">
                       {filteredDocuments.map((doc) => (
                         <li key={doc.id} className="border-b pb-2">
-                          <div className="font-medium">{doc.file_name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {doc.document_type && <span>Type: {doc.document_type} | </span>}
-                            {doc.product_name && <span>Product: {doc.product_name} | </span>}
-                            {doc.product_version && <span>Version: {doc.product_version} | </span>}
-                            {doc.privacy_level && <span>Privacy: {doc.privacy_level} | </span>}
-                            {doc.processed_at && <span>Processed: {new Date(doc.processed_at).toLocaleDateString()} </span>}
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 mt-1"
+                              checked={selectedDocumentIds.has(doc.id)}
+                              onChange={() => toggleDocumentSelection(doc.id)}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{doc.file_name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {doc.document_type && <span>Type: {doc.document_type} | </span>}
+                                {doc.product_name && <span>Product: {doc.product_name} | </span>}
+                                {doc.product_version && <span>Version: {doc.product_version} | </span>}
+                                {doc.privacy_level && <span>Privacy: {doc.privacy_level} | </span>}
+                                {doc.processed_at && <span>Processed: {new Date(doc.processed_at).toLocaleDateString()} </span>}
+                              </div>
+                            </div>
                           </div>
                         </li>
                       ))}

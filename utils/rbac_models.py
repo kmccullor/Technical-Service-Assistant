@@ -325,6 +325,13 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Automatically set role_name based on role_id for known roles
+        if self.role_name is None:
+            role_map = {1: "admin", 2: "employee", 3: "guest"}
+            self.role_name = role_map.get(self.role_id)
+
 
 # Authentication Models
 class LoginRequest(BaseModel):
@@ -529,7 +536,12 @@ DEFAULT_ROLES = {
     RoleType.EMPLOYEE: {
         "name": "employee",
         "description": "Standard employee with chat and document access",
-        "permissions": [PermissionLevel.READ.value, PermissionLevel.WRITE.value, PermissionLevel.EXPORT_DATA.value, PermissionLevel.DOWNLOAD_DOCUMENTS.value],
+        "permissions": [
+            PermissionLevel.READ.value,
+            PermissionLevel.WRITE.value,
+            PermissionLevel.EXPORT_DATA.value,
+            PermissionLevel.DOWNLOAD_DOCUMENTS.value,
+        ],
     },
     RoleType.GUEST: {
         "name": "guest",
