@@ -24,7 +24,7 @@ scrape_configs:
   # Reranker service metrics (enhanced hybrid search and intelligent routing)
   - job_name: 'reranker'
     static_configs:
-      - targets: ['reranker:8008']
+      - targets: ['reranker:9091']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 4s

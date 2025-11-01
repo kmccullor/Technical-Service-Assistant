@@ -105,6 +105,7 @@ services:
     ports:
       - "8008:8008"
       - "9092:9091"  # Prometheus metrics port
+    command: ["python", "simple_app.py"]
     environment:
       - DB_HOST=pgvector
       - DB_PORT=5432
@@ -177,9 +178,9 @@ services:
       start_period: 30s
 
   # Unified Frontend Application (renamed from legacy 'rag-app')
-  technical-service-assistant:
+  frontend:
     build: ./next-rag-app
-    container_name: technical-service-assistant
+    container_name: tsa-frontend
     restart: unless-stopped
     environment:
       # Database - Connect to pgvector container
@@ -247,6 +248,23 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - technical-service-assistant_default
+
+  # Nginx Reverse Proxy (for SSL termination and routing)
+  nginx:
+    image: nginx:alpine
+    container_name: tsa-nginx
+    restart: unless-stopped
+    ports:
+      - "${EXTERNAL_PORT:-80}:80"
+      - "${EXTERNAL_SSL_PORT:-443}:443"
+    volumes:
+      - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl:ro
+    networks:
+      - technical-service-assistant_default
+    depends_on:
+      - frontend
+      - reranker
 
   # Reasoning engine (initial lightweight service exposing advanced orchestration APIs)
   reasoning-engine:

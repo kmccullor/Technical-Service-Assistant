@@ -164,44 +164,45 @@ services:
       ollama-server-1:
         condition: service_started
 
-  # Reranker API Service
+   # Reranker API Service
   reranker:
-    build:
-      context: .
-      dockerfile: reranker/Dockerfile
-    container_name: tsa-reranker
-    restart: unless-stopped
-    environment:
-      - DB_HOST=pgvector
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME:-vector_db}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - OLLAMA_INSTANCES=${OLLAMA_INSTANCES:-http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434}
-      - RERANKER_ENABLED=${RERANKER_ENABLED:-true}
-      - CONFIDENCE_THRESHOLD=${CONFIDENCE_THRESHOLD:-0.3}
-      - API_KEY=${API_KEY}
-      - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8888}
-      - ENABLE_HYBRID_SEARCH=${ENABLE_HYBRID_SEARCH:-true}
-      - ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH:-true}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    ports:
-      - "8008:8008"
-    volumes:
-      - ${LOG_DIR:-./logs}:/app/logs
-    networks:
-      - tsa-network
-    depends_on:
-      pgvector:
-        condition: service_healthy
-      ollama-server-1:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: ${RERANKER_MAX_MEMORY:-1g}
-        reservations:
-          memory: 256m
+     build:
+       context: .
+       dockerfile: reranker/Dockerfile
+     container_name: tsa-reranker
+     restart: unless-stopped
+     command: ["uvicorn", "simple_app:app", "--host", "0.0.0.0", "--port", "8008"]
+     environment:
+       - DB_HOST=pgvector
+       - DB_PORT=5432
+       - DB_NAME=${DB_NAME:-vector_db}
+       - DB_USER=${DB_USER:-postgres}
+       - DB_PASSWORD=${DB_PASSWORD}
+       - OLLAMA_INSTANCES=${OLLAMA_INSTANCES:-http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434}
+       - RERANKER_ENABLED=${RERANKER_ENABLED:-true}
+       - CONFIDENCE_THRESHOLD=${CONFIDENCE_THRESHOLD:-0.3}
+       - API_KEY=${API_KEY}
+       - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8888}
+       - ENABLE_HYBRID_SEARCH=${ENABLE_HYBRID_SEARCH:-true}
+       - ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH:-true}
+       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+     ports:
+       - "8008:8008"
+     volumes:
+       - ${LOG_DIR:-./logs}:/app/logs
+     networks:
+       - tsa-network
+     depends_on:
+       pgvector:
+         condition: service_healthy
+       ollama-server-1:
+         condition: service_started
+     deploy:
+       resources:
+         limits:
+           memory: ${RERANKER_MAX_MEMORY:-1g}
+         reservations:
+           memory: 256m
 
   # Frontend
   frontend:

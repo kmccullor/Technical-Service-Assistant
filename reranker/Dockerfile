@@ -1,6 +1,7 @@
 FROM python:3.10-slim
 WORKDIR /app/reranker
 COPY reranker/ /app/reranker/
+# Force cache invalidation
 COPY config.py /app/config.py
 COPY utils/ /app/utils/
 COPY scripts/ /app/scripts/

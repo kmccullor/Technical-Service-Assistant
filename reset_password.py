@@ -50,7 +50,8 @@ def reset_password(email: str, new_password: str):
             SET password_hash = %s,
                 updated_at = %s,
                 login_attempts = 0,
-                locked_until = NULL
+                locked_until = NULL,
+                password_change_required = true
             WHERE email = %s
         """,
             (password_hash, datetime.now(), email.lower()),
