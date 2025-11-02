@@ -34,7 +34,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 
 ### Development Workflow
 1. Activate the virtualenv: `source .venv/bin/activate`.
-2. Start services (`make up`) or run focused backends with `uvicorn reranker.main:app --reload`.
+2. Start services (`make up`) or run focused backends with `uvicorn reranker.app:app --reload`.
 3. Use `npm --prefix next-rag-app run dev` for local frontend development.
 4. Validate changes with `make test` and `pre-commit run --all-files` before committing.
 5. Review coverage under `htmlcov/` and dashboards in `quality_dashboard.html`.

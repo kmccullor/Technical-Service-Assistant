@@ -6,6 +6,7 @@ Simple script to verify users when email is not available.
 """
 
 import logging
+import os
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -16,11 +17,11 @@ logger = logging.getLogger(__name__)
 def verify_all_pending_users():
     """Verify all users with pending_verification status"""
     conn = psycopg2.connect(
-        host="localhost",
-        port=5432,
-        database="vector_db",
-        user="postgres",
-        password="postgres",
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        database=os.getenv("DB_NAME", "vector_db"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
         cursor_factory=RealDictCursor,
     )
 

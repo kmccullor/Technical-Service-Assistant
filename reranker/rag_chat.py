@@ -1,11 +1,13 @@
 from utils.logging_config import setup_logging
 
-# Setup standardized Log4 logging
-logger = setup_logging(
-    program_name="rag_chat",
-    log_level="INFO",
-    console_output=True,
-)
+# Setup basic logging
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
 
 """
 RAG-Enhanced Chat Endpoint
@@ -15,47 +17,20 @@ Follows Pydantic AI best practices from https://ai.pydantic.dev/
 """
 
 from typing import List
+import logging
 
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 
-class RAGChatRequest(BaseModel):
-    """Chat request with optional context retrieval."""
-
-    query: str = Field(..., description="User question or prompt")
-    use_context: bool = Field(True, description="Whether to retrieve document context")
-    max_context_chunks: int = Field(5, description="Number of context chunks to retrieve")
-    model: str = Field("llama2", description="Ollama model to use for generation")
-    temperature: float = Field(0.7, ge=0.0, le=2.0, description="Generation temperature")
-    max_tokens: int = Field(512, ge=64, le=2048, description="Maximum tokens to generate")
-
-
-class RAGChatResponse(BaseModel):
-    """Enhanced chat response with context and generation."""
-
-    response: str = Field(..., description="Generated response text")
-    context_used: List[str] = Field(default_factory=list, description="Retrieved context chunks")
-    model: str = Field(..., description="Model used for generation")
-    context_retrieved: bool = Field(..., description="Whether context was retrieved and used")
-
-
-class RAGChatService:
-    """Service for RAG-enhanced chat responses."""
-
-    def __init__(self, db_host: str = "pgvector", ollama_url: str = "http://ollama-server-1:11434"):
-        self.db_host = db_host
-        self.ollama_url = ollama_url
-        self.embedding_model = "nomic-embed-text"
-
-    async def retrieve_context(self, query: str, top_k: int = 5) -> List[str]:
-        """Retrieve relevant document chunks via reranker service."""
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    "http://reranker:8008/search", json={"query": query, "passages": [], "top_k": top_k}, timeout=30.0
-                )
+# Setup basic logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
                 if response.status_code == 200:
                     data = response.json()
                     return data.get("reranked", [])

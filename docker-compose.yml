@@ -105,7 +105,7 @@ services:
     ports:
       - "8008:8008"
       - "9092:9091"  # Prometheus metrics port
-    command: ["python", "simple_app.py"]
+    command: ["python", "app.py"]
     environment:
       - DB_HOST=pgvector
       - DB_PORT=5432

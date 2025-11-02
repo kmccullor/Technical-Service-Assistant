@@ -171,7 +171,7 @@ services:
        dockerfile: reranker/Dockerfile
      container_name: tsa-reranker
      restart: unless-stopped
-     command: ["uvicorn", "simple_app:app", "--host", "0.0.0.0", "--port", "8008"]
+      command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8008"]
      environment:
        - DB_HOST=pgvector
        - DB_PORT=5432

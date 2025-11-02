@@ -185,8 +185,13 @@ def setup_role_permissions():
     print("✅ Role permissions assigned successfully")
 
 
-def create_admin_user(email: str = "admin@technical-service.local", password: str = "admin123!"):
+def create_admin_user(email: str = None, password: str = None):
     """Create default admin user."""
+    if email is None:
+        email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@technical-service.local")
+    if password is None:
+        password = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123!")
+
     conn = get_db_connection()
     cursor = conn.cursor()
 

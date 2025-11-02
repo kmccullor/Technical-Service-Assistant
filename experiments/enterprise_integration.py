@@ -676,7 +676,7 @@ def main():
             name="System Administrator",
             roles=["admin"],
             department="IT",
-            password="change_me_immediately",
+            password=os.getenv("DEFAULT_ADMIN_PASSWORD", "change_me_immediately"),
         )
         print(f"✅ Created admin user: {admin_user.email}")
 

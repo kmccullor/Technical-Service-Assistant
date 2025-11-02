@@ -113,7 +113,11 @@ class SystemValidator:
 
         try:
             conn = psycopg2.connect(
-                host="localhost", port=5432, database="postgres", user="postgres", password="postgres"
+                host=os.getenv("DB_HOST", "localhost"),
+                port=int(os.getenv("DB_PORT", "5432")),
+                database=os.getenv("DB_NAME", "vector_db"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", "postgres")
             )
             cursor = conn.cursor()
 

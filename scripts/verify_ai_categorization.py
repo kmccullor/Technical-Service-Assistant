@@ -26,11 +26,11 @@ def verify_ai_categorization_schema():
         # Get database connection
         get_settings()
         conn = psycopg2.connect(
-            host="localhost",  # Use localhost instead of docker service name
-            port=5432,
-            database="vector_db",
-            user="postgres",
-            password="postgres",
+            host=os.getenv("DB_HOST", "localhost"),  # Use localhost instead of docker service name
+            port=int(os.getenv("DB_PORT", "5432")),
+            database=os.getenv("DB_NAME", "vector_db"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD", "postgres"),
         )
 
         with conn.cursor() as cur:

@@ -207,4 +207,101 @@ CREATE INDEX IF NOT EXISTS idx_document_ingestion_metrics_document_id ON documen
 CREATE INDEX IF NOT EXISTS idx_document_ingestion_metrics_file_name ON document_ingestion_metrics(file_name);
 CREATE INDEX IF NOT EXISTS idx_document_ingestion_metrics_start_time ON document_ingestion_metrics(processing_start_time);
 
+-- User management tables for admin functionality
+CREATE TABLE IF NOT EXISTS roles (
+    id bigserial PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    description text,
+    is_system boolean DEFAULT false,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id bigserial PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    description text,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id bigserial PRIMARY KEY,
+    role_id bigint NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id bigint NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(role_id, permission_id)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id bigserial PRIMARY KEY,
+    email text NOT NULL UNIQUE,
+    password_hash text NOT NULL,
+    first_name text,
+    last_name text,
+    role_id bigint REFERENCES roles(id),
+    status text DEFAULT 'active',
+    verified boolean DEFAULT false,
+    last_login timestamptz,
+    password_change_required boolean DEFAULT false,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    id bigserial PRIMARY KEY,
+    user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id bigint NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(user_id, role_id)
+);
+
+-- Insert default roles
+INSERT INTO roles (name, description, is_system) VALUES
+    ('admin', 'Administrator with full access', true),
+    ('employee', 'Standard employee access', true)
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert default permissions
+INSERT INTO permissions (name, description) VALUES
+    ('read', 'Read access'),
+    ('write', 'Write access'),
+    ('delete', 'Delete access'),
+    ('admin', 'Administrative access')
+ON CONFLICT (name) DO NOTHING;
+
+-- Assign permissions to roles
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE (r.name = 'admin' AND p.name IN ('read', 'write', 'delete', 'admin'))
+   OR (r.name = 'employee' AND p.name IN ('read', 'write'))
+ON CONFLICT DO NOTHING;
+
+-- Insert default admin user (password: admin123)
+INSERT INTO users (email, password_hash, first_name, last_name, role_id, verified, status)
+SELECT 'admin@employee.com',
+       '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM9q7XH2e', -- bcrypt hash for 'admin123'
+       'Admin',
+       'User',
+       r.id,
+       true,
+       'active'
+FROM roles r
+WHERE r.name = 'admin'
+ON CONFLICT (email) DO NOTHING;
+
+-- Insert default employee user (password: employee123)
+INSERT INTO users (email, password_hash, first_name, last_name, role_id, verified, status)
+SELECT 'user@employee.com',
+       '$2b$12$dummy.hash.for.employee', -- placeholder hash
+       'Regular',
+       'User',
+       r.id,
+       true,
+       'active'
+FROM roles r
+WHERE r.name = 'employee'
+ON CONFLICT (email) DO NOTHING;
+
 -- End canonical schema

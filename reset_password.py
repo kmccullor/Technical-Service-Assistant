@@ -5,6 +5,7 @@ Password Reset Tool
 Tool to reset user passwords when needed for troubleshooting.
 """
 
+import os
 import sys
 from datetime import datetime
 
@@ -21,11 +22,11 @@ def hash_password(password: str) -> str:
 def reset_password(email: str, new_password: str):
     """Reset user password"""
     conn = psycopg2.connect(
-        host="localhost",
-        port=5432,
-        database="vector_db",
-        user="postgres",
-        password="postgres",
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        database=os.getenv("DB_NAME", "vector_db"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
         cursor_factory=RealDictCursor,
     )
 
