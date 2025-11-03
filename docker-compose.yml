@@ -1,11 +1,11 @@
 services:
-  pgvector:
-    image: pgvector/pgvector:pg16
-    container_name: pgvector
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: vector_db
+   pgvector:
+     image: pgvector/pgvector:pg16
+     container_name: pgvector
+     restart: unless-stopped
+     environment:
+       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -94,33 +94,34 @@ services:
       retries: 3
       start_period: 30s
 
-  reranker:
-    build:
-      context: .
-      dockerfile: reranker/Dockerfile
-    container_name: reranker
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    ports:
-      - "8008:8008"
-      - "9092:9091"  # Prometheus metrics port
-    command: ["python", "app.py"]
-    environment:
-      - DB_HOST=pgvector
-      - DB_PORT=5432
-      - DB_NAME=vector_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+   reranker:
+     build:
+       context: .
+       dockerfile: reranker/Dockerfile
+     container_name: reranker
+     extra_hosts:
+       - "host.docker.internal:host-gateway"
+     restart: unless-stopped
+     ports:
+       - "8008:8008"
+       - "9092:9091"  # Prometheus metrics port
+     command: ["python", "app.py"]
+     environment:
+       - DB_HOST=${DB_HOST}
+       - DB_PORT=${DB_PORT}
+       - DB_NAME=${DB_NAME}
+       - DB_USER=${DB_USER}
+       - DB_PASSWORD=${DB_PASSWORD}
       - LOG_LEVEL=DEBUG
-      - OLLAMA_URL=http://ollama-server-1:11434
+      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text:v1.5}
       - CHAT_MODEL=${CHAT_MODEL:-mistral:7b}
       - CODING_MODEL=${CODING_MODEL:-mistral:7b}
       - REASONING_MODEL=${REASONING_MODEL:-mistral:7b}
       - VISION_MODEL=${VISION_MODEL:-mistral:7b}
       - RERANK_MODEL=BAAI/bge-reranker-base
-      - PYTHONPATH=/app
+       - SEARXNG_BASE_URL=http://searxng:8080/
+       - PYTHONPATH=/app
       - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
@@ -133,8 +134,16 @@ services:
       - PASSWORD_RESET_EMAIL_SUBJECT=${PASSWORD_RESET_EMAIL_SUBJECT:-Reset your Technical Service Assistant password}
       - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/reset-password}
     depends_on:
-      - pgvector
-      - ollama-server-1
+      pgvector:
+        condition: service_healthy
+      ollama-server-1:
+        condition: service_healthy
+      ollama-server-2:
+        condition: service_healthy
+      ollama-server-3:
+        condition: service_healthy
+      ollama-server-4:
+        condition: service_healthy
     volumes:
       - temp_uploads:/app/temp-uploads
     healthcheck:
@@ -143,20 +152,20 @@ services:
       timeout: 5s
       retries: 5
 
-  docling_processor:
-    build:
-      context: .
-      dockerfile: docling_processor/Dockerfile
-    container_name: docling_processor
-    restart: always
-    ports:
-      - "9110:9110"
-    environment:
-      - DB_HOST=pgvector
-      - DB_PORT=5432
-      - DB_NAME=vector_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+   docling_processor:
+     build:
+       context: .
+       dockerfile: docling_processor/Dockerfile
+     container_name: docling_processor
+     restart: always
+     ports:
+       - "9110:9110"
+     environment:
+       - DB_HOST=${DB_HOST}
+       - DB_PORT=${DB_PORT}
+       - DB_NAME=${DB_NAME}
+       - DB_USER=${DB_USER}
+       - DB_PASSWORD=${DB_PASSWORD}
       - UPLOADS_DIR=/app/uploads
       - ARCHIVE_DIR=/app/archive
       - POLL_INTERVAL_SECONDS=60
@@ -182,13 +191,13 @@ services:
       start_period: 30s
 
   # Unified Frontend Application (renamed from legacy 'rag-app')
-  frontend:
-    build: ./next-rag-app
-    container_name: tsa-frontend
-    restart: unless-stopped
-    environment:
-      # Database - Connect to pgvector container
-      - DATABASE_URL=postgresql://postgres:postgres@pgvector:5432/vector_db
+   frontend:
+     build: ./next-rag-app
+     container_name: tsa-frontend
+     restart: unless-stopped
+     environment:
+       # Database - Connect to pgvector container
+       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
       # Local AI Models - Connect to Ollama containers
       - USE_LOCAL_MODELS=true
@@ -271,18 +280,18 @@ services:
       - reranker
 
   # Reasoning engine (initial lightweight service exposing advanced orchestration APIs)
-  reasoning-engine:
-    build:
-      context: .
-      dockerfile: reasoning_engine/Dockerfile
-    container_name: reasoning-engine
-    restart: unless-stopped
-    environment:
-      - DB_HOST=pgvector
-      - DB_PORT=5432
-      - DB_NAME=vector_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+   reasoning-engine:
+     build:
+       context: .
+       dockerfile: reasoning_engine/Dockerfile
+     container_name: reasoning-engine
+     restart: unless-stopped
+     environment:
+       - DB_HOST=${DB_HOST}
+       - DB_PORT=${DB_PORT}
+       - DB_NAME=${DB_NAME}
+       - DB_USER=${DB_USER}
+       - DB_PASSWORD=${DB_PASSWORD}
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - LOG_LEVEL=info
@@ -373,12 +382,12 @@ services:
       retries: 3
 
   # PostgreSQL exporter for database metrics
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
-    container_name: postgres-exporter
-    restart: unless-stopped
-    environment:
-      DATA_SOURCE_NAME: "postgresql://postgres:postgres@pgvector:5432/vector_db?sslmode=disable"
+   postgres-exporter:
+     image: prometheuscommunity/postgres-exporter:latest
+     container_name: postgres-exporter
+     restart: unless-stopped
+     environment:
+       DATA_SOURCE_NAME: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
     command:
       - "--config.file=/dev/null"
       - "--log.level=error"
@@ -472,21 +481,21 @@ services:
       retries: 3
 
   # Performance monitor exporter (aggregates application + DB health)
-  performance-monitor:
-    build:
-      context: .
-      dockerfile: monitoring/performance_monitor/Dockerfile
-    container_name: performance-monitor
-    restart: unless-stopped
-    environment:
-      - EXPORTER=1
-      - EXPORTER_PORT=9109
-      - POLL_INTERVAL=60
-      - DB_HOST=pgvector
-      - DB_PORT=5432
-      - DB_NAME=vector_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+   performance-monitor:
+     build:
+       context: .
+       dockerfile: monitoring/performance_monitor/Dockerfile
+     container_name: performance-monitor
+     restart: unless-stopped
+     environment:
+       - EXPORTER=1
+       - EXPORTER_PORT=9109
+       - POLL_INTERVAL=60
+       - DB_HOST=${DB_HOST}
+       - DB_PORT=${DB_PORT}
+       - DB_NAME=${DB_NAME}
+       - DB_USER=${DB_USER}
+       - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
       - pgvector
       - reranker
