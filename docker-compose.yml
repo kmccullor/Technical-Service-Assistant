@@ -1,11 +1,11 @@
 services:
-   pgvector:
-     image: pgvector/pgvector:pg16
-     container_name: pgvector
-     restart: unless-stopped
-     environment:
-       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-       POSTGRES_DB: ${POSTGRES_DB}
+  pgvector:
+    image: pgvector/pgvector:pg16
+    container_name: pgvector
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -113,15 +113,14 @@ services:
        - DB_USER=${DB_USER}
        - DB_PASSWORD=${DB_PASSWORD}
       - LOG_LEVEL=DEBUG
-      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
+      - OLLAMA_URL=http://ollama-server-1:11434
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text:v1.5}
       - CHAT_MODEL=${CHAT_MODEL:-mistral:7b}
       - CODING_MODEL=${CODING_MODEL:-mistral:7b}
       - REASONING_MODEL=${REASONING_MODEL:-mistral:7b}
       - VISION_MODEL=${VISION_MODEL:-mistral:7b}
       - RERANK_MODEL=BAAI/bge-reranker-base
-       - SEARXNG_BASE_URL=http://searxng:8080/
-       - PYTHONPATH=/app
+      - PYTHONPATH=/app
       - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
@@ -134,16 +133,8 @@ services:
       - PASSWORD_RESET_EMAIL_SUBJECT=${PASSWORD_RESET_EMAIL_SUBJECT:-Reset your Technical Service Assistant password}
       - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/reset-password}
     depends_on:
-      pgvector:
-        condition: service_healthy
-      ollama-server-1:
-        condition: service_healthy
-      ollama-server-2:
-        condition: service_healthy
-      ollama-server-3:
-        condition: service_healthy
-      ollama-server-4:
-        condition: service_healthy
+      - pgvector
+      - ollama-server-1
     volumes:
       - temp_uploads:/app/temp-uploads
     healthcheck:
