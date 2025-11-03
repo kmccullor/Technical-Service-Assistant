@@ -4,8 +4,8 @@ services:
     container_name: pgvector
     restart: unless-stopped
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache for response caching
   redis:
     image: redis:7-alpine
     container_name: redis-cache
@@ -33,7 +32,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Server Ollama containers for parallel testing
   ollama-server-1:
     image: ollama/ollama
     container_name: ollama-server-1
@@ -79,105 +77,124 @@ services:
       retries: 3
       start_period: 30s
 
-   ollama-server-4:
-     image: ollama/ollama
-     container_name: ollama-server-4
-     restart: unless-stopped
-     ports:
-       - "11437:11434"
-     volumes:
-       - ollama_data_4:/root/.ollama
-     healthcheck:
-       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-       interval: 15s
-       timeout: 10s
-       retries: 3
-       start_period: 30s
+  ollama-server-4:
+    image: ollama/ollama
+    container_name: ollama-server-4
+    restart: unless-stopped
+    ports:
+      - "11437:11434"
+    volumes:
+      - ollama_data_4:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-   ollama-server-5:
-     image: ollama/ollama
-     container_name: ollama-server-5
-     restart: unless-stopped
-     ports:
-       - "11438:11434"
-     volumes:
-       - ollama_data_5:/root/.ollama
-     healthcheck:
-       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-       interval: 15s
-       timeout: 10s
-       retries: 3
-       start_period: 30s
+  ollama-server-5:
+    image: ollama/ollama
+    container_name: ollama-server-5
+    restart: unless-stopped
+    ports:
+      - "11438:11434"
+    volumes:
+      - ollama_data_5:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-   ollama-server-6:
-     image: ollama/ollama
-     container_name: ollama-server-6
-     restart: unless-stopped
-     ports:
-       - "11439:11434"
-     volumes:
-       - ollama_data_6:/root/.ollama
-     healthcheck:
-       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-       interval: 15s
-       timeout: 10s
-       retries: 3
-       start_period: 30s
+  ollama-server-6:
+    image: ollama/ollama
+    container_name: ollama-server-6
+    restart: unless-stopped
+    ports:
+      - "11439:11434"
+    volumes:
+      - ollama_data_6:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-   ollama-server-7:
-     image: ollama/ollama
-     container_name: ollama-server-7
-     restart: unless-stopped
-     ports:
-       - "11440:11434"
-     volumes:
-       - ollama_data_7:/root/.ollama
-     healthcheck:
-       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-       interval: 15s
-       timeout: 10s
-       retries: 3
-       start_period: 30s
+  ollama-server-7:
+    image: ollama/ollama
+    container_name: ollama-server-7
+    restart: unless-stopped
+    ports:
+      - "11440:11434"
+    volumes:
+      - ollama_data_7:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-   ollama-server-8:
-     image: ollama/ollama
-     container_name: ollama-server-8
-     restart: unless-stopped
-     ports:
-       - "11441:11434"
-     volumes:
-       - ollama_data_8:/root/.ollama
-     healthcheck:
-       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-       interval: 15s
-       timeout: 10s
-       retries: 3
-       start_period: 30s
+  ollama-server-8:
+    image: ollama/ollama
+    container_name: ollama-server-8
+    restart: unless-stopped
+    ports:
+      - "11441:11434"
+    volumes:
+      - ollama_data_8:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-   reranker:
-     build:
-       context: .
-       dockerfile: reranker/Dockerfile
-     container_name: reranker
-     extra_hosts:
-       - "host.docker.internal:host-gateway"
-     restart: unless-stopped
-     ports:
-       - "8008:8008"
-       - "9092:9091"  # Prometheus metrics port
-     command: ["python", "app.py"]
-     environment:
-       - DB_HOST=${DB_HOST}
-       - DB_PORT=${DB_PORT}
-       - DB_NAME=${DB_NAME}
-       - DB_USER=${DB_USER}
-       - DB_PASSWORD=${DB_PASSWORD}
-       - LOG_LEVEL=DEBUG
-       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
+  reranker:
+    build:
+      context: .
+      dockerfile: reranker/Dockerfile
+    container_name: reranker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+      - "9092:9091"
+      - "8050:8050"
+    command: ["python", "app.py"]
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
+      - EMBEDDING_MODEL=nomic-embed-text:v1.5
+      - LOG_LEVEL=info
+    depends_on:
+      - pgvector
+      - ollama-server-1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8050/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build: ./next-rag-app
+    container_name: tsa-frontend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - USE_LOCAL_MODELS=true
+      - OLLAMA_BASE_URL=http://ollama-server-1:11434
+      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7b
-
-      # App Configuration - RAG Performance Optimized
       - NODE_ENV=production
       - NEXT_PUBLIC_APP_URL=http://RNI-LLM-01.lab.sensus.net:3000
       - RERANKER_ENABLED=true
@@ -190,42 +207,30 @@ services:
       - CACHE_TTL=3600
       - OLLAMA_TIMEOUT=30000
       - REQUEST_TIMEOUT=45000
-
-      # Web Search Configuration (Reranker)
       - RERANKER_BASE_URL=http://reranker:8008
       - USE_RERANKER_WEBSEARCH=true
-
-      # Performance & Caching
       - REDIS_URL=redis://redis:6379
-
-      # Disabled External Services (using local only)
       - COHERE_API_KEY=disabled-using-local
       - TAVILY_API_KEY=disabled-using-local
       - SERP_API_KEY=disabled-using-local
       - LANGFUSE_PUBLIC_KEY=disabled-using-local
       - LANGFUSE_SECRET_KEY=disabled-using-local
-
     ports:
       - "3000:3000"
-     depends_on:
-       - pgvector
-       - redis
-       - ollama-server-1
-       - ollama-server-2
-       - ollama-server-3
-       - ollama-server-4
-       - ollama-server-5
-       - ollama-server-6
-       - ollama-server-7
-       - ollama-server-8
-       - reranker
+    depends_on:
+      - pgvector
+      - redis
+      - ollama-server-1
+      - ollama-server-2
+      - ollama-server-3
+      - ollama-server-4
+      - reranker
     volumes:
       - ./uploads:/app/uploads
       - temp_uploads:/app/temp-uploads
     labels:
       com.project.name: "technical-service-assistant"
       com.project.component: "frontend"
-      com.project.migration_note: "Renamed from rag-app on 2025-10-05"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/status"]
       interval: 30s
@@ -234,10 +239,7 @@ services:
       start_period: 40s
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - technical-service-assistant_default
 
-  # Nginx Reverse Proxy (for SSL termination and routing)
   nginx:
     image: nginx:alpine
     container_name: tsa-nginx
@@ -248,50 +250,16 @@ services:
     volumes:
       - ./deployment/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/ssl:ro
-    networks:
-      - technical-service-assistant_default
     depends_on:
       - frontend
       - reranker
-
-  # Reasoning engine (initial lightweight service exposing advanced orchestration APIs)
-   reasoning-engine:
-     build:
-       context: .
-       dockerfile: reasoning_engine/Dockerfile
-     container_name: reasoning-engine
-     restart: unless-stopped
-     environment:
-       - DB_HOST=${DB_HOST}
-       - DB_PORT=${DB_PORT}
-       - DB_NAME=${DB_NAME}
-       - DB_USER=${DB_USER}
-       - DB_PASSWORD=${DB_PASSWORD}
-       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
-      - EMBEDDING_MODEL=nomic-embed-text:v1.5
-      - LOG_LEVEL=info
-     depends_on:
-       - pgvector
-       - ollama-server-1
-       - ollama-server-2
-       - ollama-server-3
-       - ollama-server-4
-       - ollama-server-5
-       - ollama-server-6
-       - ollama-server-7
-       - ollama-server-8
-    ports:
-      - "8050:8050"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8050/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/health || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 30s
-    networks:
-      - technical-service-assistant_default
+      start_period: 10s
 
-  # Prometheus monitoring service
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -316,7 +284,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Grafana visualization service
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -363,13 +330,12 @@ services:
       timeout: 5s
       retries: 3
 
-  # PostgreSQL exporter for database metrics
-   postgres-exporter:
-     image: prometheuscommunity/postgres-exporter:latest
-     container_name: postgres-exporter
-     restart: unless-stopped
-     environment:
-       DATA_SOURCE_NAME: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@pgvector:5432/vector_db?sslmode=disable"
     command:
       - "--config.file=/dev/null"
       - "--log.level=error"
@@ -385,7 +351,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Redis exporter for cache metrics
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: redis-exporter
@@ -402,13 +367,10 @@ services:
       timeout: 5s
       retries: 3
 
-  # Node exporter for host system metrics
   node-exporter:
     image: prom/node-exporter:v1.7.0
     container_name: node-exporter
     restart: unless-stopped
-    # Expose only to compose network; Prometheus should scrape via service name
-    # (Removes docker-proxy layer that may be contributing to resets.)
     expose:
       - "9100"
     volumes:
@@ -419,10 +381,8 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
-      # Disable exporter self-metrics and some high-churn collectors to reduce payload size
       - '--web.disable-exporter-metrics'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      # Narrow collectors to core system only (can re-enable incrementally)
       - '--collector.disable-defaults'
       - '--collector.cpu'
       - '--collector.meminfo'
@@ -432,15 +392,11 @@ services:
       - '--collector.uname'
       - '--collector.stat'
     healthcheck:
-      # Use full GET request instead of --spider (HEAD) which caused node-exporter to log
-      # repeated 'error encoding and sending metric family: connection reset by peer'
-      # as it attempted to stream the body to a client that closed after headers.
       test: ["CMD-SHELL", "wget -q -O - http://localhost:9100/metrics > /dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  # cAdvisor for container metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
@@ -462,22 +418,21 @@ services:
       timeout: 10s
       retries: 3
 
-  # Performance monitor exporter (aggregates application + DB health)
-   performance-monitor:
-     build:
-       context: .
-       dockerfile: monitoring/performance_monitor/Dockerfile
-     container_name: performance-monitor
-     restart: unless-stopped
-     environment:
-       - EXPORTER=1
-       - EXPORTER_PORT=9109
-       - POLL_INTERVAL=60
-       - DB_HOST=${DB_HOST}
-       - DB_PORT=${DB_PORT}
-       - DB_NAME=${DB_NAME}
-       - DB_USER=${DB_USER}
-       - DB_PASSWORD=${DB_PASSWORD}
+  performance-monitor:
+    build:
+      context: .
+      dockerfile: monitoring/performance_monitor/Dockerfile
+    container_name: performance-monitor
+    restart: unless-stopped
+    environment:
+      - EXPORTER=1
+      - EXPORTER_PORT=9109
+      - POLL_INTERVAL=60
+      - DB_HOST=pgvector
+      - DB_PORT=5432
+      - DB_NAME=vector_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - pgvector
       - reranker
@@ -490,7 +445,6 @@ services:
       retries: 3
       start_period: 20s
 
-  # Alertmanager for routing Prometheus alerts
   alertmanager:
     image: prom/alertmanager:latest
     container_name: alertmanager

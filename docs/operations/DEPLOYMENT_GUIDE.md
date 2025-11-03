@@ -23,6 +23,8 @@ cd Technical-Service-Assistant
 make up
 ```
 
+All services are defined in the root `docker-compose.yml` (no secondary compose files). If you add or modify services, update that file and redeploy with `docker compose up -d`.
+
 ### Verification Steps
 ```bash
 # Check all services are healthy
@@ -176,6 +178,7 @@ Avoid hard-coding `-d postgres` in operational scripts—this leads to writing o
 | API | `http://localhost:8008/health` | `{"status": "ok"}` |
 | Reasoning | `http://localhost:8050/health` | `{"status": "ok"}` |
 | Frontend | `http://localhost:3000/api/status` | `{"status": "healthy"}` |
+| Reverse Proxy | `docker compose ps` (nginx healthcheck hits `/health`) | `STATUS=Up (...) (healthy)` |
 | Database | `docker compose exec pgvector pg_isready` | `ready` |
 
 ### Monitoring Dashboard Access
