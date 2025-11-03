@@ -1,0 +1,502 @@
+[
+  {
+    "document": "DOCLING_UPGRADE_CHECKLIST.md",
+    "qa_pairs": [
+      {
+        "question": "What is the purpose of the Docling upgrade checklist?",
+        "answer": "The checklist ensures that OCR toggles, pipeline options, and ingestion metrics continue to function correctly after upgrading the Docling dependency.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the first step in the Docling upgrade process?",
+        "answer": "Update the dependency pin in docling_processor/requirements.txt with the new docling==<version> pin.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How do you validate runtime compatibility after a Docling upgrade?",
+        "answer": "Tail the processor logs for import or initialization warnings and confirm the startup log reports the detected Docling version without mismatch warnings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What should you do if any regression is observed after a Docling upgrade?",
+        "answer": "Rollback the upgrade and open an issue with the failure details.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ENV_CONFIGURATION_MIGRATION.md",
+    "qa_pairs": [
+      {
+        "question": "What was the main goal of the environment configuration migration?",
+        "answer": "To migrate docker-compose.yml to use centralized .env file configuration instead of hardcoded values, establishing a single point of reference for all service settings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What sections are included in the centralized .env file?",
+        "answer": "Database Configuration (PostgreSQL), Ollama Configuration (LLM/Embedding models), Application Configuration (paths, timeouts), SearXNG Configuration (search engine), API Configuration (ports, hosts), Feature Flags (enable/disable features), Performance Settings (timeouts, limits), and Web Cache Settings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Which services were updated to use environment variables from .env?",
+        "answer": "pgvector (using POSTGRES_PASSWORD, POSTGRES_DB, DB_PORT), reranker (all database and model settings), pdf_processor (database, paths, and processing settings), and searxng (base URL and secret key).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits does the centralized configuration provide?",
+        "answer": "Centralized configuration management, environment-specific deployments, security improvements (sensitive values in .env file), consistency across services, and easier maintenance.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "LINTING_REPORT.md",
+    "qa_pairs": [
+      {
+        "question": "What was the overall code quality assessment after linting?",
+        "answer": "EXCELLENT - All code compiles and runs correctly with zero critical errors, clean whitespace formatting, proper syntax and imports, and production-ready functionality.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Which files had no linting issues?",
+        "answer": "test_security_patterns.py and test_query_expansion.py - all whitespace and formatting issues resolved.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the main issues found in pdf_processor/pdf_utils_enhanced.py?",
+        "answer": "19 linting violations including 9 line length issues (E501), 5 line break style issues (W504), and 2 indentation issues (E129).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the improvement in code quality from before to after linting?",
+        "answer": "80%+ improvement - from 100+ linting violations per file to <20 minor style issues per file.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ACCURACY_IMPROVEMENTS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the current system performance for retrieval accuracy?",
+        "answer": "85%+ retrieval accuracy, representing a 40% improvement from baseline.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key improvements in Phase 2 Accuracy Analysis?",
+        "answer": "Enhanced vector similarity algorithms, advanced chunking strategies with overlap optimization, improved embedding model selection and tuning, and better query understanding and expansion.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What features were delivered by the AI Categorization System?",
+        "answer": "Automatic document type detection, content category classification, technical domain identification, and query routing optimization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the primary metrics used to measure accuracy?",
+        "answer": "Retrieval Accuracy (percentage of relevant results in top-K), Response Relevance (quality of generated responses), Technical Accuracy (correctness of technical information), and User Satisfaction (feedback-based quality score).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "GMAIL_SETUP_GUIDE.md",
+    "qa_pairs": [
+      {
+        "question": "What is the purpose of the enhanced EOD email system?",
+        "answer": "It automatically detects Gmail addresses and configures the appropriate SMTP settings for sending end-of-day reports.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the steps to enable 2-Factor Authentication for Gmail?",
+        "answer": "Go to Google Account Security, enable 2-Factor Authentication if not already enabled.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How do you generate an app-specific password for Gmail?",
+        "answer": "Go to Google App Passwords, select 'Mail' and 'Other (custom name)', enter 'Technical Service Assistant' as the app name, and copy the generated 16-character password.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What information is included in the end-of-day email report?",
+        "answer": "System Health Overview (container status, document counts, resource usage), Live Monitoring Metrics (Prometheus data, alert status, performance metrics), Documentation Statistics (file counts, recent changes, markdown analytics), Development Activity (Git status, commits, file changes), Daily Accomplishments (processing metrics, backup status), and Issues & Recommendations (system warnings and actionable items).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "SENSUS_AMI_QUERY_WORKFLOW.md",
+    "qa_pairs": [
+      {
+        "question": "What databases does the Data Dictionary system support for Sensus AMI?",
+        "answer": "Microsoft SQL Server FlexnetDB (primary Sensus AMI database), and PostgreSQL databases AMDS (Advanced Metering Data System), Router (communication management), and FWDL (firmware download management).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the first step when an employee requests help with database queries?",
+        "answer": "Always ask for the RNI version if not provided (e.g., 2.1.0, 2.0.0, 1.1.0).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the possible response scenarios when checking for data dictionary availability?",
+        "answer": "Data dictionary available (proceed with query development), schema extraction needed (database schema must be extracted first), or database not configured (database instance must be added).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What must employees do if schema extraction is needed?",
+        "answer": "They must have direct access to their database servers, run the provided extraction query on their target database, export the results as a CSV file, and upload it through the web interface.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "MIGRATION_SERVICE_RENAME.md",
+    "qa_pairs": [
+      {
+        "question": "What was the old service name that was renamed?",
+        "answer": "rag-app (runtime container sometimes shown as next-rag-app-rag-app-1).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the new service name?",
+        "answer": "technical-service-assistant.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the rationale for the service rename?",
+        "answer": "Eliminate ambiguity between folder next-rag-app and overall platform, provide a single canonical name for logs, automation, and monitoring, and prepare for future multi-frontend or gateway additions.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What commands should be used after the rename?",
+        "answer": "Use 'docker logs technical-service-assistant' instead of 'docker logs rag-app', and 'docker exec -it technical-service-assistant sh' instead of 'docker exec -it rag-app sh'.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PRIVACY_CLASSIFICATION.md",
+    "qa_pairs": [
+      {
+        "question": "What is the purpose of the document privacy classification system?",
+        "answer": "It automatically detects confidential content and marks documents as either public or private to provide privacy-aware search capabilities and protect sensitive information.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What methods does the system use for automatic confidentiality detection?",
+        "answer": "Keyword-based scanning for common confidentiality indicators, pattern matching for complex confidentiality phrases, and header/footer analysis for classification markings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are some examples of confidentiality keywords detected?",
+        "answer": "confidential, private, restricted, proprietary, internal, sensitive, attorney-client, work product, trade secret, personally identifiable, pii, social security number, top secret, secret, eyes only, need to know.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the API support privacy filtering?",
+        "answer": "All search requests include a privacy_filter parameter that can be set to 'public', 'private', or 'all' to filter content by privacy level.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "AUTOMATED_TEST_MAINTENANCE_COMPLETE.md",
+    "qa_pairs": [
+      {
+        "question": "What are the main components of the automated test maintenance system?",
+        "answer": "Test Optimization Engine (test_optimizer.py), Web-Based Maintenance Dashboard (test_dashboard.py), and integration with existing infrastructure like test_runner.py and quality_monitor.py.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What capabilities does the Test Optimization Engine provide?",
+        "answer": "Test suite analysis with complexity scoring, performance optimization with bottleneck identification, flaky test detection with statistical analysis, deduplication engine for duplicate test identification, and priority ranking for CI/CD optimization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What features does the Web-Based Maintenance Dashboard offer?",
+        "answer": "Real-time performance monitoring, health status visualization, flaky test tracking with historical failure patterns, optimization recommendations with priority ranking, coverage analysis integration, and background task scheduling.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the demonstrated results of the test suite analysis?",
+        "answer": "Analyzed 650 total tests across 49 test files, detected 0 duplicate tests, generated 28 optimization recommendations, and identified 3 performance improvement opportunities.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "SYSTEM_MIGRATIONS.md",
+    "qa_pairs": [
+      {
+        "question": "What was the main change in the Vector Database Migration?",
+        "answer": "Migrated from basic vector storage to advanced pgvector implementation with enhanced vector similarity search algorithms, optimized indexing for better performance, and improved schema design for scalability.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key changes in the Service Architecture Migrations?",
+        "answer": "Renamed services for better clarity, improved service boundaries, enhanced API consistency, and better error handling patterns.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was accomplished in the Model Version Pinning migration?",
+        "answer": "Pinned all model versions for stability, implemented version validation, added rollback capabilities, and enhanced deployment safety.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the Environment Configuration Updates?",
+        "answer": "Reduced configuration errors, enhanced security posture, improved environment isolation, and better configuration validation.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "TEST_QUALITY_DASHBOARD.md",
+    "qa_pairs": [
+      {
+        "question": "What are the three strategic rings in the test architecture?",
+        "answer": "Ring 1: Enforced Coverage (Phase4A modules with 95% coverage requirement), Ring 2: Comprehensive Pipeline (PDF processing pipeline validation), Ring 3: Advanced Functionality (API endpoints, utilities, reasoning engine).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the current overall test status?",
+        "answer": "SUCCESS with 3/3 rings validated, 121 tests executed, 93.4% pass rate (113 passed, 8 API-driven failures), and 6.90s total duration at 17.5 tests/sec performance.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the coverage requirements for Ring 1?",
+        "answer": "95% coverage requirement that is STRICT - CI/CD blocking enforced.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What commands can be used to run the comprehensive test validation?",
+        "answer": "python test_runner.py --validate for all rings, python test_runner.py --ring 1 2 for specific rings, or python test_runner.py --all --report quality_report.json for detailed reporting.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "REASONING_ENGINE.md",
+    "qa_pairs": [
+      {
+        "question": "What are the main components of the Advanced Reasoning Engine?",
+        "answer": "Chain-of-Thought Reasoning (reasoning_engine/chain_of_thought.py), Knowledge Synthesis Pipeline (reasoning_engine/knowledge_synthesis.py), Advanced Context Management (reasoning_engine/context_management.py), and Enhanced Model Orchestration (reasoning_engine/model_orchestration.py).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What capabilities does the Chain-of-Thought Reasoning provide?",
+        "answer": "Query decomposition into logical components, evidence gathering across document corpus, step-by-step analysis with confidence tracking, and final synthesis of reasoning steps into coherent answers.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the supported reasoning types?",
+        "answer": "Analytical (step-by-step analysis), Synthesis (cross-document knowledge synthesis), Comparative (side-by-side comparison), Factual (fact-based responses), Creative (innovative thinking), Chain-of-thought (explicit multi-step reasoning), and Auto (automatic type detection).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the endpoint for the Reasoning API?",
+        "answer": "POST /api/reasoning with parameters for query, reasoning_type, context_documents, max_steps, temperature, and enable_caching.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DAILY_CHECKLIST_QUICK_START.md",
+    "qa_pairs": [
+      {
+        "question": "What is the single command to run the complete morning checklist?",
+        "answer": "make morning",
+        "confidence_required": 100
+      },
+      {
+        "question": "What does the morning checklist automatically check?",
+        "answer": "All Docker containers are running, scans logs for critical errors (last 24 hours), tests all functionality end-to-end, monitors system performance and resources, and generates a detailed status report.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the status indicators for the system?",
+        "answer": "🟢 Ready for Development (all systems operational), 🟡 Caution (minor issues, monitor closely), 🔴 Critical Issues (must resolve before development).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What should you do before any development work?",
+        "answer": "Run make morning and review issue recommendations, fix critical issues (🔴) immediately, plan warning issue (🟡) resolution, and only proceed when system shows 🟢.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DATABASE_REFERENCE.md",
+    "qa_pairs": [
+      {
+        "question": "What is the correct database name for the Technical Service Assistant?",
+        "answer": "vector_db (NOT postgres or technical_service_assistant).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the correct database connection parameters?",
+        "answer": "Container Name: pgvector, Database Name: vector_db, Username: postgres, Password: postgres, Port: 5432.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key tables in the database?",
+        "answer": "users (user accounts and authentication), roles (user roles), document_chunks (processed document content with embeddings), audit_logs (security and system audit trail), and verification_tokens (email verification tokens).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the correct command to connect to the database via Docker CLI?",
+        "answer": "docker exec -it pgvector psql -U postgres -d vector_db",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DEPLOYMENT_GUIDE.md",
+    "qa_pairs": [
+      {
+        "question": "What are the hardware requirements for deployment?",
+        "answer": "16GB RAM minimum, 32GB recommended, 100GB+ available disk space, and ports 3000, 5432, 6379, 8008, 8050, 9091, 11434-11437 available.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the one-command deployment method?",
+        "answer": "git clone https://github.com/your-org/Technical-Service-Assistant.git && cd Technical-Service-Assistant && make up",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the health check endpoints for the services?",
+        "answer": "API: http://localhost:8008/health (expected: {\"status\": \"ok\"}), Reasoning: http://localhost:8050/health (expected: {\"status\": \"ok\"}), Frontend: http://localhost:3000/api/status (expected: {\"status\": \"healthy\"}), Database: docker compose exec pgvector pg_isready (expected: ready).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What monitoring dashboards are available?",
+        "answer": "Grafana at http://localhost:3001 (admin/admin) and Prometheus at http://localhost:9091.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "LOG_ANALYSIS_GUIDE.md",
+    "qa_pairs": [
+      {
+        "question": "What critical issues does the automated log analysis detect?",
+        "answer": "Network connectivity issues (DNS resolution failures), model loading problems (missing AI models), database errors (schema violations), processing pipeline failures, and performance issues (memory/resource warnings).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the commands for the updated daily routine?",
+        "answer": "make morning for complete automated checklist, make check-logs for quick log analysis, and ./scripts/analyze_logs.sh for advanced analysis.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the issue priority matrix?",
+        "answer": "Network Issues >0: CRITICAL (stop development), Model Loading >0: CRITICAL (fix immediately), PDF Processor Errors >100: CRITICAL (system failure), Database Errors >2: WARNING (schedule fix), Redis Warnings >0: INFO (optimize when convenient).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What should you do before any development work according to the log analysis guide?",
+        "answer": "Run make morning, review issue recommendations, fix critical issues immediately, plan warning issue resolution, and only proceed when system shows green status.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "MAINTENANCE.md",
+    "qa_pairs": [
+      {
+        "question": "What does the daily automated cleanup check?",
+        "answer": "Backup files (>10 .bak* files), log directory (>500MB), Python cache (>20 __pycache__ directories), and Docker space (>50GB reclaimable).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the command for weekly cleanup?",
+        "answer": "make cleanup",
+        "confidence_required": 100
+      },
+      {
+        "question": "What actions does the weekly cleanup perform?",
+        "answer": "Removes old backup files (>7 days), old log files (>7 days), all __pycache__ directories, temporary files (.pyc, .tmp, .DS_Store), and prunes unused Docker images/containers/build cache.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the best practices for system maintenance?",
+        "answer": "Run make morning daily, run make cleanup weekly, monitor disk usage for unusual growth, keep Docker pruned, and review logs regularly before cleanup.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ADMIN_CREDENTIALS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the primary admin account email and password?",
+        "answer": "Email: admin@example.com, Password: admin%2025",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the additional admin accounts?",
+        "answer": "kevin.mccullor@xylem.com (password: NewSecurePass123!), jim.hitchcock@xylem.com (needs password reset), all with role_id = 1 (Admin).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What admin endpoints are available?",
+        "answer": "POST /api/auth/login, GET /api/auth/me, POST /api/auth/admin-reset, POST /api/auth/change-password.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How can you test the admin login?",
+        "answer": "Use the provided Python code with requests.post to /api/auth/login with email and password, or check the response for access_token on success.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "MIGRATION_SUCCESS_REPORT.md",
+    "qa_pairs": [
+      {
+        "question": "What were the major achievements in the migration?",
+        "answer": "Docling Migration Complete (replaced legacy PDF processor), Acronym Extraction System (556 unique acronyms extracted), Advanced Processing Pipeline (147 documents ingested, 83,967 chunks created), and 4-Server Load Balancing.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the processing performance achieved?",
+        "answer": "Average PDF processing: ~45 seconds per document (range 23-167 seconds), 83,967 total chunks created, 1,242 acronym entries searchable, and even distribution across 4 Ollama servers.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What new processing modules were added?",
+        "answer": "docling_processor/ (advanced multi-format processor), acronym_extractor.py (terminology extraction), reprocess_acronyms.py (bulk processing), suppress_warnings.py (optimization), and performance_monitor.py (health tracking).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were all the migration success criteria that were met?",
+        "answer": "Replace PDF Processor ✅, Multi-format Support ✅, Zero Data Loss ✅, Performance Maintained ✅, Acronym Extraction ✅, System Stability ✅, Archive Management ✅.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "AI_CATEGORIZATION_SUCCESS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the status of the AI Document Categorization system?",
+        "answer": "FULLY OPERATIONAL - All objectives achieved with 100% processing success rate.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What core functionality was achieved?",
+        "answer": "AI Document Classification, Privacy Detection (rule-based), Product Identification, Metadata Enrichment, Intelligent Fallback, Load Balancing across 4 Ollama instances, Database Integration, and Error Handling.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the processing statistics for the test document?",
+        "answer": "Test Document: RNI 4.16 ESM User Guide (19 pages), 226 total chunks, 100% success rate, 136.14 seconds processing time, ~0.6 seconds per chunk, stable 5.5% memory usage.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the AI classification results for the test document?",
+        "answer": "Document Type: unknown (fallback due to AI timeout), Product Name: unknown (fallback), Privacy Level: public (correctly detected), Classification Method: rule_based_fallback, Confidence Score: 0.5.",
+        "confidence_required": 100
+      }
+    ]
+  }
+]

@@ -1,14 +1,3 @@
-from utils.logging_config import setup_logging
-
-# Setup basic logging
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(handler)
-
 """
 RAG-Enhanced Chat Endpoint
 
@@ -16,64 +5,406 @@ Combines vector retrieval with LLM generation for document-aware responses.
 Follows Pydantic AI best practices from https://ai.pydantic.dev/
 """
 
-from typing import List
+from typing import List, Optional, Dict, Any, Union, cast
 import logging
-
+import os
 import httpx
+from httpx import Response
+import random
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-
 
 # Setup basic logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 if not logger.handlers:
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(handler)
-                if response.status_code == 200:
-                    data = response.json()
-                    return data.get("reranked", [])
-                else:
-                    logger.warning(f"Context retrieval failed: {response.status_code}")
-                    return []
-        except Exception as e:
-            logger.error(f"Context retrieval error: {e}")
+
+
+class RAGChatRequest(BaseModel):
+    """Request model for RAG chat."""
+    query: str = Field(..., description="User query")
+    use_context: bool = Field(True, description="Whether to use document context")
+    max_context_chunks: int = Field(5, description="Maximum number of context chunks to retrieve")
+    model: str = Field("rni-mistral", description="LLM model to use (auto-selected if not specified)")
+    temperature: float = Field(0.2, description="Generation temperature")
+    max_tokens: int = Field(500, description="Maximum tokens to generate")
+    stream: bool = Field(False, description="Whether to stream the response")
+
+
+class RAGChatResponse(BaseModel):
+    """Response model for RAG chat."""
+    response: str = Field(..., description="Generated response")
+    context_used: List[str] = Field(default_factory=list, description="Context chunks used")
+    web_sources: List[Dict[str, Any]] = Field(default_factory=list, description="Web sources used for citations")
+    model: str = Field(..., description="Model used for generation")
+    context_retrieved: bool = Field(..., description="Whether context was retrieved")
+
+
+class RAGChatService:
+    """Service for RAG-enhanced chat functionality."""
+
+    def __init__(self, ollama_urls: Optional[List[str]] = None, reranker_url: Optional[str] = None):
+        """Initialize the RAG chat service."""
+        import os
+        if ollama_urls:
+            self.ollama_urls = ollama_urls
+        else:
+            # Support both single URL and multiple URLs from environment
+            single_url = os.getenv("OLLAMA_URL")
+            instances_str = os.getenv("OLLAMA_INSTANCES")
+            if instances_str:
+                self.ollama_urls = [url.strip() for url in instances_str.split(",") if url.strip()]
+            elif single_url:
+                self.ollama_urls = [single_url]
+            else:
+                # Default to all 4 instances for load balancing
+                self.ollama_urls = [
+                    "http://ollama-server-1:11434",
+                    "http://ollama-server-2:11434",
+                    "http://ollama-server-3:11434",
+                    "http://ollama-server-4:11434"
+                ]
+        self.reranker_url = reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
+
+        # Load model configurations
+        self.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
+        self.coding_model = os.getenv("CODING_MODEL", "mistral:7b")
+        self.reasoning_model = os.getenv("REASONING_MODEL", "mistral:7b")
+        self.vision_model = os.getenv("VISION_MODEL", "mistral:7b")
+        self.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:latest")
+
+        logger.info(f"Initialized RAGChatService with {len(self.ollama_urls)} Ollama instances: {self.ollama_urls}")
+        logger.info(f"Models: chat={self.chat_model}, coding={self.coding_model}, reasoning={self.reasoning_model}, vision={self.vision_model}")
+
+        # Database connection for vector search
+        self.db_host = os.getenv("DB_HOST", "pgvector")
+        self.db_name = os.getenv("DB_NAME", "vector_db")
+        self.db_user = os.getenv("DB_USER", "postgres")
+        self.db_password = os.getenv("DB_PASSWORD", "")
+        self.db_port = os.getenv("DB_PORT", "5432")
+
+    def select_model(self, query: str) -> str:
+        """Select appropriate model based on query content."""
+        query_lower = query.lower()
+
+        # Coding-related queries
+        coding_keywords = ["code", "programming", "python", "javascript", "function", "class", "script", "debug", "error", "compile", "syntax"]
+        if any(keyword in query_lower for keyword in coding_keywords):
+            return self.coding_model
+
+        # Reasoning/complex queries
+        reasoning_keywords = ["reason", "explain", "why", "analyze", "compare", "evaluate", "logic", "step", "process"]
+        if any(keyword in query_lower for keyword in reasoning_keywords) or len(query) > 200:
+            return self.reasoning_model
+
+        # Vision-related (though text-only for now)
+        vision_keywords = ["image", "diagram", "visual", "chart", "graph", "picture"]
+        if any(keyword in query_lower for keyword in vision_keywords):
+            return self.vision_model
+
+        # Default to chat model
+        return self.chat_model
+
+    async def retrieve_context(self, query: str, max_chunks: int = 5) -> List[str]:
+        """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
+        logger.info(f"Starting context retrieval for query: {query[:50]}...")
+        try:
+            # Step 1: Try RAG knowledge base first
+            query_embedding = await self._get_query_embedding(query)
+            rag_chunks = await self._vector_search(query_embedding, max_chunks)
+
+            if rag_chunks:
+                logger.info(f"Retrieved {len(rag_chunks)} RAG context chunks for query: {query[:50]}...")
+                return rag_chunks
+
+            # Step 2: If no RAG results, try web search
+            logger.info(f"No RAG results found, trying web search for query: {query[:50]}...")
+            web_results = await self._web_search(query, max_chunks)
+
+            if web_results:
+                # Convert web results to context chunks
+                context_chunks = [f"Web Result: {result['title']}\n{result['content']}\nSource: {result['url']}" for result in web_results]
+                logger.info(f"Retrieved {len(context_chunks)} web search context chunks")
+                return context_chunks
+
+            # Step 3: If still no results, return empty
+            logger.info(f"No context found for query: {query[:50]}...")
             return []
 
-    def build_rag_prompt(self, query: str, context_chunks: List[str]) -> str:
-        """Build prompt with retrieved context."""
+        except Exception as e:
+            logger.error(f"Context retrieval failed: {e}")
+            return []
+
+    async def _get_query_embedding(self, query: str) -> List[float]:
+        """Generate embedding for the query using Ollama."""
+        # Use the first available Ollama instance for embeddings
+        selected_url = self.ollama_urls[0]
+        logger.info(f"Getting embedding for query: {query[:50]}... from Ollama instance: {selected_url}")
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{selected_url}/api/embeddings",
+                    json={
+                        "model": self.embedding_model,
+                        "prompt": query,
+                    },
+                    timeout=30.0,
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    return data.get("embedding", [])
+                else:
+                    raise HTTPException(status_code=response.status_code, detail="Embedding generation failed")
+        except Exception as e:
+            logger.error(f"Embedding generation failed: {e}")
+            raise
+
+    async def _vector_search(self, query_embedding: List[float], max_chunks: int) -> List[str]:
+        """Perform vector similarity search in the database."""
+        try:
+            conn = psycopg2.connect(
+                host=self.db_host,
+                database=self.db_name,
+                user=self.db_user,
+                password=self.db_password,
+                port=self.db_port
+            )
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Convert embedding to PostgreSQL vector format
+            embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+
+            cursor.execute(
+                """
+                SELECT
+                    dc.content,
+                    dc.embedding <=> %s::vector as distance
+                FROM document_chunks dc
+                JOIN documents d ON dc.document_id = d.id
+                 WHERE dc.embedding IS NOT NULL
+                 AND d.processing_status = 'processed'
+                 AND d.privacy_level = 'public'
+                ORDER BY dc.embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (embedding_str, embedding_str, max_chunks),
+            )
+
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            # Extract content from results
+            context_chunks = [row["content"] for row in results]
+            return context_chunks
+
+        except Exception as e:
+            logger.error(f"Vector search failed: {e}")
+            return []
+
+    async def _web_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
+        """Perform web search with priority for sensus-training.com."""
+        from cache import get_cached_web_results, store_web_results
+
+        # Check cache first
+        cached_results = get_cached_web_results(query)
+        if cached_results:
+            logger.info(f"Using cached web results for query: {query[:50]}...")
+            return [{"title": r.title, "content": r.content, "url": r.url, "score": r.score} for r in cached_results[:max_results]]
+
+        results = []
+
+        # First, try sensus-training.com
+        sensus_results = await self._search_sensus_training(query)
+        results.extend(sensus_results)
+
+        # If we don't have enough results, search broadly
+        if len(results) < max_results:
+            broad_results = await self._search_broad_web(query, max_results - len(results))
+            results.extend(broad_results)
+
+        # Cache the results
+        if results:
+            store_web_results(query, [{"title": r["title"], "url": r["url"], "content": r["content"], "score": r["score"]} for r in results])
+
+        return results[:max_results]
+
+    async def _search_sensus_training(self, query: str) -> List[Dict[str, Any]]:
+        """Search sensus-training.com for relevant content using SearXNG."""
+        try:
+            searxng_url = os.getenv("SEARXNG_BASE_URL", "http://localhost:8888/")
+            search_url = f"{searxng_url.rstrip('/')}/search"
+
+            params = {
+                "q": f"site:sensus-training.com {query}",
+                "format": "json",
+                "categories": "general",
+                "engines": "duckduckgo,google",
+                "safesearch": "0",
+                "time_range": "",
+                "lang": "en"
+            }
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(search_url, params=params)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    results = []
+
+                    for result in data.get("results", [])[:3]:  # Limit to 3
+                        results.append({
+                            "title": result.get("title", ""),
+                            "url": result.get("url", ""),
+                            "content": result.get("content", ""),
+                            "score": 0.8  # Default score
+                        })
+
+                    logger.info(f"SearXNG search returned {len(results)} results from sensus-training.com")
+                    return results
+                else:
+                    logger.warning(f"SearXNG API error: {response.status_code}")
+                    return []
+
+        except Exception as e:
+            logger.warning(f"Sensus-training.com search failed: {e}")
+            return []
+
+    async def _search_broad_web(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
+        """Perform broad web search using SearXNG."""
+        try:
+            searxng_url = os.getenv("SEARXNG_BASE_URL", "http://localhost:8888/")
+            search_url = f"{searxng_url.rstrip('/')}/search"
+
+            params = {
+                "q": query,
+                "format": "json",
+                "categories": "general",
+                "engines": "duckduckgo,google,startpage",
+                "safesearch": "0",
+                "time_range": "",
+                "lang": "en"
+            }
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(search_url, params=params)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    results = []
+
+                    for result in data.get("results", [])[:max_results]:
+                        results.append({
+                            "title": result.get("title", ""),
+                            "url": result.get("url", ""),
+                            "content": result.get("content", ""),
+                            "score": 0.7  # Default score
+                        })
+
+                    logger.info(f"SearXNG broad search returned {len(results)} results")
+                    return results
+                else:
+                    logger.warning(f"SearXNG API error: {response.status_code}")
+                    return []
+
+        except Exception as e:
+            logger.warning(f"Broad web search failed: {e}")
+            return []
+
+    def build_rag_prompt(self, query: str, context_chunks: List[str]) -> Dict[str, str]:
+        """Build prompt with retrieved context, returning system and user prompts separately."""
+        rni_definition = "The RNI is a Sensus Regional Network Interface - a comprehensive platform for utility AMI (Advanced Metering Infrastructure) systems."
+
+        system_prompt = f"""You are a helpful AI assistant specialized in RNI systems and Sensus products. {rni_definition}
+
+REASONING PROCESS:
+1. Analyze the question and identify key requirements
+2. Consider available context and knowledge
+3. Think step-by-step through the solution
+4. Provide clear, actionable answers
+5. Cite sources when using external information
+
+Always structure your response with:
+- Thinking: Show your step-by-step reasoning process
+- Answer: Provide the clear answer
+- Sources: List all sources used (if any)
+
+Always show your reasoning process and explain your conclusions."""
+
         if not context_chunks:
-            return f"You are a helpful AI assistant. Answer the following question clearly and concisely.\n\nQuestion: {query}\n\nAnswer:"
+            user_prompt = f"Question: {query}\n\nProvide your response in the following format:\nThinking: [step-by-step reasoning]\nAnswer: [clear answer]\nSources: [list sources or 'None']"
+            return {"system": system_prompt, "user": user_prompt}
 
-        context_text = "\n\n".join(f"Context {i+1}: {chunk}" for i, chunk in enumerate(context_chunks))
+        # Check if context contains web search results
+        has_web_results = any("Web Result:" in chunk or "Source:" in chunk for chunk in context_chunks)
 
-        return f"""You are a helpful AI assistant. Use the provided context from RNI 4.16 documentation to answer the question. If the context doesn't contain relevant information, say so clearly.
-
-Context:
+        if has_web_results:
+            context_text = "\n\n".join(f"Web Source {i+1}: {chunk}" for i, chunk in enumerate(context_chunks))
+            user_prompt = f"""Web Search Results:
 {context_text}
 
 Question: {query}
 
-Answer based on the context above:"""
+Provide your response in the following format:
+Thinking: [step-by-step reasoning analyzing the sources]
+Answer: [clear answer based on sources]
+Sources: [list all sources cited]"""
+        else:
+            context_text = "\n\n".join(f"Context {i+1}: {chunk}" for i, chunk in enumerate(context_chunks))
+            user_prompt = f"""Context from RNI 4.16 documentation:
+{context_text}
 
-    async def generate_response(self, prompt: str, model: str, temperature: float, max_tokens: int) -> str:
-        """Generate response using Ollama."""
+Question: {query}
+
+Provide your response in the following format:
+Thinking: [step-by-step reasoning analyzing the context]
+Answer: [clear answer based on documentation]
+Sources: [list documentation sources]"""
+
+        return {"system": system_prompt, "user": user_prompt}
+
+    async def generate_response(self, prompt_dict: Dict[str, str], model: str, temperature: float, max_tokens: int, stream: bool = False) -> Union[str, Response]:
+        """Generate response using Ollama chat API with system and user prompts."""
+        # Randomly select an Ollama instance for load balancing
+        selected_url = random.choice(self.ollama_urls)
+        logger.debug(f"Available instances: {self.ollama_urls}, Selected Ollama instance: {selected_url} for model {model}")
+
+        system_prompt = prompt_dict.get("system", "")
+        user_prompt = prompt_dict.get("user", "")
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.ollama_url}/api/generate",
+                    f"{selected_url}/api/chat",
                     json={
                         "model": model,
-                        "prompt": prompt,
-                        "stream": False,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "stream": stream,
                         "options": {"temperature": temperature, "num_predict": max_tokens},
                     },
                     timeout=120.0,
                 )
                 if response.status_code == 200:
-                    data = response.json()
-                    return data.get("response", "No response generated")
+                    if stream:
+                        # For streaming, return the response object for streaming
+                        return response
+                    else:
+                        data = response.json()
+                        message = data.get("message", {})
+                        return message.get("content", "No response generated")
                 else:
                     raise HTTPException(status_code=response.status_code, detail="Generation failed")
         except httpx.TimeoutException:
@@ -82,23 +413,46 @@ Answer based on the context above:"""
             logger.error(f"Generation error: {e}")
             raise HTTPException(status_code=500, detail="Generation service error")
 
-    async def chat(self, request: RAGChatRequest) -> RAGChatResponse:
-        """Process RAG-enhanced chat request."""
+    async def chat(self, request: RAGChatRequest) -> Union[RAGChatResponse, Response]:
+        """Process RAG-enhanced chat request with hierarchical search."""
+        logger.info(f"Processing chat request: query='{request.query[:50]}...', use_context={request.use_context}, stream={request.stream}")
         context_chunks = []
+        web_sources = []
 
         if request.use_context:
             context_chunks = await self.retrieve_context(request.query, request.max_context_chunks)
-            logger.info(f"Retrieved {len(context_chunks)} context chunks for query")
 
-        prompt = self.build_rag_prompt(request.query, context_chunks)
-        response_text = await self.generate_response(prompt, request.model, request.temperature, request.max_tokens)
+            # Extract web sources for citations
+            for chunk in context_chunks:
+                if "Web Result:" in chunk and "Source:" in chunk:
+                    lines = chunk.split('\n')
+                    title = lines[0].replace("Web Result: ", "") if lines else "Web Source"
+                    url = ""
+                    for line in lines:
+                        if line.startswith("Source: "):
+                            url = line.replace("Source: ", "")
+                            break
+                    web_sources.append({"title": title, "url": url, "score": 0.8})
 
-        return RAGChatResponse(
-            response=response_text,
-            context_used=context_chunks,
-            model=request.model,
-            context_retrieved=len(context_chunks) > 0,
-        )
+            logger.info(f"Retrieved {len(context_chunks)} context chunks ({len(web_sources)} from web) for query")
+
+        prompt_dict = self.build_rag_prompt(request.query, context_chunks)
+        selected_model = self.select_model(request.query) if request.model == "rni-mistral" else request.model
+        logger.info(f"Selected model {selected_model} for query: {request.query[:50]}...")
+
+        if request.stream:
+            # For streaming, return the response object
+            return cast(Response, await self.generate_response(prompt_dict, selected_model, request.temperature, request.max_tokens, True))  # type: ignore
+        else:
+            # For non-streaming, return the response text
+            response_text = cast(str, await self.generate_response(prompt_dict, selected_model, request.temperature, request.max_tokens, False))  # type: ignore
+            return RAGChatResponse(
+                response=response_text,
+                context_used=context_chunks,
+                web_sources=web_sources,
+                model=selected_model,
+                context_retrieved=len(context_chunks) > 0,
+            )
 
 
 # Global service instance
@@ -108,23 +462,49 @@ rag_service = RAGChatService()
 def add_rag_endpoints(app: FastAPI):
     """Add RAG chat endpoints to existing FastAPI app."""
 
-    @app.post("/api/rag-chat", response_model=RAGChatResponse)
+    @app.post("/api/rag-chat")
     async def rag_chat(request: RAGChatRequest):
         """RAG-enhanced chat endpoint combining retrieval and generation."""
-        return await rag_service.chat(request)
+        if request.stream:
+            # For streaming, return StreamingResponse
+            response = cast(Response, await rag_service.chat(request))
+            async def generate():
+                async for line in response.aiter_lines():  # type: ignore
+                    if line.strip():
+                        yield f"data: {line}\n\n"
+            return StreamingResponse(
+                content=generate(),
+                media_type="text/event-stream"
+            )
+        else:
+            # For non-streaming, return JSON
+            return await rag_service.chat(request)
 
     @app.get("/api/rag-health")
     async def rag_health():
         """Health check for RAG service components."""
         try:
-            # Test Ollama
-            async with httpx.AsyncClient() as client:
-                ollama_resp = await client.get(f"{rag_service.ollama_url}/api/tags", timeout=5.0)
-                ollama_ok = ollama_resp.status_code == 200
+            # Test Ollama instances
+            ollama_ok = False
+            reranker_ok = False
+            for url in rag_service.ollama_urls:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        ollama_resp = await client.get(f"{url}/api/tags", timeout=5.0)
+                        if ollama_resp.status_code == 200:
+                            ollama_ok = True
+                            break
+                except:
+                    continue
 
-                # Test reranker
-                reranker_resp = await client.get("http://reranker:8008/health", timeout=5.0)
-                reranker_ok = reranker_resp.status_code == 200
+            # Test reranker (self)
+            reranker_ok = False
+            try:
+                async with httpx.AsyncClient() as client:
+                    reranker_resp = await client.get("http://reranker:8008/health", timeout=5.0)
+                    reranker_ok = reranker_resp.status_code == 200
+            except:
+                pass
 
             return {
                 "status": "healthy" if (ollama_ok and reranker_ok) else "degraded",

@@ -114,9 +114,13 @@ services:
       - DB_PASSWORD=postgres
       - LOG_LEVEL=DEBUG
       - OLLAMA_URL=http://ollama-server-1:11434
-      - EMBEDDING_MODEL=nomic-embed-text:v1.5
-      - CHAT_MODEL=mistral:7B
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text:v1.5}
+      - CHAT_MODEL=${CHAT_MODEL:-mistral:7b}
+      - CODING_MODEL=${CODING_MODEL:-mistral:7b}
+      - REASONING_MODEL=${REASONING_MODEL:-mistral:7b}
+      - VISION_MODEL=${VISION_MODEL:-mistral:7b}
       - RERANK_MODEL=BAAI/bge-reranker-base
+      - PYTHONPATH=/app
       - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-false}

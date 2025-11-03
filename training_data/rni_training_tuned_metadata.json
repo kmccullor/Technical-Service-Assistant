@@ -1,0 +1,10 @@
+{
+  "total_chunks": 10000,
+  "training_examples": 10000,
+  "extraction_date": "2025-11-02",
+  "source": "PGVector document_chunks",
+  "model_target": "mistral:7b",
+  "domain": "RNI Technical Documentation",
+  "tuning_type": "instruction_tuning",
+  "instruction_examples": 16167
+}

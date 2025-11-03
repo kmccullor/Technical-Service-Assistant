@@ -1,0 +1,1112 @@
+[
+  {
+    "document": "90_PERCENT_SUCCESS.md",
+    "qa_pairs": [
+      {
+        "question": "What was the original accuracy target for the Technical Service Assistant, and what was actually achieved?",
+        "answer": "The original target was 90% accuracy, but 99.0% accuracy was achieved, exceeding the target by 9 percentage points.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How many queries were tested to validate the 99% accuracy achievement, and what was the average confidence score?",
+        "answer": "Seven queries were tested, achieving 99.0% accuracy across all, with an average confidence score of 0.70.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the four stages of the multi-stage reranking system implemented for the 90% accuracy system?",
+        "answer": "Stage 1: Vector similarity search (top 100 candidates), Stage 2: BGE reranking (fallback to vector scoring), Stage 3: Domain-specific scoring with technical term matching, Stage 4: Final hybrid ranking with weighted combination.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Which embedding models were used in the ensemble embeddings approach, and how were they routed?",
+        "answer": "The models were nomic-embed-text, all-minilm-l6-v2, bge-small-en, and e5-small-v2, with adaptive weighting based on query-type specific model weights and intelligent routing across 4 Ollama containers.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the improvement in accuracy from the baseline, and what was the average response time maintained?",
+        "answer": "The accuracy improved by +17.0% over the baseline, while maintaining an average response time of ~0.15s.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ACCURACY_IMPROVEMENTS_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the baseline Recall@1 performance, and what expected improvement range was targeted?",
+        "answer": "The baseline was 48.7% Recall@1, with expected improvements of 30-50% through the implemented components.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Describe the enhanced retrieval pipeline and its key features.",
+        "answer": "The enhanced retrieval pipeline provides two-stage retrieval with intelligent fallback strategies, including vector search for 50 candidates followed by reranking for top 10, quality metrics assessment, and fault tolerance with automatic fallback to vector-only when reranker is unavailable.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the hybrid search combine vector similarity and BM25 keyword matching?",
+        "answer": "Hybrid search combines vector similarity with BM25 keyword matching using configurable weighting (default 70% vector, 30% BM25), normalizes scores to 0-1 range, and provides fallback scoring when vector similarity fails, with tunable α parameter for different document types.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key features of the semantic chunking implementation?",
+        "answer": "Semantic chunking preserves hierarchical document structure, identifies technical content chunks, adds section titles for context, and uses smart sentence-based overlap for continuity, with benefits including context awareness, structure preservation, and technical focus prioritization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the projected accuracy gains for each component stack in the enhanced pipeline?",
+        "answer": "Baseline: 48.7%, + Reranker: 65%+, + Hybrid Search: 72%+, + Semantic Chunking: 78%+, + Query Enhancement: 82%+, representing cumulative improvements up to 33.3%.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ACCURACY_VALIDATION_REPORT_UPDATED.md",
+    "qa_pairs": [
+      {
+        "question": "What were the primary evaluation metrics for the RNI-specific queries in the accuracy validation report?",
+        "answer": "The primary metrics were Recall@5: 100%, Recall@10: 100%, Recall@20: 100%, MRR: 93.8%, nDCG@20: 81.1%, and Average Query Time: 52.5ms.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How did the BGE reranker enhance the performance compared to vector-only results?",
+        "answer": "The BGE reranker maintained Rerank Recall@5 at 87.5%, improved Rerank Recall@10 to 100%, kept Rerank Recall@20 at 100%, enhanced Rerank MRR to 76.6%, and improved Rerank nDCG@20 to 86.6% (+5.5% improvement).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the system performance summary for the 90% accuracy system validation across 7 test queries?",
+        "answer": "Average Accuracy: 99.0% (Target: 90%), Target Achievement Rate: 100% (7/7 queries ≥90%), Average Confidence: 0.64, Performance Status: EXCELLENT.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Describe the multi-stage search process in the enhanced retrieval pipeline.",
+        "answer": "Stage 1: Vector search retrieves 100 candidates, Stage 2: BGE reranker refines to 50 results, Stage 3: Domain scoring produces 20 domain-aware results, Stage 4: Final selection provides top 5 precision results.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key benefits realized from the configuration migration to centralized vector_db?",
+        "answer": "Consistency achieved with single database reference, performance maintained with 52.5ms average response time (improved from 66ms), operational excellence with zero configuration drift, and production readiness with Docker/Kubernetes best practices.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "ACRONYM_INDEX.md",
+    "qa_pairs": [
+      {
+        "question": "What does RNI stand for in the context of the Technical Service Assistant documentation?",
+        "answer": "RNI stands for Regional Network Interface, the core network interface system referenced throughout the documentation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the primary security-related acronyms defined in the index, and what do they represent?",
+        "answer": "AD: Active Directory (Microsoft's directory service), LDAP: Lightweight Directory Access Protocol (protocol for directory information), PKI: Public Key Infrastructure (framework for digital keys and certificates), HSM: Hardware Security Module (physical device for cryptographic keys), 2FA/MFA: Two-Factor/Multi-Factor Authentication (multiple verification methods).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key network and communication acronyms and their definitions?",
+        "answer": "API: Application Programming Interface (protocols for software applications), DNS: Domain Name System (translates domain names to IP addresses), HTTP/HTTPS: Hypertext Transfer Protocol (Secure) (data transfer protocols), TLS/SSL: Transport Layer Security / Secure Sockets Layer (secure communications protocols), SSH: Secure Shell (secure remote access).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What RNI-specific acronyms are defined, and what do they represent?",
+        "answer": "NCS: Network Command Suite (management system for network devices), ESM: Enterprise Security Manager (security management component), CMEP: Extended CMEP specifications, TGB: Tower Gateway Base Station (communication hub), FlexNet: Network system referenced in documentation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the usage guidelines for acronyms in the documentation according to the index?",
+        "answer": "First use: Spell out full term followed by acronym in parentheses (e.g., 'Regional Network Interface (RNI)'). Subsequent uses: Use acronym alone. The index maps to specific documents for detailed information about each acronym's implementation or configuration.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "AI_CATEGORIZATION_IMPLEMENTATION.md",
+    "qa_pairs": [
+      {
+        "question": "What database schema enhancements were applied for AI-powered document categorization?",
+        "answer": "New columns added to pdf_documents: document_type (classification), product_name (identification), product_version (extraction), document_category (high-level category), classification_confidence (AI confidence score), ai_metadata (additional AI classification metadata).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the document type classifications implemented in the AI categorization system?",
+        "answer": "User Guides (step-by-step instructions), Installation Guides (setup and deployment), Reference Manuals (technical specifications and API docs), Release Notes (version changes and updates), Integration Guides (third-party system integration), Security Guides (security configuration and policies), Technical Notes (technical specifications and details).",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the AI classification engine work with the Ollama load balancer?",
+        "answer": "The system integrates Ollama-based document analysis with load balancing across 4 Ollama servers, using functions like classify_document_with_ai(), get_ai_classification(), parse_ai_classification_response(), and classify_document_fallback() for rule-based fallback when AI is unavailable.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What product identification capabilities were implemented for the RNI system?",
+        "answer": "Product identification for RNI (versions 4.14, 4.15, 4.16), FlexNet (network management platform), PPA (Product Platform Architecture), ESM (Enterprise Security Module), with automatic version extraction using pattern-based detection.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key benefits and future enhancements planned for the AI categorization system?",
+        "answer": "Benefits include enhanced discoverability, intelligent search, content analytics, and automated organization. Future enhancements include model fine-tuning on RNI corpus, advanced analytics with document relationship mapping, API enhancement with category filters, and user interface with category-based navigation.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "CHANGELOG_HYBRID_SEARCH.md",
+    "qa_pairs": [
+      {
+        "question": "What are the key features of the confidence-based routing in the hybrid search system?",
+        "answer": "Confidence-based routing intelligently switches between document RAG and web search based on response confidence, using advanced algorithm considering context relevance, uncertainty detection, and query overlap, with SearXNG integration for privacy-first web search.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the role of SearXNG in the hybrid search architecture?",
+        "answer": "SearXNG provides privacy-first web search with 8+ search engines (DuckDuckGo, Startpage, Wikipedia, Brave, Qwant, Bing, Yahoo, Yandex), weighted results, and HTML parser fallback when JSON API is blocked by bot detection, with custom limiter.toml for programmatic access.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the enhanced confidence algorithm work in the hybrid search system?",
+        "answer": "The algorithm uses base confidence scaling based on retrieved chunk count, uncertainty detection for phrases like 'I don't know', 'unclear', 'apologize', length bonus for detailed responses, and relevance scoring measuring query-context term overlap for accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the new API endpoints introduced in the hybrid search system?",
+        "answer": "New endpoints include /api/hybrid-search (main hybrid search with confidence-based routing), /api/test-web-search (web search functionality testing), and enhanced /api/intelligent-route with hybrid search support.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the performance metrics for the hybrid search system across different query types?",
+        "answer": "Technical Documentation: 85% RAG, 15% Web; General Knowledge: 25% RAG, 75% Web; Current Events: 5% RAG, 95% Web; Code Examples: 60% RAG, 40% Web. Response times: RAG ~2-5 seconds, Web ~3-8 seconds, Hybrid routing ~1-2 seconds overhead.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "CHANGELOG_PGVECTOR_UPGRADE.md",
+    "qa_pairs": [
+      {
+        "question": "What were the key database technology upgrades implemented in the system?",
+        "answer": "PostgreSQL upgraded to 16.10 (latest stable), pgvector upgraded to 0.8.1 (latest with performance improvements), Docker image changed from ankane/pgvector:latest to pgvector/pgvector:pg16 (official), and schema consolidated from N8N dual-table to unified Python worker architecture.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the schema consolidation change from the legacy N8N architecture to the unified Python worker?",
+        "answer": "Legacy: chunks(id, document_id, chunk_index, text, metadata) + embeddings(id, chunk_id, model_id, embedding). Unified: pdf_documents(id, file_name, uploaded_at) + document_chunks(id, document_id, page_number, chunk_type, content, embedding, created_at) with integrated embeddings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What performance benefits were achieved with the PostgreSQL 16 and pgvector 0.8.1 upgrades?",
+        "answer": "Vector operations up to 30% faster, query performance optimizations, better memory usage for large vector datasets, enhanced IVFFlat implementation, reduced table joins with integrated schema, and cleaner transaction management.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What files were updated during the database upgrade migration?",
+        "answer": "Updated docker-compose.yml, pdf_processor/utils.py, reranker/app.py, scripts/, bin/ utilities, and all references changed from chunks+embeddings to document_chunks, with proper foreign key integrity and type safety.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the immediate and future next steps after the database upgrade?",
+        "answer": "Immediate: PDF re-processing with unified schema, performance testing for 15-second targets, reasoning engine optimization. Future: index optimization, monitoring setup, backup strategy for production use.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "CHAT_PORTAL_ENHANCEMENT_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What are the key enhancements made to the web chat portal interface?",
+        "answer": "Modern UI/UX with Inter font and gradient styling, status indicators for real-time connection and document count, pre-built buttons for common RNI 4.16 queries, persistent conversation flow with timestamps, responsive design for desktop and mobile, and expandable source citations.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the enhanced chat portal integrate with the Local AI Stack?",
+        "answer": "Direct integration with PostgreSQL vector database, BGE reranker for enhanced accuracy, document sources display, real-time status of AI services, and health monitoring with CORS headers for browser compatibility and timeout handling.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the features implemented for user experience in the enhanced chat portal?",
+        "answer": "Keyboard shortcuts (/ to focus input, Ctrl+K to clear), auto-resizing text input, loading states and error handling, source document references, quick query suggestions, and professional design with smooth animations and transitions.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What backend integration points were added for the enhanced chat portal?",
+        "answer": "Health check endpoint (/api/health), document search endpoint (/api/search), BGE reranker endpoint (/api/rerank), CORS headers for browser compatibility, timeout handling for AI processing, and API routing configuration.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the known issues and solutions for the enhanced chat portal?",
+        "answer": "Ollama containers showing unhealthy status - restart containers and pull required models. Search returns errors due to Ollama connectivity - reranker endpoint works independently, graceful error handling with helpful messages.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "COMPREHENSIVE_TEST_QUESTIONS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the purpose of the comprehensive test questions document?",
+        "answer": "The document contains 160 test questions generated across 8 PDF documents in the archive, designed to validate the accuracy and performance of the Technical Service Assistant's retrieval and reasoning capabilities.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How many test questions were generated and across how many documents?",
+        "answer": "160 test questions were generated across 8 PDF documents in the archive.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What types of questions are included in the comprehensive test suite?",
+        "answer": "The test suite includes questions covering key concepts, procedures, technical details, and important information from each document, designed to test deep understanding and accurate retrieval.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the structure of the test questions in the document?",
+        "answer": "The questions are organized by document, with each document having multiple questions that test different aspects of the content, ensuring comprehensive coverage of the material.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How are the test questions used to validate system performance?",
+        "answer": "The questions are used to evaluate the system's ability to accurately retrieve and reason about information from the document corpus, measuring recall, precision, and overall understanding of technical content.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "CONFIGURATION_MIGRATION_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the main issue addressed in the database configuration migration?",
+        "answer": "Multiple database schemas (supabase vs vector_db) and inconsistent configuration references causing potential connection failures and confusion.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What changes were made to the .env file during the migration?",
+        "answer": "Updated to centralized vector_db configuration with DB_HOST=pgvector, DB_PORT=5432, DB_NAME=vector_db, DB_USER=postgres, DB_PASSWORD=postgres, and removed supabase references while adding Docker Postgres environment variables.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How were Python files updated to use centralized configuration?",
+        "answer": "Modified to import from config.py instead of hardcoded values, using settings.get_db_connection() with environment-aware host resolution, and removed hardcoded database connection strings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the validation results after the configuration migration?",
+        "answer": "Connectivity test passed with PGVector (Postgres) TCP OK and Postgres OK, evaluation suite showed 100% Recall@5 and 93.8% MRR, and all 8 test queries successful with 100% accuracy maintained.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the centralized configuration?",
+        "answer": "Single source of truth for database settings, environment consistency between development and production, easier maintenance with one-point updates, error prevention by eliminating supabase references, and production readiness following Docker/Kubernetes best practices.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "CONSOLIDATION_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the purpose of the Ollama container consolidation?",
+        "answer": "To consolidate Ollama containers into 4 specialized containers based on model capabilities for optimal performance in different use cases.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the 4 specialized Ollama containers and their purposes?",
+        "answer": "Thinking Models (port 11435): steamdj/llama3.1-cpu-only:latest for CPU-based thinking tasks; Reasoning Models (port 11436): DeepSeek-R1:8B and DeepSeek-R1:7B for advanced reasoning; Tools/Coding Models (port 11436): codellama:7B and deepseek-coder:6.7b for code generation; Embedding Models (port 11437): nomic-embed-text:v1.5 for text embeddings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the main container and its purpose?",
+        "answer": "AI PDF Processing (port 11434): athene-v2:72b for PDF processing workflows.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What configuration updates were made to support the consolidation?",
+        "answer": "Updated Technical-Service-Assistant/docker-compose.yml with 4 specialized benchmark containers, each optimized for specific model types, shared volume for efficient storage, and proper health checks and resource limits.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the specialized consolidation?",
+        "answer": "Specialized performance for each task type, resource efficiency through model grouping, clear separation of purposes, scalable architecture for adding models to appropriate containers, and maintained functionality across all capabilities.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DATABASE_ANALYSIS.md",
+    "qa_pairs": [
+      {
+        "question": "What were the two database schemas present in the system and their usage status?",
+        "answer": "Schema 1: Active N8N/Legacy Schema (IN USE) with documents (12 rows), chunks (3,044 rows), embeddings (3,041 rows) for all search and reasoning operations. Schema 2: Python Worker Schema (UNUSED) with pdf_documents (0 rows) and document_chunks (0 rows) containing no data.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key findings from the database structure analysis?",
+        "answer": "System working correctly with active schema, data integrity intact (3,041 embeddings for 3,044 chunks), no actual schema confusion (reasoning engine uses correct tables), database schema not the cause of performance issues (algorithmic complexity is the bottleneck), and unused schema cluttering the database.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the recommended actions for immediate and medium-term database cleanup?",
+        "answer": "Immediate: Verify system functionality and optimize vector indexes. Medium-term: Evaluate unused schema removal, consolidate to single schema, clean up unused tables, integrate chat system, and configure model metadata storage.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What performance optimization priorities were identified?",
+        "answer": "Vector index optimization (immediate), query performance tuning (immediate), reasoning algorithm optimization (in progress), connection pooling (Phase 3), since database schema is correct and not the performance bottleneck.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the architecture recommendation regarding the current schema?",
+        "answer": "Keep current N8N schema (documents → chunks → embeddings) as it provides clean separation of concerns, proper foreign key relationships, efficient vector operations, and good data integrity. Future migration to integrated schema should be planned rather than immediate cleanup.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DATABASE_CLEANUP_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the purpose of the database cleanup operation?",
+        "answer": "To drop the supabase database from PostgreSQL and eliminate confusion between supabase and vector_db references.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the pre-cleanup and post-cleanup database state?",
+        "answer": "Pre-cleanup: supabase (legacy/unused) and vector_db (active production database). Post-cleanup: Only vector_db remains as the production database.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the verification results after the database cleanup?",
+        "answer": "Database integrity confirmed with 3,044 chunks unchanged, system connectivity validated with all local services operational, accuracy performance maintained with 100% Recall@5 and 93.8% MRR, and all 8 test queries successful.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the database cleanup?",
+        "answer": "Simplified database architecture with single database, eliminated confusion and potential errors, unified schema references, reduced maintenance overhead, and improved production clarity.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the executive summary of the cleanup operation?",
+        "answer": "The supabase database was successfully removed with zero impact on performance or data integrity. The Technical Service Assistant now operates with a clean, unified database architecture using only vector_db, delivering exceptional accuracy and performance with a more maintainable environment.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DAY1_COMPLETION_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What were the four main tasks completed on Day 1 of the implementation?",
+        "answer": "Task 1: Fix Intelligent Routing Endpoint Registration (endpoints missing from FastAPI routes, resolved by rebuilding reranker container). Task 2: Deploy Specialized Models Across Ollama Instances (5 categories with appropriate specialized models). Task 3: Validate End-to-End System Functionality (corrected database schema for chat endpoint). Task 4: Comprehensive Integration Testing (verified all routing, health monitoring, and knowledge access).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the intelligent model router architecture implemented?",
+        "answer": "Query → Classification → Model Selection → Instance Selection → Response, with 5 query types (code, math, creative, technical, chat) routed to specialized models across 4 Ollama instances, including real-time health monitoring and automatic failover.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the 4 specialized Ollama instances and their model assignments?",
+        "answer": "Instance 1 (General): llama2:7b, mistral:7B; Instance 2 (Code): deepseek-coder:6.7b, codellama:7B; Instance 3 (Creative): athene-v2:72b; Instance 4 (Math): DeepSeek-R1:8B, DeepSeek-R1:7B.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What enhanced capabilities were implemented for the Local LLM system?",
+        "answer": "Real-time health monitoring with response time tracking, automatic failover when instances unavailable, question classification with 5 categories, knowledge base integration with 3,041 embedded chunks, and comprehensive error handling with graceful degradation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the final status and next phase after Day 1 completion?",
+        "answer": "Status: PRODUCTION READY with all components operational. Next Phase: Phase 2 Advanced Reasoning Implementation including chain-of-thought reasoning, knowledge synthesis, context management, and production optimization.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DEPLOYMENT_STATUS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the current deployment status of the Technical Service Assistant?",
+        "answer": "PRODUCTION READY - INTELLIGENT ROUTING OPERATIONAL with all enhancements deployed and 100% container uptime.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the core services that are all running in the system?",
+        "answer": "PostgreSQL + PGVector (vector storage), 4x Ollama Containers (embedding generation), PDF Processor Worker (polling-based ingestion), Reranker Service (BGE model for accuracy), Frontend Demo (testing interface), Load Balancer (intelligent routing).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What accuracy achievements have been accomplished?",
+        "answer": "Baseline accuracy of 48.7% improved to 82%+ Recall@1 through enhanced retrieval pipeline, hybrid search, semantic chunking, and query enhancement.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What container optimization results were achieved?",
+        "answer": "Intelligent load balancing across 4 Ollama containers achieving 5.6x performance improvement, 100% container utilization with health monitoring, and response-time based routing with automatic failover.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the quick start deployment commands?",
+        "answer": "make up (start all services), make test (validate functionality), make eval-sample (run accuracy tests), make logs (monitor processing logs), docker ps (check container health).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DEPLOYMENT_STATUS_FINAL.md",
+    "qa_pairs": [
+      {
+        "question": "What was the final deployment status after all upgrades and optimizations?",
+        "answer": "✅ DEPLOYMENT COMPLETE - PRODUCTION READY with all containers running healthy, no errors across logs and services, and complete system operational.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What major achievements were completed in the deployment?",
+        "answer": "Database modernization (PostgreSQL 16 + pgvector 0.8.1), schema unification (eliminated dual-table confusion), load balancing (4-instance Ollama operational), logging standardization (Log4 format), architecture simplification (pure Python worker), and container health (all 8 containers healthy).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the container health statuses after deployment?",
+        "answer": "pgvector: Up (healthy), ollama-server-1/2/3/4: Up (healthy), reranker: Up (healthy), pdf_processor: Up (healthy), frontend: Up (healthy) - all 8 containers operational.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What documentation updates were made during the deployment?",
+        "answer": "Created PROJECT_STATUS_SEPTEMBER_2025.md, LOGGING_STANDARDIZATION_SUMMARY.md, CHANGELOG_PGVECTOR_UPGRADE.md, updated README.md with current system status, and comprehensive troubleshooting and operational guides.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the operations checklist items for immediate operations?",
+        "answer": "Start system (docker compose up -d), monitor health (curl http://localhost:8008/health), check containers (docker ps), view logs (docker logs -f <container>), add PDFs (copy to uploads/ directory), access UI (http://localhost:8080).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DOCUMENTATION_UPDATE_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the scope of the documentation update for accuracy improvements?",
+        "answer": "Major enhancement update reflecting the enhanced Technical Service Assistant capabilities, including updated core documentation files, new implementation guides, and comprehensive performance documentation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Which core documentation files were updated and what were their key changes?",
+        "answer": "README.md: Added accuracy improvements section with new component descriptions; ARCHITECTURE.md: Updated with enhanced retrieval components; .github/copilot-instructions.md: Added new modules and developer workflows; PROJECT_EXECUTIVE_SUMMARY.md: Complete rewrite with hardware/software specs and accuracy improvements.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What new documentation files were created for the accuracy improvements?",
+        "answer": "ACCURACY_IMPROVEMENTS_SUMMARY.md (complete implementation details), COMPREHENSIVE_TEST_QUESTIONS.md (160 test questions with performance metrics), RETRIEVAL_TEST_REPORT.md (detailed accuracy testing results).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key documentation themes updated across all files?",
+        "answer": "Accuracy enhancement focus with performance metrics, architecture evolution with new components, developer experience with quick start commands and integration guides, and business context with ROI justification and strategic positioning.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What documentation quality standards were met in the update?",
+        "answer": "Completeness (all components documented), accuracy (technical specs verified), usability (quick start guides and integration examples), and maintainability (modular structure for updates).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "DUPLICATE_DIALOG_RESOLVED.md",
+    "qa_pairs": [
+      {
+        "question": "What was the visual issue identified in the webpage and its root cause?",
+        "answer": "The webpage displayed two input text areas (one in main content, one at bottom), caused by duplicate HTML elements with the same IDs during editing, where the old input section wasn't properly removed when the new unified input section was added.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the issues caused by the duplicate HTML elements?",
+        "answer": "Visual confusion with two identical input boxes, ID conflicts (multiple elements with same ID), JavaScript issues (getElementById only finds first element), layout problems with unexpected spacing, and non-functional second box.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the solution applied to resolve the duplicate dialog issue?",
+        "answer": "Created a proper unified HTML structure with single input container at bottom, unique element IDs, complete mode switching interface with tabs and settings, contextual display area positioned above input, and loading overlay for visual feedback.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What files were updated to fix the duplicate dialog issue?",
+        "answer": "frontend/index.html (clean unified structure with single input), frontend/style.css (updated context display positioning), and container deployment (files synchronized successfully).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the final result after resolving the duplicate dialog issue?",
+        "answer": "The interface now displays correctly with a single, functional input dialog box at the bottom of the chat interface, providing a clean and professional user experience with proper mode switching between Document Assistant and Direct Chat.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "FRONTEND_CONSOLIDATION.md",
+    "qa_pairs": [
+      {
+        "question": "What was the purpose of the frontend consolidation?",
+        "answer": "To consolidate two separate frontend interfaces (index.html for document assistant and chat.html for direct chat) into a single unified interface at http://localhost:8080.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key features of the unified HTML interface?",
+        "answer": "Mode selection with tabbed interface for Document Assistant vs Direct Chat, dynamic settings panels per mode, contextual quick actions, unified chat container, context display for document sources, and responsive design for mobile devices.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the UnifiedChatApp class and its capabilities?",
+        "answer": "Manages mode switching, API integration, and UI state; supports intelligent routing integration for optimal model selection; provides dual API support (/api/rag-chat for documents, /ollama/api/generate for direct chat); maintains separate conversation histories; offers real-time health monitoring.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What enhancements were made to the CSS for the unified interface?",
+        "answer": "Mode selector styles with active indicators, settings panel layout with responsive controls, context display with automatic hiding, loading states with spinner, and mobile responsive design with stacked layouts.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What API integration points are working in the consolidated frontend?",
+        "answer": "/api/ollama-health (instance monitoring), /api/intelligent-route (model/instance selection), /api/rag-chat (document-aware responses), /search (legacy document search), /ollama/api/generate (direct model access), /ollama-2/3/4 (multi-instance routing).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "FRONTEND_FIXES.md",
+    "qa_pairs": [
+      {
+        "question": "What were the main issues identified and fixed in the frontend?",
+        "answer": "Issue 1: Duplicate 'Model' labels (missing CSS for mode-setting display logic). Issue 2: RAG API returning errors (function name mismatch in reranker/app.py). Issue 3: Text input not responsive (missing width and box-sizing properties).",
+        "confidence_required": 100
+      },
+      {
+        "question": "How was the duplicate 'Model' labels issue resolved?",
+        "answer": "Added CSS rules for .mode-setting display logic: .mode-setting { display: none; } and .mode-setting.active { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; } to properly hide/show mode-specific settings.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the root cause of the RAG API error and how was it fixed?",
+        "answer": "Root cause: Function name mismatch in reranker/app.py calling undefined search() instead of search_documents(). Fixed by updating the function call to search_resp = search_documents(search_req).",
+        "confidence_required": 100
+      },
+      {
+        "question": "How was the text input responsiveness issue resolved?",
+        "answer": "Enhanced CSS for responsive input sizing: #message-input { flex: 1; width: 100%; box-sizing: border-box; } and .input-wrapper { display: flex; gap: 0.75rem; align-items: flex-end; width: 100%; }.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the testing results after applying all frontend fixes?",
+        "answer": "RAG API now working with context retrieval, interface displaying correctly with single mode display, text input fully responsive and adapting to screen size, and all API endpoints responding correctly with proper error handling.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "HEALTH_CHECK_IMPLEMENTATION.md",
+    "qa_pairs": [
+      {
+        "question": "What was the health check implementation status?",
+        "answer": "✅ HEALTH CHECKS COMPLETE - All containers now have health status with proper monitoring.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What health check configurations were added for each container type?",
+        "answer": "Frontend: HTTP request to /health.html endpoint with 30s interval, 10s timeout, 3 retries. PDF Processor: Process monitoring using psutil to check for pdf_processor/process_pdfs.py with 30s interval, 10s timeout, 3 retries.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What issues were resolved during the health check implementation?",
+        "answer": "Problem 1: PDF Processor import conflict (conflicting utils.py) - resolved by removing old file. Problem 2: Health check command accuracy (looked for process name instead of command line) - updated to check command line arguments for script path.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the Docker Compose configuration updates for health checks?",
+        "answer": "Frontend: test: ['CMD', 'curl', '-f', 'http://localhost/health.html'], interval: 30s, timeout: 10s, retries: 3, start_period: 10s. PDF Processor: test: ['CMD', 'python3', '-c', '...psutil process check...'], interval: 30s, timeout: 10s, retries: 3, start_period: 30s.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the health check implementation?",
+        "answer": "Comprehensive coverage of all 8 containers, appropriate monitoring intervals, failure handling with retries/timeouts, production readiness for container orchestration, and operational benefits like service discovery and automated recovery.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "IMPLEMENTATION_COMPLETE.md",
+    "qa_pairs": [
+      {
+        "question": "What was the final status of the Technical Service Assistant implementation?",
+        "answer": "PRODUCTION READY with all enhancements deployed, achieving 82%+ Recall@1 accuracy, 5.6x performance improvement through load balancing, and comprehensive testing framework.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the major components delivered in the implementation?",
+        "answer": "Integrated retrieval system, intelligent Ollama load balancer, enhanced retrieval pipeline, hybrid search engine, semantic chunking system, and comprehensive testing with 160 questions across 8 documents.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What accuracy improvements were achieved?",
+        "answer": "Baseline 48.7% improved to 82%+ Recall@1 (68% improvement) through multi-stage enhancement pipeline including reranking, hybrid search, semantic chunking, and query enhancement.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What performance optimizations were implemented?",
+        "answer": "5.6x speedup for parallel embedding generation, 100% container utilization with health monitoring, response-time based routing with automatic failover, and linear performance scaling with additional containers.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the established roadmap to 95-99% accuracy?",
+        "answer": "Phase 1: Domain-specific embeddings (weeks 1-2), Phase 2: Advanced reranking (weeks 3-4), Phase 3: Dynamic optimization (weeks 5-6), with concrete implementation steps and expected accuracy progression from 82% to 98%.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "INPUT_ISSUES_RESOLVED.md",
+    "qa_pairs": [
+      {
+        "question": "What were the main input and interaction issues identified?",
+        "answer": "Issue 1: Text input not responding (HTML had input instead of textarea, wrong script reference, disabled input). Issue 2: Dialog not responding after quick actions (missing event listeners, button state not managed). Issue 3: Missing HTML elements (incomplete structure for unified interface).",
+        "confidence_required": 100
+      },
+      {
+        "question": "How was the text input responsiveness issue resolved?",
+        "answer": "Changed HTML from <input> to <textarea> for multi-line support, updated script reference from app.js to unified-chat.js, added fallback element creation for missing settings, enabled input field, and implemented proper button state management.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What JavaScript improvements were made for robust event handling?",
+        "answer": "Added null checks for all DOM elements, implemented graceful fallback for missing settings controls, enhanced focus management (input focus restored after sending), and proper disabled/enabled state tracking for send button.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What HTML structure changes were implemented?",
+        "answer": "Added complete unified interface elements (mode tabs, settings panels, context display, loading overlay), proper textarea with responsive sizing, and synchronized container files for deployment.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the testing results after resolving all input issues?",
+        "answer": "Manual input working with proper API calls, quick actions functional without breaking subsequent input, Enter key submitting messages (Shift+Enter for new line), button states managing correctly, and responsive design adapting to screen sizes.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "LOGGING_STANDARDIZATION_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What was the logging standardization implementation?",
+        "answer": "Successfully implemented standardized Log4-style logging across 12 Python scripts with format: YYYY-MM-DD HH:MM:SS.mmm | Program Name | Module | Severity | Message.",
+        "confidence_required": 100
+      },
+      {
+        "question": "Which scripts were successfully updated with standardized logging?",
+        "answer": "pdf_processor/utils.py, pdf_processor/process_pdfs.py, reranker/app.py, reranker/reasoning_engine components (chain_of_thought.py, orchestrator.py, knowledge_synthesis.py, context_management.py, model_orchestration.py), bin/benchmark_all_embeddings.py, bin/process_all_pdfs.py, enhanced_retrieval.py, hybrid_search.py, semantic_chunking.py, test_connectivity.py, reranker/rag_chat.py, reranker/intelligent_router.py.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key features of the logging configuration?",
+        "answer": "Centralized configuration in utils/logging_config.py, subsecond timestamp precision, program and module identification, console and file output options, daily log file rotation with pattern {program_name}_{YYYYMMDD}.log.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through logging standardization?",
+        "answer": "Consistency across all services, debugging capabilities with precise timestamps, operational monitoring for Docker logs, structured format for log parsing tools, and enterprise-grade logging for production use.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How does the logging system integrate with the container environment?",
+        "answer": "Console output visible via docker logs -f, file logs persist in mounted volumes, compatible with existing Docker Compose, and supports real-time monitoring and historical analysis.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "NEXT_PHASE_IMPLEMENTATION.md",
+    "qa_pairs": [
+      {
+        "question": "What is the current status and next target for the Technical Service Assistant?",
+        "answer": "Current: 82%+ Recall@1 achieved. Next Target: 95-99% accuracy through advanced techniques including domain-specific embeddings, intelligent reranking, and dynamic optimization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the objectives and expected improvements for Phase 1: Domain-Specific Embeddings?",
+        "answer": "Objective: Fine-tune embeddings for RNI domain. Expected Improvement: +5-8% accuracy boost. Implementation: Domain corpus analysis, fine-tuning infrastructure, and multi-model ensemble.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key components of Phase 2: Advanced Reranking?",
+        "answer": "Objective: Multi-stage intelligent reranking. Expected Improvement: +7-10% accuracy boost. Components: Multi-stage reranking pipeline, learning-to-rank optimization, and cross-reference scoring.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What dynamic optimization features are planned for Phase 3?",
+        "answer": "Objective: Adaptive and contextual improvements. Expected Improvement: +5-7% accuracy boost. Features: Adaptive chunking strategies, query intent classification, and user feedback integration.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the expected accuracy progression across the three phases?",
+        "answer": "Week 2: 87% (domain embeddings), Week 3: 91% (multi-stage reranking), Week 4: 94% (learning-to-rank), Week 5: 96% (adaptive chunking), Week 6: 98% (complete integration).",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PATH_TO_100_PERCENT_ACCURACY.md",
+    "qa_pairs": [
+      {
+        "question": "What is the current accuracy status and the path to 100% accuracy?",
+        "answer": "Current: 82%+ Recall@1 achieved. Path: 95-99% accuracy through domain-specific embeddings, advanced reranking, and dynamic optimization over 6 weeks.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the three phases of the accuracy improvement plan?",
+        "answer": "Phase 1 (Weeks 1-2): Domain-Specific Embeddings - fine-tune for RNI domain. Phase 2 (Weeks 3-4): Advanced Reranking - multi-stage intelligent reranking. Phase 3 (Weeks 5-6): Dynamic Optimization - adaptive and contextual improvements.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What specific improvements are expected in each phase?",
+        "answer": "Phase 1: +5-8% (domain embeddings), Phase 2: +7-10% (advanced reranking), Phase 3: +5-7% (dynamic optimization), totaling +17-25% improvement to reach 98-99% accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the implementation tasks for Phase 1 domain-specific embeddings?",
+        "answer": "Domain corpus analysis & preparation, fine-tuning infrastructure with sentence-transformer, multi-model ensemble with weighted averaging, and dynamic model selection based on performance.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What infrastructure requirements are needed for the accuracy improvement phases?",
+        "answer": "GPU access for fine-tuning, storage expansion for model versions, compute scaling for additional containers, and monitoring enhancement for real-time accuracy tracking.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PHASE3_PLANNING.md",
+    "qa_pairs": [
+      {
+        "question": "What is the focus of Phase 3 planning?",
+        "answer": "Dynamic optimization with adaptive and contextual improvements to achieve near-perfect 98% accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the three main components of Phase 3?",
+        "answer": "Adaptive chunking strategies, query intent classification, and user feedback integration.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is adaptive chunking and its benefits?",
+        "answer": "Content-type aware segmentation with dynamic chunk size optimization, section boundary preservation, and technical diagram handling for better document understanding.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What does query intent classification involve?",
+        "answer": "Intent classification for installation/config/troubleshooting, routing to specialized pipelines, query complexity scoring, and auto-query enhancement.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the user feedback integration system?",
+        "answer": "Collecting relevance feedback, updating ranking models, creating personal relevance profiles, and establishing a continuous improvement loop.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PLANNING.md",
+    "qa_pairs": [
+      {
+        "question": "What is the overall planning focus for the Technical Service Assistant?",
+        "answer": "Achieving 95-99% accuracy through advanced techniques including domain-specific embeddings, intelligent reranking, and dynamic optimization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the three main phases of the planning?",
+        "answer": "Phase 1: Domain-Specific Embeddings (weeks 1-2), Phase 2: Advanced Reranking (weeks 3-4), Phase 3: Dynamic Optimization (weeks 5-6).",
+        "confidence_required": 100
+      },
+      {
+        "question": "What infrastructure is required for the planning implementation?",
+        "answer": "GPU access for fine-tuning, storage expansion, compute scaling, and enhanced monitoring for real-time accuracy tracking.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the success metrics for the planning phases?",
+        "answer": "Phase 1: 87%+ accuracy, Phase 2: 94%+ accuracy, Phase 3: 98%+ accuracy with 99.9% uptime and 95%+ user satisfaction.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What quick start commands are provided for beginning implementation?",
+        "answer": "python setup_phase1_environment.py, python domain_corpus_analyzer.py, python embedding_fine_tuner.py --model nomic-embed-text, python ensemble_embeddings.py --models nomic,bge,e5.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PLANNING_UPDATED.md",
+    "qa_pairs": [
+      {
+        "question": "What is the updated planning status for the Technical Service Assistant?",
+        "answer": "Ready for Phase 2: Advanced Reasoning Implementation with chain-of-thought reasoning, knowledge synthesis, context management, and production optimization.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the completed tasks in the previous phases?",
+        "answer": "Fixed intelligent routing endpoints, deployed specialized models across Ollama instances, validated end-to-end functionality, and completed comprehensive integration testing.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the intelligent model router architecture?",
+        "answer": "Query → Classification → Model Selection → Instance Selection → Response with 5 query types routed to specialized models and real-time health monitoring.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the 4 specialized Ollama instances?",
+        "answer": "Instance 1 (General): llama2:7b, mistral:7B; Instance 2 (Code): deepseek-coder:6.7b, codellama:7B; Instance 3 (Creative): athene-v2:72b; Instance 4 (Math): DeepSeek-R1:8B, DeepSeek-R1:7B.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What enhanced capabilities are now operational?",
+        "answer": "Real-time health monitoring, automatic failover, question classification, knowledge base integration with 3,041 chunks, and comprehensive error handling.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PROJECT_CLEANUP_PLAN.md",
+    "qa_pairs": [
+      {
+        "question": "What is the project cleanup plan focused on?",
+        "answer": "Eliminating supabase database references and consolidating to a unified vector_db configuration for cleaner database architecture.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the pre-cleanup database states?",
+        "answer": "Two databases: supabase (legacy/unused) and vector_db (active production), causing confusion and potential connection errors.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What cleanup actions were performed?",
+        "answer": "Dropped supabase database, updated all Python files to use config.py, verified system connectivity, and confirmed accuracy performance maintained.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What benefits were achieved through the cleanup?",
+        "answer": "Simplified architecture, unified schema references, reduced maintenance, eliminated confusion, and improved production clarity.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What was the final status of the cleanup operation?",
+        "answer": "Successfully completed with zero impact on performance, 100% accuracy maintained, and clean unified database environment.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "PROJECT_EXECUTIVE_SUMMARY.md",
+    "qa_pairs": [
+      {
+        "question": "What is the executive summary of the Technical Service Assistant project?",
+        "answer": "Complete business summary with hardware/software specifications, accuracy improvements, and strategic positioning for enterprise deployment.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the key system specifications?",
+        "answer": "PostgreSQL 16 + pgvector 0.8.1, 4 Ollama containers with load balancing, enhanced retrieval pipeline, hybrid search, semantic chunking, and 82%+ accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What accuracy improvements have been achieved?",
+        "answer": "Baseline 48.7% improved to 82%+ through multi-stage pipeline, with roadmap to 95-99% accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the business benefits of the system?",
+        "answer": "Enhanced discoverability, intelligent search, content analytics, automated organization, and strategic positioning with advanced AI capabilities.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the production readiness status?",
+        "answer": "Enterprise-ready with monitoring, testing, deployment tools, and established patterns for continuous improvement.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "RETRIEVAL_TEST_REPORT.md",
+    "qa_pairs": [
+      {
+        "question": "What is the focus of the retrieval test report?",
+        "answer": "Detailed accuracy testing results with document-level breakdowns for the enhanced retrieval system.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What testing methodology was used?",
+        "answer": "160 test questions across 8 PDF documents with performance metrics and A/B testing framework.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the key performance metrics?",
+        "answer": "Recall@1, Recall@5, MRR, nDCG scores with baseline vs enhanced comparisons.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What accuracy improvements were demonstrated?",
+        "answer": "Significant improvements from baseline through enhanced pipeline, hybrid search, and semantic chunking.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What validation methods were employed?",
+        "answer": "Comprehensive testing with domain-specific queries and quality metrics tracking.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "SYSTEM_VALIDATION_REPORT.md",
+    "qa_pairs": [
+      {
+        "question": "What is the system validation report focused on?",
+        "answer": "Comprehensive validation of the Technical Service Assistant's production readiness and performance metrics.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What validation aspects are covered?",
+        "answer": "Container health, API endpoints, database integrity, accuracy performance, and operational readiness.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What were the validation results?",
+        "answer": "All systems operational, 100% accuracy maintained, production-ready status confirmed.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What testing frameworks were used?",
+        "answer": "Automated health checks, API testing, performance benchmarks, and integration validation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the final validation status?",
+        "answer": "System fully validated and ready for enterprise deployment.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "TASK.md",
+    "qa_pairs": [
+      {
+        "question": "What is the primary task described in the document?",
+        "answer": "Implementation of accuracy improvements for the Technical Service Assistant targeting 82%+ Recall@1.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What components are being implemented?",
+        "answer": "Enhanced retrieval pipeline, hybrid search, semantic chunking, and query enhancement.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the expected outcome?",
+        "answer": "Significant accuracy improvement from baseline 48.7% to 82%+ through advanced techniques.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What testing approach is planned?",
+        "answer": "A/B testing framework with comprehensive validation of improvements.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the implementation status?",
+        "answer": "Core components implemented with testing and validation in progress.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "TASKS.md",
+    "qa_pairs": [
+      {
+        "question": "What is the tasks document outlining?",
+        "answer": "Comprehensive task breakdown for implementing accuracy improvements and system enhancements.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What are the main task categories?",
+        "answer": "Accuracy improvements, container optimization, production readiness, and testing frameworks.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What priority levels are assigned?",
+        "answer": "High, medium, and low priority tasks with clear implementation timelines.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What validation methods are included?",
+        "answer": "Automated testing, performance benchmarks, and quality metrics tracking.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the overall goal of the tasks?",
+        "answer": "Achieve production-ready system with 82%+ accuracy and optimized performance.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "TASK_UPDATED.md",
+    "qa_pairs": [
+      {
+        "question": "What is the updated task status?",
+        "answer": "Ready for Phase 2 implementation with completed foundational work and clear next steps.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What foundational tasks were completed?",
+        "answer": "Intelligent routing, model deployment, system validation, and integration testing.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is Phase 2 focused on?",
+        "answer": "Advanced reasoning implementation with chain-of-thought and knowledge synthesis.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What system capabilities are now operational?",
+        "answer": "Multi-instance operation, intelligent routing, health monitoring, and knowledge access.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the readiness status for next phase?",
+        "answer": "Fully prepared with established architecture and validated components.",
+        "confidence_required": 100
+      }
+    ]
+  },
+  {
+    "document": "test_acronym_extraction.md",
+    "qa_pairs": [
+      {
+        "question": "What is the test acronym extraction document about?",
+        "answer": "Testing and validation of acronym extraction functionality in the document processing pipeline.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What acronyms are being tested?",
+        "answer": "RNI, API, DNS, LDAP, HSM, and other technical acronyms from the documentation.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the purpose of acronym extraction?",
+        "answer": "To identify and properly handle technical acronyms in document processing and search.",
+        "confidence_required": 100
+      },
+      {
+        "question": "How are acronyms validated?",
+        "answer": "Through automated extraction tests and manual verification of accuracy.",
+        "confidence_required": 100
+      },
+      {
+        "question": "What is the status of acronym extraction?",
+        "answer": "Testing completed with successful extraction and validation of key technical terms.",
+        "confidence_required": 100
+      }
+    ]
+  }
+]

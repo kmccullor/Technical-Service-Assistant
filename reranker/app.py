@@ -8,10 +8,19 @@ import uvicorn
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+import json
+import asyncio
+import logging
 
-# Simple chat implementation
+logger = logging.getLogger(__name__)
+
+# Import auth endpoints
+from rbac_endpoints import router as auth_router
+from cache import get_db_connection
+from rag_chat import RAGChatService, add_rag_endpoints
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -19,234 +28,168 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Unified RAG Chat request
-class RAGChatRequest(BaseModel):
-    """RAG-enhanced chat request following Pydantic AI patterns."""
-    query: str = Field(..., description="User question or prompt")
-    use_context: bool = Field(True, description="Whether to retrieve document context")
-    use_web_fallback: bool = Field(True, description="Whether to use web fallback")
-    max_context_chunks: int = Field(10, description="Number of context chunks to retrieve")
-    model: str = Field("mistral:7b", description="Ollama model to use for generation")
-    privacy_filter: str = Field("public", description="Privacy filter: 'public', 'private', or 'all'")
-    temperature: float = Field(0.7, ge=0.0, le=2.0, description="Generation temperature")
-    max_tokens: int = Field(512, ge=64, le=2048, description="Maximum tokens to generate")
-    confidence_threshold: float = Field(0.3, ge=0.0, le=1.0, description="Confidence threshold")
+# Initialize RAG service
+rag_service = RAGChatService()
+
+# Include RAG endpoints
+add_rag_endpoints(app)
+
+# Include auth endpoints
+app.include_router(auth_router)
 
 
-class RAGChatResponse(BaseModel):
-    """RAG-enhanced chat response with context metadata."""
-    response: str = Field(..., description="Generated response text")
-    context_used: List[str] = Field(default_factory=list, description="Retrieved context chunks")
-    model: str = Field(..., description="Model used for generation")
-    context_retrieved: bool = Field(..., description="Whether context was retrieved and used")
-    confidence_score: float = Field(0.0, ge=0.0, le=1.0, description="Confidence in RAG response (0-1)")
-    search_method: str = Field("rag", description="Search method used: 'rag', 'web', or 'hybrid'")
-    fusion_metadata: Optional[dict] = Field(
-        default=None, description="Metadata about fusion when search_method='fusion'"
-    )
-    source_metadata: Optional[List[dict]] = Field(
-        default=None, description="Metadata for source documents with download links"
-    )
-    event_id: Optional[int] = Field(default=None, description="Analytics event id for feedback linkage")
-    tokens_input: Optional[int] = Field(default=None, description="Number of input tokens processed")
-    tokens_output: Optional[int] = Field(default=None, description="Number of output tokens generated")
-    tokens_total: Optional[int] = Field(default=None, description="Total tokens (input + output)")
-    tokens_per_second: Optional[float] = Field(default=None, description="Token generation rate (tokens/second)")
-    response_time_ms: Optional[int] = Field(default=None, description="Total response time in milliseconds")
+class ChatRequest(BaseModel):
+    conversationId: Optional[int] = None
+    message: str
+    displayMessage: Optional[str] = None
 
 
-# Keep placeholder endpoints for now
+class ConversationSummary(BaseModel):
+    id: int
+    title: str
+    createdAt: str
+    updatedAt: Optional[str] = None
 
 
-def get_db_connection():
-    """Get database connection."""
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "pgvector"),
-        port=int(os.getenv("DB_PORT", "5432")),
-        database=os.getenv("DB_NAME", "vector_db"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", ""),
-    )
+class MessageInfo(BaseModel):
+    id: int
+    role: str
+    content: str
+    citations: Optional[List[dict]] = None
+    createdAt: str
+
+
+class ConversationDetail(BaseModel):
+    id: int
+    title: str
+    createdAt: str
+    updatedAt: Optional[str] = None
+    messages: List[MessageInfo]
+
+
+class ConversationListResponse(BaseModel):
+    conversations: List[ConversationSummary]
+    total: int
+    hasMore: bool
 
 
 @app.post("/api/chat")
-async def chat_endpoint(request: RAGChatRequest):
-    """Chat endpoint that calls Ollama for real responses."""
-    from fastapi.responses import StreamingResponse
-    import json
-    import asyncio
-    import httpx
+async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Header(None)):
+    """Streaming chat endpoint with RAG integration."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conversation_id = None
 
     async def generate():
+        nonlocal conversation_id
         try:
-            # Send sources first (placeholder for now)
-            sources_data = {
-                "context_used": ["Sample context from knowledge base"],
-                "confidence_score": 0.8,
-                "search_method": "rag",
-                "source_metadata": [
-                    {
-                        "title": "Technical Documentation",
-                        "file_name": "docs.pdf",
-                        "document_type": "manual",
-                        "product_name": "Technical Service Assistant",
-                        "page_number": 1,
-                        "section_title": "Overview"
-                    }
-                ]
-            }
-
-            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data['context_used'], 'confidence': sources_data['confidence_score'], 'method': sources_data['search_method']})}\n\n"
-
-            # Call Ollama for actual response
-            ollama_url = os.getenv("OLLAMA_URL", "http://ollama-server-1:11434")
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{ollama_url}/api/generate",
-                    json={
-                        "model": "mistral:7b",
-                        "prompt": request.query,
-                        "stream": True,
-                        "options": {
-                            "temperature": request.temperature,
-                            "num_predict": request.max_tokens,
-                        }
-                    }
+            # Handle conversation creation/loading
+            if request.conversationId is None:
+                # Create new conversation
+                conn = get_db_connection()
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                cursor.execute(
+                    "INSERT INTO conversations (title) VALUES (%s) RETURNING id",
+                    [request.displayMessage or request.message[:50]]
                 )
+                result = cursor.fetchone()
+                if result:
+                    conversation_id = result["id"]
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to create conversation")
+                conn.commit()
+                cursor.close()
+                conn.close()
 
-                if response.status_code != 200:
-                    yield f"data: {json.dumps({'type': 'error', 'error': 'Failed to generate response'})}\n\n"
-                    return
+                yield f"data: {json.dumps({'type': 'conversation_id', 'conversationId': conversation_id})}\n\n"
+            else:
+                conversation_id = request.conversationId
 
-                # Stream the response
-                async for line in response.aiter_lines():
-                    if line.strip():
-                        try:
-                            data = json.loads(line)
-                            if "response" in data:
-                                token = data["response"]
-                                if token:  # Only send non-empty tokens
-                                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
-                                    await asyncio.sleep(0.01)  # Small delay for streaming effect
-                            if data.get("done", False):
-                                break
-                        except json.JSONDecodeError:
-                            continue
+            # Store user message
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO messages (conversation_id, role, content) VALUES (%s, %s, %s)",
+                [conversation_id, "user", request.message]
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-            # Send completion
-            yield f"data: {json.dumps({'type': 'done', 'messageId': 'ollama-response'})}\n\n"
+            # Create RAG request
+            from rag_chat import RAGChatRequest
+            rag_request = RAGChatRequest(
+                query=request.message,
+                use_context=True,
+                max_context_chunks=5,
+                model="mistral:7b",
+                temperature=0.2,
+                max_tokens=500
+            )
+
+            # Get RAG response
+            rag_response = await rag_service.chat(rag_request)
+
+            # Store assistant message
+            sources_data = []
+
+            # Add web sources first
+            if rag_response.web_sources:
+                for source in rag_response.web_sources[:3]:
+                    sources_data.append({
+                        "title": source.get("title", "Web Source"),
+                        "snippet": source.get("content", "")[:200] + "..." if len(source.get("content", "")) > 200 else source.get("content", ""),
+                        "url": source.get("url", ""),
+                        "score": source.get("score", 0.8)
+                    })
+
+            # Add RAG context if no web sources
+            elif rag_response.context_used:
+                for i, chunk in enumerate(rag_response.context_used[:3]):
+                    sources_data.append({
+                        "title": f"RAG Context {i+1}",
+                        "snippet": chunk[:200] + "..." if len(chunk) > 200 else chunk,
+                        "score": 0.8 - (i * 0.1)
+                    })
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
+                [conversation_id, "assistant", rag_response.response, json.dumps(sources_data)]
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            # Stream the response tokens
+            response_text = rag_response.response
+            words = response_text.split()
+
+            for word in words:
+                yield f"data: {json.dumps({'type': 'token', 'token': word + ' '})}\n\n"
+                await asyncio.sleep(0.05)  # Small delay for streaming effect
+
+            # Determine search method
+            search_method = 'web' if rag_response.web_sources else 'rag'
+
+            # Send sources
+            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data, 'method': search_method})}\n\n"
+
+            # Send done
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
         except Exception as e:
-            print(f"Chat error: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            logger.error(f"Chat endpoint error: {e}")
+            # Send error response
+            error_msg = "I encountered an error processing your request. Please try again."
+            yield f"data: {json.dumps({'type': 'token', 'token': error_msg})}\n\n"
+            yield f"data: {json.dumps({'type': 'sources', 'sources': [], 'method': 'error'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/plain")
-
-
-# RAG chat endpoint is now handled by add_rag_endpoints(app) above
-
-@app.post("/api/rag-chat")
-async def rag_chat_endpoint(request: RAGChatRequest):
-    """RAG chat endpoint that calls Ollama for real responses."""
-    from fastapi.responses import StreamingResponse
-    import json
-    import asyncio
-    import httpx
-
-    async def generate():
-        try:
-            # Send sources first (placeholder for now)
-            sources_data = {
-                "context_used": ["Sample context from knowledge base"],
-                "confidence_score": 0.8,
-                "search_method": "rag",
-                "source_metadata": [
-                    {
-                        "title": "Technical Documentation",
-                        "file_name": "docs.pdf",
-                        "document_type": "manual",
-                        "product_name": "Technical Service Assistant",
-                        "page_number": 1,
-                        "section_title": "Overview"
-                    }
-                ]
-            }
-
-            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data['context_used'], 'confidence': sources_data['confidence_score'], 'method': sources_data['search_method']})}\n\n"
-
-            # Call Ollama for actual response
-            ollama_url = os.getenv("OLLAMA_URL", "http://ollama-server-1:11434")
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{ollama_url}/api/generate",
-                    json={
-                        "model": "mistral:7b",
-                        "prompt": request.query,
-                        "stream": True,
-                        "options": {
-                            "temperature": request.temperature,
-                            "num_predict": request.max_tokens,
-                        }
-                    }
-                )
-
-                if response.status_code != 200:
-                    yield f"data: {json.dumps({'type': 'error', 'error': 'Failed to generate response'})}\n\n"
-                    return
-
-                # Stream the response
-                async for line in response.aiter_lines():
-                    if line.strip():
-                        try:
-                            data = json.loads(line)
-                            if "response" in data:
-                                token = data["response"]
-                                if token:  # Only send non-empty tokens
-                                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
-                                    await asyncio.sleep(0.01)  # Small delay for streaming effect
-                            if data.get("done", False):
-                                break
-                        except json.JSONDecodeError:
-                            continue
-
-            # Send completion
-            yield f"data: {json.dumps({'type': 'done', 'messageId': 'ollama-response'})}\n\n"
-
-        except Exception as e:
-            print(f"Chat error: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
-
-    return StreamingResponse(generate(), media_type="text/plain")
-
-
-@app.get("/api/conversations")
-def get_conversations(limit: int = 30):
-    """Get list of conversations (stub implementation)."""
-    return {"conversations": [], "total": 0, "limit": limit}
-
-
-@app.get("/health")
-def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}
-
-@app.get("/test")
-def test_endpoint():
-    """Test endpoint."""
-    return {"message": "test ok"}
-
-
-# Basic auth endpoints for login functionality
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    expires_in: int
-    user: dict
 
 
 class UserResponse(BaseModel):
@@ -267,52 +210,214 @@ class UserResponse(BaseModel):
     updated_at: str
 
 
-@app.post("/api/auth/login", response_model=TokenResponse)
-def login_endpoint(request: LoginRequest):
-    """Basic login endpoint that accepts any credentials for testing."""
-    # For now, accept any login and return a mock token
-    # In production, this would validate against the database
+# Conversation management endpoints
+@app.get("/api/conversations", response_model=ConversationListResponse)
+def list_conversations(limit: int = 20, offset: int = 0, authorization: Optional[str] = Header(None)):
+    """List conversations for the authenticated user."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    # Parse email to create dynamic user info
-    email_parts = request.email.split('@')
-    username = email_parts[0] if email_parts else "user"
-    name_parts = username.replace('.', ' ').replace('_', ' ').split()
-    first_name = name_parts[0].capitalize() if name_parts else "User"
-    last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-    # Assign role based on email
-    if request.email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in request.email.lower():
-        role_id = 1
-        role_name = "admin"
-    else:
-        role_id = 2
-        role_name = "employee"
+        # Get total count
+        count_query = "SELECT COUNT(*) as total FROM conversations"
+        cursor.execute(count_query)
+        count_result = cursor.fetchone()
+        total = count_result["total"] if count_result else 0
 
-    user_data = {
-        "id": hash(request.email) % 10000,  # Simple ID based on email
-        "email": request.email,
-        "first_name": first_name,
-        "last_name": last_name,
-        "full_name": f"{first_name} {last_name}",
-        "role_id": role_id,
-        "role_name": role_name,
-        "status": "active",
-        "verified": True,
-        "last_login": None,
-        "is_active": True,
-        "is_locked": False,
-        "password_change_required": False,
-        "created_at": "2024-01-01T00:00:00Z",
-        "updated_at": "2024-01-01T00:00:00Z"
-    }
+        # Get conversations with message counts and latest message time
+        conversations_query = """
+            SELECT
+                c.id,
+                c.title,
+                c.created_at,
+                MAX(m.created_at) as last_message_at,
+                COUNT(m.id) as message_count
+            FROM conversations c
+            LEFT JOIN messages m ON c.id = m.conversation_id
+            GROUP BY c.id, c.title, c.created_at
+            ORDER BY COALESCE(MAX(m.created_at), c.created_at) DESC
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(conversations_query, [limit, offset])
+        conversations_data = cursor.fetchall()
 
-    return TokenResponse(
-        access_token="mock_access_token_" + request.email,
-        refresh_token="mock_refresh_token_" + request.email,
-        expires_in=3600,  # 1 hour
-        user=user_data
-    )
+        cursor.close()
+        conn.close()
 
+        conversations = []
+        for conv in conversations_data:
+            conversations.append(ConversationSummary(
+                id=conv["id"],
+                title=conv["title"],
+                createdAt=conv["created_at"].isoformat(),
+                updatedAt=conv["last_message_at"].isoformat() if conv["last_message_at"] else None
+            ))
+
+        has_more = (offset + len(conversations)) < total
+
+        return ConversationListResponse(
+            conversations=conversations,
+            total=total,
+            hasMore=has_more
+        )
+
+    except Exception as e:
+        logger.error(f"Error listing conversations: {e}")
+        # Fallback to empty list
+        return ConversationListResponse(
+            conversations=[],
+            total=0,
+            hasMore=False
+        )
+
+
+@app.post("/api/conversations")
+def create_conversation(title: str = "New Conversation", authorization: Optional[str] = Header(None)):
+    """Create a new conversation."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Insert new conversation
+        insert_query = """
+            INSERT INTO conversations (title)
+            VALUES (%s)
+            RETURNING id, title, created_at
+        """
+        cursor.execute(insert_query, [title])
+        result = cursor.fetchone()
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        if result:
+            return ConversationSummary(
+                id=result["id"],
+                title=result["title"],
+                createdAt=result["created_at"].isoformat(),
+                updatedAt=None
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create conversation")
+
+    except Exception as e:
+        logger.error(f"Error creating conversation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create conversation")
+
+
+@app.get("/api/conversations/{conversation_id}", response_model=ConversationDetail)
+def get_conversation(conversation_id: int, authorization: Optional[str] = Header(None)):
+    """Get conversation details and messages."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Get conversation info
+        conv_query = """
+            SELECT id, title, created_at
+            FROM conversations
+            WHERE id = %s
+        """
+        cursor.execute(conv_query, [conversation_id])
+        conv_result = cursor.fetchone()
+
+        if not conv_result:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        # Get messages
+        messages_query = """
+            SELECT id, role, content, citations, created_at
+            FROM messages
+            WHERE conversation_id = %s
+            ORDER BY created_at ASC
+        """
+        cursor.execute(messages_query, [conversation_id])
+        messages_data = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        messages = []
+        for msg in messages_data:
+            messages.append(MessageInfo(
+                id=msg["id"],
+                role=msg["role"],
+                content=msg["content"],
+                citations=msg["citations"],
+                createdAt=msg["created_at"].isoformat()
+            ))
+
+        # Calculate updated_at as the latest message time
+        updated_at = None
+        if messages:
+            updated_at = max(msg.createdAt for msg in messages)
+
+        return ConversationDetail(
+            id=conv_result["id"],
+            title=conv_result["title"],
+            createdAt=conv_result["created_at"].isoformat(),
+            updatedAt=updated_at,
+            messages=messages
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve conversation")
+
+
+@app.delete("/api/conversations/{conversation_id}")
+def delete_conversation(conversation_id: int, authorization: Optional[str] = Header(None)):
+    """Delete a conversation and all its messages."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete conversation (messages will be deleted via CASCADE)
+        delete_query = "DELETE FROM conversations WHERE id = %s"
+        cursor.execute(delete_query, [conversation_id])
+
+        if cursor.rowcount == 0:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"message": f"Conversation {conversation_id} deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting conversation {conversation_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete conversation")
+
+
+@app.get("/health")
+def health():
+    """General health check endpoint."""
+    return {"status": "healthy", "service": "reranker"}
 
 @app.get("/api/auth/health")
 def auth_health():
@@ -550,7 +655,7 @@ def list_roles():
                 "id": 1,
                 "name": "admin",
                 "description": "Administrator with full access",
-                "permissions": ["read", "write", "delete", "admin"],
+                "permissions": ["read", "write", "admin"],
                 "system": True,
                 "user_count": 1
             },
