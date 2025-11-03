@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔐 Authentication & User Management
+- **Login Issue Resolution**: Fixed "Invalid email or password" error for user kevin.mccullor@xylem.com by implementing password reset functionality
+- **Password Reset Tool**: Created `reset_password.py` script for administrative password resets with bcrypt hashing
+- **User Authentication Flow**: Verified JWT token generation and RBAC role-based access control working correctly
+
+### 🐳 Container Orchestration & Deployment
+- **Complete System Startup**: Successfully launched all 20 containers including core services, monitoring stack, and auxiliary services
+- **Service Dependencies**: Implemented proper startup ordering with health checks for pgvector, Ollama servers, reranker, and frontend
+- **Load Balancing Configuration**: Enhanced reranker to distribute requests across all 4 Ollama instances for improved performance
+
+### 🔧 System Configuration
+- **Ollama Load Balancing**: Updated `reranker/rag_chat.py` to hardcode all 4 Ollama server URLs for consistent load distribution
+- **Environment Variables**: Fixed docker-compose.yml indentation issues for proper environment variable parsing
+- **Health Checks**: All services now have proper health checks and dependency management
+
 ### 🔐 Security Enhancements
 - **Password Change Enforcement**: Enhanced RBAC middleware to block users requiring password changes from accessing protected endpoints
 - **Forced Password Change Flow**: Added comprehensive unit tests for forced password change workflow with authentication flag validation

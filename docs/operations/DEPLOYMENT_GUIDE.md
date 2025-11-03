@@ -1,7 +1,7 @@
 # Technical Service Assistant - Deployment & Maintenance Guide
 
-**Date:** October 7, 2025
-**Version:** Production v2.1
+**Date:** November 3, 2025
+**Version:** Production v2.2
 **Target Audience:** System Administrators & DevOps Engineers
 
 ---
@@ -37,6 +37,63 @@ curl http://localhost:3000/api/status
 open http://localhost:3001  # Grafana (admin/admin)
 open http://localhost:9091  # Prometheus
 ```
+
+### Complete Service Inventory (20 Services)
+The system deploys 20 containers across core application, processing, and monitoring services:
+
+**Core Application (8 services):**
+- `pgvector` - PostgreSQL vector database (port 5432)
+- `redis-cache` - Redis cache (port 6379)
+- `ollama-server-1/2/3/4` - Distributed LLM servers (ports 11434-11437)
+- `reranker` - RAG API with 4-instance load balancing (port 8008)
+- `tsa-frontend` - Next.js web application (port 3000)
+- `docling_processor` - Document processing service (port 9110)
+- `reasoning-engine` - Advanced reasoning capabilities (port 8050)
+- `tsa-nginx` - Nginx reverse proxy (ports 80, 443)
+
+**Monitoring & Observability (10 services):**
+- `prometheus` - Metrics collection (port 9091)
+- `grafana` - Dashboard visualization (port 3001)
+- `alertmanager` - Alert management (port 9093)
+- `node-exporter` - System metrics (port 9100)
+- `cadvisor` - Container metrics (port 8081)
+- `ollama-exporter` - Ollama-specific metrics (port 9105)
+- `postgres-exporter` - Database metrics (port 9187)
+- `redis-exporter` - Cache metrics (port 9121)
+- `performance-monitor` - Application performance monitoring (port 9109)
+
+**Auxiliary Services (2 services):**
+- `alertmanager` - Alert management (port 9093)
+- `performance-monitor` - Application performance monitoring (port 9109)
+
+---
+
+## 👤 User Management & Authentication
+
+### Password Reset for Existing Users
+If users encounter "Invalid email or password" errors, use the password reset tool:
+
+```bash
+# Reset password for a specific user
+python reset_password.py user@example.com newpassword123
+
+# Example for admin user
+python reset_password.py kevin.mccullor@xylem.com xylem123
+```
+
+**Note:** Users will be required to change their password on first login after reset.
+
+### Default User Accounts
+After initial deployment, seed default RBAC users:
+```bash
+make seed-rbac
+```
+
+### Authentication Flow
+1. User logs in with email/password
+2. JWT tokens issued (access + refresh)
+3. RBAC middleware validates permissions
+4. Password change required users are blocked from protected endpoints
 
 ---
 
