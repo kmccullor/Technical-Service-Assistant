@@ -79,20 +79,80 @@ services:
       retries: 3
       start_period: 30s
 
-  ollama-server-4:
-    image: ollama/ollama
-    container_name: ollama-server-4
-    restart: unless-stopped
-    ports:
-      - "11437:11434"
-    volumes:
-      - ollama_data_4:/root/.ollama
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+   ollama-server-4:
+     image: ollama/ollama
+     container_name: ollama-server-4
+     restart: unless-stopped
+     ports:
+       - "11437:11434"
+     volumes:
+       - ollama_data_4:/root/.ollama
+     healthcheck:
+       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+       interval: 15s
+       timeout: 10s
+       retries: 3
+       start_period: 30s
+
+   ollama-server-5:
+     image: ollama/ollama
+     container_name: ollama-server-5
+     restart: unless-stopped
+     ports:
+       - "11438:11434"
+     volumes:
+       - ollama_data_5:/root/.ollama
+     healthcheck:
+       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+       interval: 15s
+       timeout: 10s
+       retries: 3
+       start_period: 30s
+
+   ollama-server-6:
+     image: ollama/ollama
+     container_name: ollama-server-6
+     restart: unless-stopped
+     ports:
+       - "11439:11434"
+     volumes:
+       - ollama_data_6:/root/.ollama
+     healthcheck:
+       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+       interval: 15s
+       timeout: 10s
+       retries: 3
+       start_period: 30s
+
+   ollama-server-7:
+     image: ollama/ollama
+     container_name: ollama-server-7
+     restart: unless-stopped
+     ports:
+       - "11440:11434"
+     volumes:
+       - ollama_data_7:/root/.ollama
+     healthcheck:
+       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+       interval: 15s
+       timeout: 10s
+       retries: 3
+       start_period: 30s
+
+   ollama-server-8:
+     image: ollama/ollama
+     container_name: ollama-server-8
+     restart: unless-stopped
+     ports:
+       - "11441:11434"
+     volumes:
+       - ollama_data_8:/root/.ollama
+     healthcheck:
+       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
+       interval: 15s
+       timeout: 10s
+       retries: 3
+       start_period: 30s
 
    reranker:
      build:
@@ -112,88 +172,8 @@ services:
        - DB_NAME=${DB_NAME}
        - DB_USER=${DB_USER}
        - DB_PASSWORD=${DB_PASSWORD}
-      - LOG_LEVEL=DEBUG
-      - OLLAMA_URL=http://ollama-server-1:11434
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text:v1.5}
-      - CHAT_MODEL=${CHAT_MODEL:-mistral:7b}
-      - CODING_MODEL=${CODING_MODEL:-mistral:7b}
-      - REASONING_MODEL=${REASONING_MODEL:-mistral:7b}
-      - VISION_MODEL=${VISION_MODEL:-mistral:7b}
-      - RERANK_MODEL=BAAI/bge-reranker-base
-      - PYTHONPATH=/app
-      - SMTP_HOST=${SMTP_HOST:-host.docker.internal}
-      - SMTP_PORT=${SMTP_PORT:-25}
-      - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
-      - SMTP_USERNAME=${SMTP_USERNAME:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - VERIFICATION_EMAIL_SENDER=${VERIFICATION_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
-      - VERIFICATION_EMAIL_SUBJECT=${VERIFICATION_EMAIL_SUBJECT:-Verify your Technical Service Assistant account}
-      - VERIFICATION_EMAIL_LINK_BASE=${VERIFICATION_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/verify-email}
-      - PASSWORD_RESET_EMAIL_SENDER=${PASSWORD_RESET_EMAIL_SENDER:-no-reply@technical-service-assistant.local}
-      - PASSWORD_RESET_EMAIL_SUBJECT=${PASSWORD_RESET_EMAIL_SUBJECT:-Reset your Technical Service Assistant password}
-      - PASSWORD_RESET_EMAIL_LINK_BASE=${PASSWORD_RESET_EMAIL_LINK_BASE:-https://rni-llm-01.lab.sensus.net/reset-password}
-    depends_on:
-      - pgvector
-      - ollama-server-1
-    volumes:
-      - temp_uploads:/app/temp-uploads
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8008/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-   docling_processor:
-     build:
-       context: .
-       dockerfile: docling_processor/Dockerfile
-     container_name: docling_processor
-     restart: always
-     ports:
-       - "9110:9110"
-     environment:
-       - DB_HOST=${DB_HOST}
-       - DB_PORT=${DB_PORT}
-       - DB_NAME=${DB_NAME}
-       - DB_USER=${DB_USER}
-       - DB_PASSWORD=${DB_PASSWORD}
-      - UPLOADS_DIR=/app/uploads
-      - ARCHIVE_DIR=/app/archive
-      - POLL_INTERVAL_SECONDS=60
-      - LOG_DIR=/app/logs
-      # PyTorch CPU-only optimizations
-      - PYTORCH_DISABLE_CUDNN_CACHE=1
-      - OMP_NUM_THREADS=4
-      - TOKENIZERS_PARALLELISM=false
-      - DOCLING_SKIP_DOCKER_CHECK=1
-      - DOCLING_DEVICE=cpu
-    volumes:
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-      - ./archive:/app/archive
-    command: ["python3", "docling_processor/docling_processor.py"]
-    depends_on:
-      - pgvector
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  # Unified Frontend Application (renamed from legacy 'rag-app')
-   frontend:
-     build: ./next-rag-app
-     container_name: tsa-frontend
-     restart: unless-stopped
-     environment:
-       # Database - Connect to pgvector container
-       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-
-      # Local AI Models - Connect to Ollama containers
-      - USE_LOCAL_MODELS=true
-      - OLLAMA_BASE_URL=http://ollama-server-1:11434
-      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
+       - LOG_LEVEL=DEBUG
+       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7b
 
@@ -227,14 +207,18 @@ services:
 
     ports:
       - "3000:3000"
-    depends_on:
-      - pgvector
-      - redis
-      - ollama-server-1
-      - ollama-server-2
-      - ollama-server-3
-      - ollama-server-4
-      - reranker
+     depends_on:
+       - pgvector
+       - redis
+       - ollama-server-1
+       - ollama-server-2
+       - ollama-server-3
+       - ollama-server-4
+       - ollama-server-5
+       - ollama-server-6
+       - ollama-server-7
+       - ollama-server-8
+       - reranker
     volumes:
       - ./uploads:/app/uploads
       - temp_uploads:/app/temp-uploads
@@ -283,12 +267,19 @@ services:
        - DB_NAME=${DB_NAME}
        - DB_USER=${DB_USER}
        - DB_PASSWORD=${DB_PASSWORD}
-      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
+       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - LOG_LEVEL=info
-    depends_on:
-      - pgvector
-      - ollama-server-1
+     depends_on:
+       - pgvector
+       - ollama-server-1
+       - ollama-server-2
+       - ollama-server-3
+       - ollama-server-4
+       - ollama-server-5
+       - ollama-server-6
+       - ollama-server-7
+       - ollama-server-8
     ports:
       - "8050:8050"
     healthcheck:
@@ -524,6 +515,10 @@ volumes:
   ollama_data_2:
   ollama_data_3:
   ollama_data_4:
+  ollama_data_5:
+  ollama_data_6:
+  ollama_data_7:
+  ollama_data_8:
   reranker_data:
   redis_data:
   temp_uploads:
