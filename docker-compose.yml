@@ -178,7 +178,7 @@ services:
       - pgvector
       - ollama-server-1
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8050/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8008/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
