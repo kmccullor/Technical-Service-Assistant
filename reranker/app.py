@@ -6,7 +6,12 @@ Just the basic chat endpoints to get the frontend working.
 from typing import List, Optional
 import uvicorn
 import os
+import sys
 import psycopg2
+import hashlib
+
+# Add /app to Python path for imports
+sys.path.insert(0, '/app')
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
@@ -21,6 +26,7 @@ logger = logging.getLogger(__name__)
 from rbac_endpoints import router as auth_router
 from cache import get_db_connection
 from rag_chat import RAGChatService, add_rag_endpoints
+# from admin_endpoints import router as admin_router  # Temporarily commented out due to import issues
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -36,6 +42,7 @@ add_rag_endpoints(app)
 
 # Include auth endpoints
 app.include_router(auth_router)
+# app.include_router(admin_router)  # Temporarily commented out due to import issues
 
 
 class ChatRequest(BaseModel):
@@ -73,125 +80,6 @@ class ConversationListResponse(BaseModel):
     hasMore: bool
 
 
-@app.post("/api/chat")
-async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Header(None)):
-    """Streaming chat endpoint with RAG integration."""
-    # Basic auth check
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    conversation_id = None
-
-    async def generate():
-        nonlocal conversation_id
-        try:
-            # Handle conversation creation/loading
-            if request.conversationId is None:
-                # Create new conversation
-                conn = get_db_connection()
-                cursor = conn.cursor(cursor_factory=RealDictCursor)
-                cursor.execute(
-                    "INSERT INTO conversations (title) VALUES (%s) RETURNING id",
-                    [request.displayMessage or request.message[:50]]
-                )
-                result = cursor.fetchone()
-                if result:
-                    conversation_id = result["id"]
-                else:
-                    raise HTTPException(status_code=500, detail="Failed to create conversation")
-                conn.commit()
-                cursor.close()
-                conn.close()
-
-                yield f"data: {json.dumps({'type': 'conversation_id', 'conversationId': conversation_id})}\n\n"
-            else:
-                conversation_id = request.conversationId
-
-            # Store user message
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO messages (conversation_id, role, content) VALUES (%s, %s, %s)",
-                [conversation_id, "user", request.message]
-            )
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            # Create RAG request
-            from rag_chat import RAGChatRequest
-            rag_request = RAGChatRequest(
-                query=request.message,
-                use_context=True,
-                max_context_chunks=5,
-                model="mistral:7b",
-                temperature=0.2,
-                max_tokens=500
-            )
-
-            # Get RAG response
-            rag_response = await rag_service.chat(rag_request)
-
-            # Store assistant message
-            sources_data = []
-
-            # Add web sources first
-            if rag_response.web_sources:
-                for source in rag_response.web_sources[:3]:
-                    sources_data.append({
-                        "title": source.get("title", "Web Source"),
-                        "snippet": source.get("content", "")[:200] + "..." if len(source.get("content", "")) > 200 else source.get("content", ""),
-                        "url": source.get("url", ""),
-                        "score": source.get("score", 0.8)
-                    })
-
-            # Add RAG context if no web sources
-            elif rag_response.context_used:
-                for i, chunk in enumerate(rag_response.context_used[:3]):
-                    sources_data.append({
-                        "title": f"RAG Context {i+1}",
-                        "snippet": chunk[:200] + "..." if len(chunk) > 200 else chunk,
-                        "score": 0.8 - (i * 0.1)
-                    })
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
-                [conversation_id, "assistant", rag_response.response, json.dumps(sources_data)]
-            )
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            # Stream the response tokens
-            response_text = rag_response.response
-            words = response_text.split()
-
-            for word in words:
-                yield f"data: {json.dumps({'type': 'token', 'token': word + ' '})}\n\n"
-                await asyncio.sleep(0.05)  # Small delay for streaming effect
-
-            # Determine search method
-            search_method = 'web' if rag_response.web_sources else 'rag'
-
-            # Send sources
-            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data, 'method': search_method})}\n\n"
-
-            # Send done
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-        except Exception as e:
-            logger.error(f"Chat endpoint error: {e}")
-            # Send error response
-            error_msg = "I encountered an error processing your request. Please try again."
-            yield f"data: {json.dumps({'type': 'token', 'token': error_msg})}\n\n"
-            yield f"data: {json.dumps({'type': 'sources', 'sources': [], 'method': 'error'})}\n\n"
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-    return StreamingResponse(generate(), media_type="text/plain")
-
-
 class UserResponse(BaseModel):
     id: int
     email: str
@@ -210,6 +98,202 @@ class UserResponse(BaseModel):
     updated_at: str
 
 
+def _deterministic_user_id(email: str) -> int:
+    normalized = email.strip().lower()
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    # Use first 8 hex characters to stay within 32-bit signed int range.
+    return int(digest[:8], 16)
+
+
+def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
+    email = "admin@employee.com"
+    if authorization and authorization.startswith("Bearer mock_access_token_"):
+        token = authorization.replace("Bearer mock_access_token_", "")
+        if "@" in token:
+            email = token
+
+    email_parts = email.split("@")
+    username = email_parts[0] if email_parts else "user"
+    name_parts = username.replace(".", " ").replace("_", " ").split()
+    first_name = name_parts[0].capitalize() if name_parts else "User"
+    last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
+
+    if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower():
+        role_id = 1
+        role_name = "admin"
+    else:
+        role_id = 2
+        role_name = "employee"
+
+    user_id = _deterministic_user_id(email)
+
+    return UserResponse(
+        id=user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        full_name=f"{first_name} {last_name}",
+        role_id=role_id,
+        role_name=role_name,
+        status="active",
+        verified=True,
+        last_login=None,
+        is_active=True,
+        is_locked=False,
+        password_change_required=False,
+        created_at="2024-01-01T00:00:00Z",
+        updated_at="2024-01-01T00:00:00Z",
+    )
+
+
+@app.post("/api/chat")
+async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Header(None)):
+    """Streaming chat endpoint with RAG integration."""
+    # Basic auth check
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = _user_from_authorization(authorization)
+
+    conversation_id = request.conversationId
+    is_new_conversation = False
+
+    title_source = (request.displayMessage or request.message or "").strip()
+    if not title_source:
+        title_source = "New conversation"
+    conversation_title = title_source if len(title_source) <= 50 else f"{title_source[:50]}..."
+
+    if conversation_id is None:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            cursor.execute(
+                "INSERT INTO conversations (title, user_id) VALUES (%s, %s) RETURNING id",
+                [conversation_title, user.id],
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise HTTPException(status_code=500, detail="Failed to create conversation")
+            conversation_id = result["id"]
+            conn.commit()
+            is_new_conversation = True
+        finally:
+            cursor.close()
+            conn.close()
+    else:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            cursor.execute(
+                "SELECT id FROM conversations WHERE id = %s AND user_id = %s",
+                [conversation_id, user.id],
+            )
+            existing = cursor.fetchone()
+        finally:
+            cursor.close()
+            conn.close()
+        if not existing:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if conversation_id is None:
+        raise HTTPException(status_code=500, detail="Conversation setup failed")
+
+    async def generate():
+        try:
+            if is_new_conversation:
+                yield f"data: {json.dumps({'type': 'conversation_id', 'conversationId': conversation_id})}\n\n"
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO messages (conversation_id, role, content) VALUES (%s, %s, %s)",
+                    [conversation_id, "user", request.message],
+                )
+                cursor.execute(
+                    "UPDATE conversations SET updated_at = NOW() WHERE id = %s",
+                    [conversation_id],
+                )
+                conn.commit()
+            finally:
+                cursor.close()
+                conn.close()
+
+            from rag_chat import RAGChatRequest
+
+            rag_request = RAGChatRequest(
+                query=request.message,
+                use_context=True,
+                max_context_chunks=5,
+                model="mistral:7b",
+                temperature=0.2,
+                max_tokens=500,
+            )
+
+            rag_response = await rag_service.chat(rag_request)
+
+            sources_data = []
+            if rag_response.web_sources:
+                for source in rag_response.web_sources[:3]:
+                    content_value = source.get("content", "") or ""
+                    snippet = (
+                        content_value[:200] + "..."
+                        if len(content_value) > 200
+                        else content_value
+                    )
+                    sources_data.append(
+                        {
+                            "title": source.get("title", "Web Source"),
+                            "snippet": snippet,
+                            "url": source.get("url", ""),
+                            "score": source.get("score", 0.8),
+                        }
+                    )
+            elif rag_response.context_used:
+                for index, chunk in enumerate(rag_response.context_used[:3]):
+                    snippet = chunk[:200] + "..." if len(chunk) > 200 else chunk
+                    sources_data.append(
+                        {
+                            "title": f"RAG Context {index + 1}",
+                            "snippet": snippet,
+                            "score": 0.8 - (index * 0.1),
+                        }
+                    )
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
+                    [conversation_id, "assistant", rag_response.response, json.dumps(sources_data)],
+                )
+                cursor.execute(
+                    "UPDATE conversations SET updated_at = NOW() WHERE id = %s",
+                    [conversation_id],
+                )
+                conn.commit()
+            finally:
+                cursor.close()
+                conn.close()
+
+            response_text = rag_response.response
+            for word in response_text.split():
+                yield f"data: {json.dumps({'type': 'token', 'token': word + ' '})}\n\n"
+                await asyncio.sleep(0.05)
+
+            search_method = "web" if rag_response.web_sources else "rag"
+            yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data, 'method': search_method})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        except Exception as exc:
+            logger.error(f"Chat endpoint error: {exc}")
+            error_msg = "I encountered an error processing your request. Please try again."
+            yield f"data: {json.dumps({'type': 'token', 'token': error_msg})}\n\n"
+            yield f"data: {json.dumps({'type': 'sources', 'sources': [], 'method': 'error'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/plain")
+
 # Conversation management endpoints
 @app.get("/api/conversations", response_model=ConversationListResponse)
 def list_conversations(limit: int = 20, offset: int = 0, authorization: Optional[str] = Header(None)):
@@ -218,43 +302,64 @@ def list_conversations(limit: int = 20, offset: int = 0, authorization: Optional
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    user = _user_from_authorization(authorization)
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Get total count
-        count_query = "SELECT COUNT(*) as total FROM conversations"
-        cursor.execute(count_query)
-        count_result = cursor.fetchone()
-        total = count_result["total"] if count_result else 0
+        try:
+            cursor.execute(
+                "SELECT COUNT(*) as total FROM conversations WHERE user_id = %s",
+                [user.id],
+            )
+            count_result = cursor.fetchone()
+            raw_total = count_result["total"] if count_result else 0
+            try:
+                total = int(raw_total)
+            except (TypeError, ValueError):
+                total = 0
 
-        # Get conversations with message counts and latest message time
-        conversations_query = """
-            SELECT
-                c.id,
-                c.title,
-                c.created_at,
-                MAX(m.created_at) as last_message_at,
-                COUNT(m.id) as message_count
-            FROM conversations c
-            LEFT JOIN messages m ON c.id = m.conversation_id
-            GROUP BY c.id, c.title, c.created_at
-            ORDER BY COALESCE(MAX(m.created_at), c.created_at) DESC
-            LIMIT %s OFFSET %s
-        """
-        cursor.execute(conversations_query, [limit, offset])
-        conversations_data = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
+            conversations_query = """
+                SELECT
+                    c.id,
+                    c.title,
+                    c.created_at,
+                    c.updated_at,
+                    COALESCE(MAX(m.created_at), c.updated_at, c.created_at) AS last_message_at,
+                    COUNT(m.id) AS message_count
+                FROM conversations c
+                LEFT JOIN messages m ON c.id = m.conversation_id
+                WHERE c.user_id = %s
+                GROUP BY c.id, c.title, c.created_at, c.updated_at
+                ORDER BY COALESCE(MAX(m.created_at), c.updated_at, c.created_at) DESC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(conversations_query, [user.id, limit, offset])
+            conversations_data = cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
 
         conversations = []
         for conv in conversations_data:
+            created_at_value = conv.get("created_at")
+            last_message_value = conv.get("last_message_at") or conv.get("updated_at")
+            created_at_str = (
+                created_at_value.isoformat()
+                if hasattr(created_at_value, "isoformat")
+                else created_at_value
+            )
+            updated_at_str = (
+                last_message_value.isoformat()
+                if hasattr(last_message_value, "isoformat")
+                else last_message_value
+            )
             conversations.append(ConversationSummary(
                 id=conv["id"],
                 title=conv["title"],
-                createdAt=conv["created_at"].isoformat(),
-                updatedAt=conv["last_message_at"].isoformat() if conv["last_message_at"] else None
+                createdAt=created_at_str,
+                updatedAt=updated_at_str,
             ))
 
         has_more = (offset + len(conversations)) < total
@@ -282,29 +387,37 @@ def create_conversation(title: str = "New Conversation", authorization: Optional
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    user = _user_from_authorization(authorization)
+    title_text = title.strip() if isinstance(title, str) else ""
+    if not title_text:
+        title_text = "New Conversation"
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Insert new conversation
         insert_query = """
-            INSERT INTO conversations (title)
-            VALUES (%s)
-            RETURNING id, title, created_at
+            INSERT INTO conversations (title, user_id)
+            VALUES (%s, %s)
+            RETURNING id, title, created_at, updated_at
         """
-        cursor.execute(insert_query, [title])
-        result = cursor.fetchone()
-
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            cursor.execute(insert_query, [title_text, user.id])
+            result = cursor.fetchone()
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
 
         if result:
+            created_at_value = result.get("created_at")
+            updated_at_value = result.get("updated_at")
             return ConversationSummary(
                 id=result["id"],
                 title=result["title"],
-                createdAt=result["created_at"].isoformat(),
-                updatedAt=None
+                createdAt=created_at_value.isoformat() if hasattr(created_at_value, "isoformat") else created_at_value,
+                updatedAt=updated_at_value.isoformat() if hasattr(updated_at_value, "isoformat") else updated_at_value,
             )
         else:
             raise HTTPException(status_code=500, detail="Failed to create conversation")
@@ -321,55 +434,63 @@ def get_conversation(conversation_id: int, authorization: Optional[str] = Header
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    user = _user_from_authorization(authorization)
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Get conversation info
-        conv_query = """
-            SELECT id, title, created_at
-            FROM conversations
-            WHERE id = %s
-        """
-        cursor.execute(conv_query, [conversation_id])
-        conv_result = cursor.fetchone()
+        try:
+            conv_query = """
+                SELECT id, title, created_at, updated_at
+                FROM conversations
+                WHERE id = %s AND user_id = %s
+            """
+            cursor.execute(conv_query, [conversation_id, user.id])
+            conv_result = cursor.fetchone()
 
-        if not conv_result:
-            raise HTTPException(status_code=404, detail="Conversation not found")
+            if not conv_result:
+                raise HTTPException(status_code=404, detail="Conversation not found")
 
-        # Get messages
-        messages_query = """
-            SELECT id, role, content, citations, created_at
-            FROM messages
-            WHERE conversation_id = %s
-            ORDER BY created_at ASC
-        """
-        cursor.execute(messages_query, [conversation_id])
-        messages_data = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
+            messages_query = """
+                SELECT id, role, content, citations, created_at
+                FROM messages
+                WHERE conversation_id = %s
+                ORDER BY created_at ASC
+            """
+            cursor.execute(messages_query, [conversation_id])
+            messages_data = cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
 
         messages = []
         for msg in messages_data:
+            created_at_value = msg.get("created_at")
             messages.append(MessageInfo(
                 id=msg["id"],
                 role=msg["role"],
                 content=msg["content"],
                 citations=msg["citations"],
-                createdAt=msg["created_at"].isoformat()
+                createdAt=created_at_value.isoformat() if hasattr(created_at_value, "isoformat") else created_at_value,
             ))
 
         # Calculate updated_at as the latest message time
-        updated_at = None
-        if messages:
-            updated_at = max(msg.createdAt for msg in messages)
+        timestamps = [
+            msg.get("created_at") for msg in messages_data if hasattr(msg.get("created_at"), "isoformat")
+        ]
+        updated_at_value = conv_result.get("updated_at")
+        if updated_at_value is not None and hasattr(updated_at_value, "isoformat"):
+            timestamps.append(updated_at_value)
+        latest_timestamp = max(timestamps) if timestamps else updated_at_value
 
         return ConversationDetail(
             id=conv_result["id"],
             title=conv_result["title"],
-            createdAt=conv_result["created_at"].isoformat(),
-            updatedAt=updated_at,
+            createdAt=conv_result["created_at"].isoformat()
+            if hasattr(conv_result["created_at"], "isoformat")
+            else conv_result["created_at"],
+            updatedAt=latest_timestamp.isoformat() if hasattr(latest_timestamp, "isoformat") else latest_timestamp,
             messages=messages
         )
 
@@ -387,23 +508,24 @@ def delete_conversation(conversation_id: int, authorization: Optional[str] = Hea
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    user = _user_from_authorization(authorization)
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Delete conversation (messages will be deleted via CASCADE)
-        delete_query = "DELETE FROM conversations WHERE id = %s"
-        cursor.execute(delete_query, [conversation_id])
+        try:
+            delete_query = "DELETE FROM conversations WHERE id = %s AND user_id = %s"
+            cursor.execute(delete_query, [conversation_id, user.id])
 
-        if cursor.rowcount == 0:
-            conn.rollback()
+            if cursor.rowcount == 0:
+                conn.rollback()
+                raise HTTPException(status_code=404, detail="Conversation not found")
+
+            conn.commit()
+        finally:
             cursor.close()
             conn.close()
-            raise HTTPException(status_code=404, detail="Conversation not found")
-
-        conn.commit()
-        cursor.close()
-        conn.close()
 
         return {"message": f"Conversation {conversation_id} deleted successfully"}
 
@@ -428,46 +550,7 @@ def auth_health():
 @app.get("/api/auth/me", response_model=UserResponse)
 def get_current_user(authorization: Optional[str] = Header(None)):
     """Get current user profile (mock implementation)."""
-    # In a real implementation, this would get the user from the session/token
-    # For mock, parse email from Authorization header
-    email = "admin@employee.com"  # default
-    if authorization and authorization.startswith("Bearer mock_access_token_"):
-        token = authorization.replace("Bearer mock_access_token_", "")
-        if "@" in token:
-            email = token
-
-    # Create user data based on email
-    email_parts = email.split('@')
-    username = email_parts[0] if email_parts else "user"
-    name_parts = username.replace('.', ' ').replace('_', ' ').split()
-    first_name = name_parts[0].capitalize() if name_parts else "User"
-    last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
-
-    # Assign role based on email
-    if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower():
-        role_id = 1
-        role_name = "admin"
-    else:
-        role_id = 2
-        role_name = "employee"
-
-    return UserResponse(
-        id=hash(email) % 10000,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        full_name=f"{first_name} {last_name}",
-        role_id=role_id,
-        role_name=role_name,
-        status="active",
-        verified=True,
-        last_login=None,
-        is_active=True,
-        is_locked=False,
-        password_change_required=False,
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-01T00:00:00Z"
-    )
+    return _user_from_authorization(authorization)
 
 
 # Admin endpoints for user and role management

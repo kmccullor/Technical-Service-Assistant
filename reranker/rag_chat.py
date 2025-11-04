@@ -58,21 +58,14 @@ class RAGChatService:
         if ollama_urls:
             self.ollama_urls = ollama_urls
         else:
-            # Support both single URL and multiple URLs from environment
-            single_url = os.getenv("OLLAMA_URL")
-            instances_str = os.getenv("OLLAMA_INSTANCES")
-            if instances_str:
-                self.ollama_urls = [url.strip() for url in instances_str.split(",") if url.strip()]
-            elif single_url:
-                self.ollama_urls = [single_url]
-            else:
-                # Default to all 4 instances for load balancing
-                self.ollama_urls = [
-                    "http://ollama-server-1:11434",
-                    "http://ollama-server-2:11434",
-                    "http://ollama-server-3:11434",
-                    "http://ollama-server-4:11434"
-                ]
+            # Always use all 4 instances for load balancing
+            self.ollama_urls = [
+                "http://ollama-server-1:11434",
+                "http://ollama-server-2:11434",
+                "http://ollama-server-3:11434",
+                "http://ollama-server-4:11434"
+            ]
+        logger.info("Using all 4 Ollama instances for load balancing")
         self.reranker_url = reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
 
         # Load model configurations

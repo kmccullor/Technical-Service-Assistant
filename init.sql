@@ -133,8 +133,13 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session
 CREATE TABLE IF NOT EXISTS conversations (
   id bigserial PRIMARY KEY,
   title text NOT NULL,
-  created_at timestamptz DEFAULT now()
+  user_id bigint,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now(),
+  last_reviewed_at timestamptz
 );
+
+CREATE INDEX IF NOT EXISTS conversations_user_id_idx ON conversations(user_id);
 
 CREATE TABLE IF NOT EXISTS messages (
   id bigserial PRIMARY KEY,

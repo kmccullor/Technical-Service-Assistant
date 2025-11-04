@@ -5,7 +5,7 @@ COPY reranker/ /app/reranker/
 COPY config.py /app/config.py
 COPY utils/ /app/utils/
 COPY scripts/ /app/scripts/
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/reranker
 RUN chmod +x /app/reranker/healthcheck.sh
 RUN apt-get update && apt-get install -y curl \
     unixodbc unixodbc-dev tesseract-ocr && rm -rf /var/lib/apt/lists/*

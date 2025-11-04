@@ -10,37 +10,117 @@ Comprehensive test coverage for reranker/app.py including:
 Following Ring 2 proven patterns for mocking and isolation.
 """
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
+import types
 
 import pytest
 from fastapi.testclient import TestClient
 
-# Mock the imports before importing the app
+# Simple stub modules to satisfy imports without pulling heavy dependencies
+mock_psycopg2_extras = types.SimpleNamespace(
+    RealDictCursor=object,
+    Json=object,
+)
+mock_psycopg2 = types.SimpleNamespace(extras=mock_psycopg2_extras)
+
+
+def _noop(*args, **kwargs):
+    return None
+
+
+mock_rag_chat = types.SimpleNamespace(
+    RAGChatService=lambda: types.SimpleNamespace(chat=_noop),
+    add_rag_endpoints=_noop,
+)
+mock_cache = types.SimpleNamespace(get_db_connection=_noop)
+stub_settings = types.SimpleNamespace(
+    db_host="localhost",
+    db_port=5432,
+    db_name="test_db",
+    db_user="tester",
+    db_password="tester",
+    web_cache_enabled=False,
+    web_cache_ttl_seconds=0,
+    web_cache_max_rows=0,
+)
+stub_config = types.SimpleNamespace(get_settings=lambda: stub_settings)
+stub_logging_config = types.SimpleNamespace(setup_logging=_noop)
+
 with patch.dict(
     "sys.modules",
     {
-        "ollama": MagicMock(),
-        "psycopg2": MagicMock(),
-        "FlagEmbedding": MagicMock(),
-        "prometheus_client": MagicMock(),
-        "cache": MagicMock(),
-        "query_classifier": MagicMock(),
-        "temp_document_processor": MagicMock(),
-        "data_dictionary_api": MagicMock(),
-        "config": MagicMock(),
-        "utils.logging_config": MagicMock(),
-        "utils.metrics": MagicMock(),
-        "utils.enhanced_search": MagicMock(),
-        "utils.document_discovery": MagicMock(),
+        "ollama": types.SimpleNamespace(),
+        "psycopg2": mock_psycopg2,
+        "psycopg2.extras": mock_psycopg2_extras,
+        "FlagEmbedding": types.SimpleNamespace(),
+        "prometheus_client": types.SimpleNamespace(),
+        "cache": mock_cache,
+        "query_classifier": types.SimpleNamespace(),
+        "temp_document_processor": types.SimpleNamespace(),
+        "data_dictionary_api": types.SimpleNamespace(),
+        "config": stub_config,
+        "utils.logging_config": stub_logging_config,
+        "utils.metrics": types.SimpleNamespace(),
+        "utils.enhanced_search": types.SimpleNamespace(),
+        "utils.document_discovery": types.SimpleNamespace(),
+        "rag_chat": mock_rag_chat,
     },
 ):
-    # Import after mocking to avoid import errors
+    # Import after stubbing to avoid import errors
     import os
     import sys
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    from reranker.app import app
+    from reranker.app import app, _deterministic_user_id
+
+
+class StubCursor:
+    """Lightweight cursor stub to avoid MagicMock usage in authorization tests."""
+
+    def __init__(self, fetchone_results=None, fetchall_result=None, rowcount=0):
+        self._fetchone_results = list(fetchone_results or [])
+        self._fetchall_result = fetchall_result or []
+        self.rowcount = rowcount
+        self.executed = []
+        self.closed = False
+
+    def execute(self, query, params=None):
+        self.executed.append((query, params))
+
+    def fetchone(self):
+        if self._fetchone_results:
+            return self._fetchone_results.pop(0)
+        return None
+
+    def fetchall(self):
+        return list(self._fetchall_result)
+
+    def close(self):
+        self.closed = True
+
+
+class StubConnection:
+    """Connection stub returning a predefined cursor."""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+        self.closed = False
+        self.commit_count = 0
+        self.rollback_count = 0
+
+    def cursor(self, *args, **kwargs):
+        return self._cursor
+
+    def commit(self):
+        self.commit_count += 1
+
+    def rollback(self):
+        self.rollback_count += 1
+
+    def close(self):
+        self.closed = True
 
 
 class TestRerankerAppEndpoints:
@@ -357,6 +437,76 @@ class TestHybridSearchIntegration:
 
         response = client.post("/api/intelligent-hybrid-search", json=request_data)
         assert response.status_code in [200, 422, 500, 404]  # Various outcomes
+
+
+class TestConversationAuthorization:
+    """Ensure conversation APIs scope data per authenticated user."""
+
+    @pytest.fixture
+    def client(self):
+        return TestClient(app)
+
+    def test_list_conversations_scoped_to_user(self, client):
+        """Conversations endpoint filters by user_id."""
+        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
+        expected_user_id = _deterministic_user_id("user@example.com")
+
+        timestamp = datetime.now(timezone.utc)
+        cursor = StubCursor(
+            fetchone_results=[{"total": 1}],
+            fetchall_result=[
+                {
+                    "id": 99,
+                    "title": "Scoped",
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                    "last_message_at": timestamp,
+                    "message_count": 2,
+                }
+            ],
+        )
+        conn = StubConnection(cursor)
+
+        with patch("reranker.app.get_db_connection", return_value=conn):
+            response = client.get("/api/conversations", headers=auth_header)
+
+        assert response.status_code == 200
+        assert len(cursor.executed) == 2  # count query + list query
+
+        count_params = cursor.executed[0][1]
+        assert count_params == [expected_user_id]
+
+        list_params = cursor.executed[1][1]
+        assert list_params[0] == expected_user_id
+
+    def test_get_conversation_rejects_unowned_id(self, client):
+        """Fetching conversation fails when user does not own it."""
+        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
+        expected_user_id = _deterministic_user_id("user@example.com")
+
+        cursor = StubCursor(fetchone_results=[None])
+        conn = StubConnection(cursor)
+
+        with patch("reranker.app.get_db_connection", return_value=conn):
+            response = client.get("/api/conversations/123", headers=auth_header)
+
+        assert response.status_code == 404
+        assert cursor.executed[0][1] == [123, expected_user_id]
+
+    def test_delete_conversation_scoped_to_owner(self, client):
+        """Delete only removes conversations owned by the user."""
+        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
+        expected_user_id = _deterministic_user_id("user@example.com")
+
+        cursor = StubCursor(rowcount=1)
+        conn = StubConnection(cursor)
+
+        with patch("reranker.app.get_db_connection", return_value=conn):
+            response = client.delete("/api/conversations/77", headers=auth_header)
+
+        assert response.status_code == 200
+        assert cursor.executed[0][1] == [77, expected_user_id]
+        assert conn.commit_count == 1
 
 
 class TestAuthenticationAndSecurity:
