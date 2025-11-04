@@ -72,7 +72,7 @@ python email_eod_report.py your-email@domain.com
 ### Prometheus & Grafana Setup
 **Access URLs**:
 - Grafana: http://localhost:3000
-- Prometheus: http://localhost:9090
+- Prometheus: http://localhost:9091
 - Alertmanager: http://localhost:9093
 
 #### Key Metrics Monitored
@@ -82,6 +82,7 @@ python email_eod_report.py your-email@domain.com
 - API response times and error rates
 - Document processing metrics
 - Search accuracy and performance
+- Reranker service metrics (Python GC, application health)
 
 ### Alert Configuration
 **Alert Types**:

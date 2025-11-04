@@ -6,14 +6,10 @@ rule_files:
   - "alerts.yml"
   - "recording_rules.yml"
 
-# Alerting temporarily disabled (no Alertmanager deployed). To re-enable:
-# 1. Add alertmanager service to docker-compose
-# 2. Provide alertmanager.yml
-# 3. Uncomment below block
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['alertmanager:9093']
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 scrape_configs:
   # Prometheus self-monitoring
@@ -24,7 +20,7 @@ scrape_configs:
   # Reranker service metrics (enhanced hybrid search and intelligent routing)
   - job_name: 'reranker'
     static_configs:
-      - targets: ['reranker:9091']
+      - targets: ['reranker:8008']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 4s
@@ -81,5 +77,21 @@ scrape_configs:
       - targets: ['docling_processor:9110']
     scrape_interval: 30s
 
-  # Note: Custom application metrics will be added when services expose endpoints
-  # Currently monitoring infrastructure services only
+
+
+  # Grafana monitoring
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Alertmanager monitoring
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+   # Note: Custom application metrics will be added when services expose endpoints
+   # Currently monitoring infrastructure services only

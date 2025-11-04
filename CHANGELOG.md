@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 📊 Monitoring & Observability
+- **Reranker Metrics Integration**: Added Prometheus `/metrics` endpoint to reranker service for application monitoring
+- **Prometheus Configuration Update**: Fixed reranker scraping target from port 9091 to 8008 in prometheus.yml
+- **Documentation Updates**: Corrected Prometheus access URL and added reranker to monitored services list
+
 ### 🔐 Authentication & User Management
 - **Login Issue Resolution**: Fixed "Invalid email or password" error for user kevin.mccullor@xylem.com by implementing password reset functionality
 - **Password Reset Tool**: Created `reset_password.py` script for administrative password resets with bcrypt hashing

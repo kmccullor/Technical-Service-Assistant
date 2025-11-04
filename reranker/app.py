@@ -14,11 +14,12 @@ import hashlib
 sys.path.insert(0, '/app')
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel, Field
 import json
 import asyncio
 import logging
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 logger = logging.getLogger(__name__)
 
@@ -1072,6 +1073,12 @@ def get_documents(limit: int = 20, offset: int = 0):
     """Get documents (GET version for backward compatibility)."""
     request = DocumentListRequest(limit=limit, offset=offset, sort_by="created_at", sort_order="desc")
     return list_documents(request)
+
+
+@app.get("/metrics")
+def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 if __name__ == "__main__":
