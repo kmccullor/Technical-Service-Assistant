@@ -4,10 +4,21 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    orgId: 1
-    uid: prometheus
     url: http://prometheus:9090
-    basicAuth: false
+    uid: prometheus
     isDefault: true
-    version: 1
+    editable: true
+    jsonData:
+      timeInterval: 15s
+      queryTimeout: 60s
+    secureJsonData: {}
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    orgId: 1
+    uid: alertmanager
+    url: http://alertmanager:9093
+    isDefault: false
     editable: false
+    jsonData:
+      implementation: prometheus

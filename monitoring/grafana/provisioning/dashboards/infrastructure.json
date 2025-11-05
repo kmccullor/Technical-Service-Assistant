@@ -3,6 +3,9 @@
     "id": null,
     "panels": [
       {
+        "datasource": {
+          "uid": "prometheus"
+        },
         "fieldConfig": {
           "defaults": {
             "color": {
@@ -104,6 +107,9 @@
           },
           "overrides": []
         },
+        "datasource": {
+          "uid": "prometheus"
+        },
         "gridPos": {
           "h": 8,
           "w": 12,
@@ -124,7 +130,7 @@
         },
         "targets": [
           {
-            "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+            "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[1m]))) or 0",
             "legendFormat": "CPU Usage %",
             "refId": "A"
           }
@@ -180,6 +186,9 @@
             "unit": "bytes"
           },
           "overrides": []
+        },
+        "datasource": {
+          "uid": "prometheus"
         },
         "gridPos": {
           "h": 8,
@@ -263,6 +272,9 @@
           },
           "overrides": []
         },
+        "datasource": {
+          "uid": "prometheus"
+        },
         "gridPos": {
           "h": 8,
           "w": 12,
@@ -339,6 +351,9 @@
             "unit": "reqps"
           },
           "overrides": []
+        },
+        "datasource": {
+          "uid": "prometheus"
         },
         "gridPos": {
           "h": 8,

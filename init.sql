@@ -309,4 +309,51 @@ FROM roles r
 WHERE r.name = 'employee'
 ON CONFLICT (email) DO NOTHING;
 
+-- Question tracking tables for analytics and statistics
+CREATE TABLE IF NOT EXISTS question_patterns (
+    id bigserial PRIMARY KEY,
+    question_hash text NOT NULL UNIQUE,
+    canonical_question text NOT NULL,
+    category text,
+    created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS question_usage (
+    id bigserial PRIMARY KEY,
+    question_pattern_id bigint REFERENCES question_patterns(id),
+    user_id bigint,
+    conversation_id bigint REFERENCES conversations(id),
+    question_text text NOT NULL,
+    response_time_ms integer,
+    response_quality_score float,
+    user_feedback text,
+    context_length integer,
+    search_method text,
+    citations_count integer,
+    created_at timestamptz DEFAULT now()
+);
+
+-- Indexes for question tracking
+CREATE INDEX IF NOT EXISTS idx_question_patterns_hash ON question_patterns(question_hash);
+CREATE INDEX IF NOT EXISTS idx_question_usage_pattern_id ON question_usage(question_pattern_id);
+CREATE INDEX IF NOT EXISTS idx_question_usage_user_id ON question_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_question_usage_created_at ON question_usage(created_at DESC);
+
+-- Aggregated statistics view
+CREATE OR REPLACE VIEW question_statistics AS
+SELECT
+    qp.question_hash,
+    qp.canonical_question,
+    qp.category,
+    COUNT(qu.id) as usage_count,
+    AVG(qu.response_time_ms) as avg_response_time,
+    AVG(qu.response_quality_score) as avg_quality_score,
+    COUNT(CASE WHEN qu.user_feedback = 'positive' THEN 1 END) as positive_feedback,
+    COUNT(CASE WHEN qu.user_feedback = 'negative' THEN 1 END) as negative_feedback,
+    MAX(qu.created_at) as last_used,
+    COUNT(DISTINCT qu.user_id) as unique_users
+FROM question_patterns qp
+JOIN question_usage qu ON qp.id = qu.question_pattern_id
+GROUP BY qp.id, qp.question_hash, qp.canonical_question, qp.category;
+
 -- End canonical schema
