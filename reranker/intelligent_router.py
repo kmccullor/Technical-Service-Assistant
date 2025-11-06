@@ -1,5 +1,7 @@
 from utils.logging_config import setup_logging
 
+import os
+
 # Setup standardized Log4 logging
 logger = setup_logging(
     program_name="intelligent_router",
@@ -91,41 +93,89 @@ class IntelligentRouter:
     """Dynamic Ollama router with model intelligence."""
 
     def __init__(self):
-        self.instances = [
-            OllamaInstance("ollama-server-1", 11434, "primary"),
-            OllamaInstance("ollama-server-2", 11435, "secondary"),
-            OllamaInstance("ollama-server-3", 11436, "tertiary"),
-            OllamaInstance("ollama-server-4", 11437, "quaternary"),
-        ]
+        # Use OLLAMA_INSTANCES environment variable if available, otherwise fallback to defaults
+        instances_str = os.getenv("OLLAMA_INSTANCES")
+        if instances_str:
+            # Parse comma-separated URLs like "http://host1:port1,http://host2:port2"
+            instance_urls = [url.strip() for url in instances_str.split(",")]
+            self.instances = []
+            for i, url in enumerate(instance_urls):
+                # Extract host and port from URL
+                if url.startswith("http://"):
+                    url = url[7:]  # Remove http://
+                if ":" in url:
+                    host, port_str = url.rsplit(":", 1)
+                    try:
+                        port = int(port_str)
+                    except ValueError:
+                        port = 11434  # fallback
+                else:
+                    host = url
+                    port = 11434
+
+                # Determine role based on index
+                if i == 0:
+                    role = "primary"
+                elif i == 1:
+                    role = "secondary"
+                elif i == 2:
+                    role = "tertiary"
+                elif i == 3:
+                    role = "quaternary"
+                else:
+                    role = "additional"
+
+                self.instances.append(OllamaInstance(host, port, role))
+        else:
+            # Fallback to hardcoded defaults
+            self.instances = [
+                OllamaInstance("ollama-server-1", 11434, "primary"),
+                OllamaInstance("ollama-server-2", 11434, "secondary"),
+                OllamaInstance("ollama-server-3", 11434, "tertiary"),
+                OllamaInstance("ollama-server-4", 11434, "quaternary"),
+                OllamaInstance("ollama-server-5", 11434, "additional"),
+                OllamaInstance("ollama-server-6", 11434, "additional"),
+                OllamaInstance("ollama-server-7", 11434, "additional"),
+                OllamaInstance("ollama-server-8", 11434, "additional"),
+            ]
+
+        # Health check caching
+        self.last_health_check = 0
+        self.health_check_cache_duration = 30  # seconds
 
         # Model capability definitions - Updated for specialized instances
+        chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
+        coding_model = os.getenv("CODING_MODEL", "codellama:7b")
+        reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
+        vision_model = os.getenv("VISION_MODEL", "llava:7b")
+
         self.model_profiles = {
-            "mistral:7b": ModelCapability(
-                name="mistral:7b",
+            chat_model: ModelCapability(
+                name=chat_model,
                 strengths=[QuestionType.TECHNICAL, QuestionType.FACTUAL, QuestionType.CHAT],
                 context_length=8192,
                 speed_tier=2,
                 quality_tier=3,
             ),
-            "mistral:latest": ModelCapability(
-                name="mistral:latest",
-                strengths=[QuestionType.TECHNICAL, QuestionType.FACTUAL, QuestionType.CHAT],
-                context_length=8192,
-                speed_tier=2,
-                quality_tier=3,
-            ),
-            "llama3.1:8b": ModelCapability(
-                name="llama3.1:8b",
-                strengths=[QuestionType.TECHNICAL, QuestionType.FACTUAL, QuestionType.MATH],
-                context_length=8192,
-                speed_tier=2,
-                quality_tier=3,
-            ),
-            "llama3.2:3b": ModelCapability(
-                name="llama3.2:3b",
-                strengths=[QuestionType.MATH, QuestionType.FACTUAL],
+            coding_model: ModelCapability(
+                name=coding_model,
+                strengths=[QuestionType.CODE, QuestionType.TECHNICAL],
                 context_length=4096,
                 speed_tier=1,
+                quality_tier=2,
+            ),
+            reasoning_model: ModelCapability(
+                name=reasoning_model,
+                strengths=[QuestionType.MATH, QuestionType.FACTUAL, QuestionType.TECHNICAL],
+                context_length=4096,
+                speed_tier=1,
+                quality_tier=2,
+            ),
+            vision_model: ModelCapability(
+                name=vision_model,
+                strengths=[QuestionType.TECHNICAL, QuestionType.FACTUAL],  # Vision models can handle visual Q&A
+                context_length=4096,
+                speed_tier=2,
                 quality_tier=2,
             ),
             "llama3.2:1b": ModelCapability(
@@ -327,12 +377,26 @@ class IntelligentRouter:
             return []
 
     async def refresh_health_status(self):
-        """Refresh health status for all instances."""
+        """Refresh health status for all instances with caching."""
+        current_time = time.time()
+
+        # Check if we need to refresh (cache duration expired)
+        if current_time - self.last_health_check < self.health_check_cache_duration:
+            logger.debug(f"Using cached health status (age: {current_time - self.last_health_check:.1f}s)")
+            return
+
+        # Perform fresh health checks
+        self.last_health_check = current_time
         tasks = [self.check_instance_health(instance) for instance in self.instances]
         await asyncio.gather(*tasks, return_exceptions=True)
 
         healthy_count = sum(1 for i in self.instances if i.healthy)
         logger.info(f"Health check complete: {healthy_count}/{len(self.instances)} instances healthy")
+
+    async def refresh_health_status_force(self):
+        """Force refresh health status for all instances (ignore cache)."""
+        self.last_health_check = 0  # Reset cache
+        await self.refresh_health_status()
 
     def select_best_model_for_instance(
         self,
@@ -479,13 +543,12 @@ intelligent_router = IntelligentRouter()
 
 def add_intelligent_routing_endpoints(app):
     """Add intelligent routing endpoints to FastAPI app."""
+    print("Adding intelligent routing endpoints...")
 
-    @app.post("/api/intelligent-route", response_model=ModelSelectionResponse)
     async def intelligent_route(request: ModelSelectionRequest):
         """Get optimal model and instance selection for a query."""
         return await intelligent_router.route_request(request)
 
-    @app.get("/api/ollama-health")
     async def ollama_health():
         """Check health status of all Ollama instances."""
         await intelligent_router.refresh_health_status()
@@ -511,3 +574,6 @@ def add_intelligent_routing_endpoints(app):
             "total_instances": len(intelligent_router.instances),
             "instances": status_summary,
         }
+
+    app.add_api_route("/api/intelligent-route", intelligent_route, methods=["POST"], response_model=ModelSelectionResponse)
+    app.add_api_route("/api/ollama-health", ollama_health, methods=["GET"])

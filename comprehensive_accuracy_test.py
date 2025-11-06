@@ -19,6 +19,10 @@ def get_embedding(text: str) -> List[float]:
         "http://ollama-server-2:11434/api/embeddings",
         "http://ollama-server-3:11434/api/embeddings",
         "http://ollama-server-4:11434/api/embeddings",
+        "http://ollama-server-5:11434/api/embeddings",
+        "http://ollama-server-6:11434/api/embeddings",
+        "http://ollama-server-7:11434/api/embeddings",
+        "http://ollama-server-8:11434/api/embeddings",
     ]
 
     for url in ollama_instances:

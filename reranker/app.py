@@ -11,6 +11,7 @@ import psycopg2
 import hashlib
 import re
 import time
+import jwt
 
 # Add /app to Python path for imports
 sys.path.insert(0, '/app')
@@ -28,9 +29,10 @@ logger = logging.getLogger(__name__)
 print("Starting app.py execution")
 
 # Import auth endpoints
-from rbac_endpoints import router as auth_router
 from cache import get_db_connection
 from rag_chat import RAGChatService, add_rag_endpoints
+from rbac_endpoints import rbac_router
+
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -50,10 +52,14 @@ rag_service = RAGChatService()
 add_rag_endpoints(app)
 
 # Include auth endpoints
-# app.include_router(auth_router)  # Temporarily commented out
-# app.include_router(admin_router)  # Temporarily commented out
+app.include_router(rbac_router)
 
-print("Routers included, starting endpoint definitions")
+# Add intelligent routing endpoints
+print("Importing intelligent_router...")
+from intelligent_router import add_intelligent_routing_endpoints
+print("Calling add_intelligent_routing_endpoints...")
+add_intelligent_routing_endpoints(app)
+print("Intelligent routing endpoints added.")
 
 
 class ChatRequest(BaseModel):
@@ -192,6 +198,53 @@ def _track_question_usage(question_text: str, user_id: int, conversation_id: int
         logger.error(f"Failed to track question usage: {e}")
 
 def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    token = authorization.replace("Bearer ", "")
+
+    # Try to decode JWT
+    jwt_secret = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+    try:
+        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        email = payload.get("email")
+        if user_id and email:
+            # Look up user from database
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                cursor.execute("SELECT * FROM users WHERE id = %s", [user_id])
+                user_row = cursor.fetchone()
+                cursor.close()
+                conn.close()
+
+                if user_row:
+                    return UserResponse(
+                        id=user_row["id"],
+                        email=user_row["email"],
+                        first_name=user_row.get("first_name"),
+                        last_name=user_row.get("last_name"),
+                        full_name=f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}",
+                        role_id=user_row.get("role_id", 2),
+                        role_name="admin" if user_row.get("role_id") == 1 else "employee",
+                        status=user_row.get("status", "active"),
+                        verified=user_row.get("verified", True),
+                        last_login=user_row.get("last_login"),
+                        is_active=True,
+                        is_locked=False,
+                        password_change_required=user_row.get("password_change_required", False),
+                        created_at=user_row["created_at"].isoformat() if user_row["created_at"] else "2024-01-01T00:00:00Z",
+                        updated_at=user_row["updated_at"].isoformat() if user_row["updated_at"] else "2024-01-01T00:00:00Z",
+                    )
+            except Exception as e:
+                logger.error(f"Error looking up user {user_id}: {e}")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.DecodeError:
+        pass  # Fall back to old logic
+
+    # Fallback for mock tokens or old logic
     email = "admin@employee.com"
     if authorization and authorization.startswith("Bearer mock_access_token_"):
         token = authorization.replace("Bearer mock_access_token_", "")
@@ -309,9 +362,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     user = _user_from_authorization(authorization)
-    # For testing, override with known user ID
-    user.id = 8  # jim.hitchcock@xylem.com
-    print(f"User ID: {user.id}, type: {type(user.id)}")
+    print(f"User ID: {user.id}, email: {user.email}, type: {type(user.id)}")
 
     conversation_id = request.conversationId
     is_new_conversation = False
@@ -327,7 +378,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
         try:
             cursor.execute(
                 "INSERT INTO conversations (title, user_id) VALUES (%s, %s) RETURNING id",
-                [conversation_title, 8],  # Hardcode user ID for testing
+                [conversation_title, user.id],
             )
             result = cursor.fetchone()
             if not result:
@@ -399,7 +450,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 query=request.message,
                 use_context=True,
                 max_context_chunks=5,
-                model="mistral:7b",
+                model=os.getenv("CHAT_MODEL", "mistral:7b"),
                 temperature=0.2,
                 max_tokens=500,
             )
@@ -737,14 +788,81 @@ def delete_conversation(conversation_id: int, authorization: Optional[str] = Hea
 
 
 @app.get("/health")
-def health():
-    """General health check endpoint."""
-    return {"status": "healthy", "service": "reranker"}
+async def auth_health():
+    """Auth health check endpoint with database connectivity check."""
+    try:
+        # Check database connectivity
+        from config import get_db_connection
+        conn = get_db_connection()
+        conn.close()
 
-@app.get("/api/auth/health")
-def auth_health():
-    """Auth health check endpoint."""
-    return {"status": "healthy", "service": "auth"}
+        return {
+            "status": "healthy",
+            "service": "auth",
+            "database": "connected",
+            "message": "Auth service and database are healthy"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "service": "auth",
+            "database": "disconnected",
+            "error": str(e),
+            "message": "Auth service is running but database is unavailable"
+        }
+
+print("Defining /api/ollama-health endpoint")
+@app.get("/api/ollama-health")
+async def ollama_health():
+    """Check health status of all Ollama instances with graceful error handling."""
+    try:
+        # Import here to avoid circular imports
+        from intelligent_router import intelligent_router
+        await intelligent_router.refresh_health_status_force()
+
+        status_summary = []
+        for instance in intelligent_router.instances:
+            status_summary.append(
+                {
+                    "name": instance.name,
+                    "url": instance.url,
+                    "healthy": instance.healthy,
+                    "response_time": f"{instance.response_time:.2f}s" if instance.response_time > 0 else "unknown",
+                    "load_score": f"{instance.load_score:.2f}" if instance.load_score > 0 else "unknown",
+                    "last_check": instance.last_check,
+                }
+            )
+
+        healthy_count = sum(1 for i in intelligent_router.instances if i.healthy)
+
+        # Determine overall status with graceful degradation
+        if healthy_count == len(intelligent_router.instances):
+            overall_status = "healthy"
+            message = "All Ollama instances are healthy"
+        elif healthy_count > 0:
+            overall_status = "degraded"
+            message = f"{healthy_count}/{len(intelligent_router.instances)} instances are healthy"
+        else:
+            overall_status = "unhealthy"
+            message = "No Ollama instances are available"
+
+        return {
+            "status": overall_status,
+            "message": message,
+            "healthy_instances": healthy_count,
+            "total_instances": len(intelligent_router.instances),
+            "instances": status_summary,
+        }
+    except Exception as e:
+        # Graceful degradation - return status indicating health check failure
+        return {
+            "status": "unknown",
+            "message": "Unable to check Ollama health",
+            "error": str(e),
+            "healthy_instances": 0,
+            "total_instances": 0,
+            "instances": []
+        }
 
 
 @app.get("/api/auth/me", response_model=UserResponse)

@@ -168,6 +168,9 @@ def get_settings() -> Settings:
     s.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5")
     s.rerank_model = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-base")
     s.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
+    s.coding_model = os.getenv("CODING_MODEL", "codellama:7b")
+    s.reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
+    s.vision_model = os.getenv("VISION_MODEL", "llava:7b")
     s.ollama_url = os.getenv("OLLAMA_URL", "http://ollama:11434/api/embeddings")
 
     # Chunking

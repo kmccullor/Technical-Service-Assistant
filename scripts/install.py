@@ -61,16 +61,20 @@ def setup_ollama_models(base_url="http://localhost:11434"):
 
     models = [
         "nomic-embed-text:v1.5",  # Embedding model
-        "llama2",  # Default chat model
-        "mistral:7b",  # Technical questions
-        "codellama",  # Code generation
+        "mistral:7b",  # Chat/Thinking model
+        "codellama:7b",  # Coding model
+        "llama3.2:3b",  # Reasoning model
+        "llava:7b",  # Vision model
     ]
 
+    servers = [f"ollama-server-{i}" for i in range(1, 9)]
+
     for model in models:
-        print(f"Pulling model: {model}")
-        cmd = f"docker exec technical-service-assistant-ollama-server-1-1 ollama pull {model}"
-        if not run_command(cmd, check=False):
-            print(f"⚠️ Failed to pull {model}, continuing...")
+        print(f"Pulling model: {model} to all Ollama servers")
+        for server in servers:
+            cmd = f"docker exec {server} ollama pull {model}"
+            if not run_command(cmd, check=False):
+                print(f"⚠️ Failed to pull {model} on {server}, continuing...")
 
     print("✅ Ollama models setup completed")
 

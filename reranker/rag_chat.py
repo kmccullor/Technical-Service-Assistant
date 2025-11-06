@@ -58,21 +58,29 @@ class RAGChatService:
         if ollama_urls:
             self.ollama_urls = ollama_urls
         else:
-            # Always use all 4 instances for load balancing
-            self.ollama_urls = [
-                "http://ollama-server-1:11434",
-                "http://ollama-server-2:11434",
-                "http://ollama-server-3:11434",
-                "http://ollama-server-4:11434"
-            ]
-        logger.info("Using all 4 Ollama instances for load balancing")
+            instances_str = os.getenv("OLLAMA_INSTANCES")
+            if instances_str:
+                self.ollama_urls = [url.strip() for url in instances_str.split(",")]
+            else:
+                # Fallback to all 8 instances for load balancing
+                self.ollama_urls = [
+                    "http://ollama-server-1:11434",
+                    "http://ollama-server-2:11434",
+                    "http://ollama-server-3:11434",
+                    "http://ollama-server-4:11434",
+                    "http://ollama-server-5:11434",
+                    "http://ollama-server-6:11434",
+                    "http://ollama-server-7:11434",
+                    "http://ollama-server-8:11434"
+                ]
+        logger.info(f"Using all {len(self.ollama_urls)} Ollama instances for load balancing")
         self.reranker_url = reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
 
         # Load model configurations
         self.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
-        self.coding_model = os.getenv("CODING_MODEL", "mistral:7b")
-        self.reasoning_model = os.getenv("REASONING_MODEL", "mistral:7b")
-        self.vision_model = os.getenv("VISION_MODEL", "mistral:7b")
+        self.coding_model = os.getenv("CODING_MODEL", "codellama:7b")
+        self.reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
+        self.vision_model = os.getenv("VISION_MODEL", "llava:7b")
         self.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:latest")
 
         logger.info(f"Initialized RAGChatService with {len(self.ollama_urls)} Ollama instances: {self.ollama_urls}")

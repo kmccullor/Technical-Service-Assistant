@@ -50,20 +50,32 @@ export async function POST(req: NextRequest) {
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
         start(controller) {
+          // Send conversation ID first
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'content',
-            content: 'Hello! I\'m your RAG assistant. To enable full functionality, please configure your OpenAI API key in the .env.local file or set USE_LOCAL_MODELS=true. '
+            type: 'conversation_id',
+            conversationId: convId
           })}\n\n`))
 
+          // Send sources
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'content',
-            content: 'I can see you have ' + 'documents loaded in the database, but I need either local models or an OpenAI API key to search and answer questions about them.'
+            type: 'sources',
+            sources: [],
+            method: 'fallback'
           })}\n\n`))
 
+          // Stream the response as tokens
+          const message = 'Hello! I\'m your RAG assistant. To enable full functionality, please configure your OpenAI API key in the .env.local file or set USE_LOCAL_MODELS=true. I can see you have documents loaded in the database, but I need either local models or an OpenAI API key to search and answer questions about them.'
+
+          for (const char of message) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'token',
+              token: char
+            })}\n\n`))
+          }
+
+          // Send completion
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'citations',
-            citations: [],
-            searchType: 'fallback'
+            type: 'done'
           })}\n\n`))
 
           controller.close()

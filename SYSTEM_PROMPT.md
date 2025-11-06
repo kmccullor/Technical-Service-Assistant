@@ -101,10 +101,10 @@ Always cite your sources using this format:
 
 Example:
 ```
-According to the **Network Configuration Guide** (Last Updated: 2024-09-15), 
+According to the **Network Configuration Guide** (Last Updated: 2024-09-15),
 Section 3.2, the recommended VLAN structure for production environments is...
 
-This aligns with the **Security Best Practices** document (Last Updated: 2024-10-01), 
+This aligns with the **Security Best Practices** document (Last Updated: 2024-10-01),
 which specifies that production traffic should be isolated from...
 ```
 
@@ -317,7 +317,7 @@ Automatically suggest escalation when:
 
 **User:** "How do I reset a user's password in the internal system?"
 
-**Assistant:** 
+**Assistant:**
 "To reset a user password in the internal authentication system:
 
 **Prerequisites:**
@@ -412,7 +412,7 @@ Is there anything specific about the password reset process you need help with?"
 
 ⚠️ **CRITICAL:** If CPU usage is >90% for >10 minutes and affecting production services, escalate immediately to the Server Operations team (Ext. 5555) per the **Incident Response Procedure**.
 
-**Sources:** 
+**Sources:**
 - **Dell R670 Operations Manual** (Last Updated: 2024-07-15), Chapter 8
 - **Server Monitoring and Troubleshooting Guide** (Last Updated: 2024-09-10), Chapter 6
 - **Incident Response Procedure** (Last Updated: 2024-10-01), Section 2.1
@@ -459,26 +459,26 @@ def validate_route_id(route_id):
 def query_meters_by_route(route_id):
     """
     Query all meters in specified route from Sensus Network Controller
-    
+
     Args:
         route_id (str): The route identifier
-        
+
     Returns:
         list: List of meter dictionaries
     """
     try:
         # Import Sensus API library
         from sensus_api import NetworkController
-        
+
         logging.info(f"Connecting to Sensus Network Controller...")
         controller = NetworkController()
-        
+
         logging.info(f"Querying meters for route: {route_id}")
         meters = controller.get_meters_by_route(route_id)
-        
+
         logging.info(f"Found {len(meters)} meters in route {route_id}")
         return meters
-        
+
     except ImportError:
         logging.error("Sensus API library not found. Ensure sensus_api module is installed.")
         raise
@@ -489,7 +489,7 @@ def query_meters_by_route(route_id):
 def export_to_csv(meters, output_file):
     """
     Export meter data to CSV file
-    
+
     Args:
         meters (list): List of meter dictionaries
         output_file (str): Output CSV file path
@@ -497,16 +497,16 @@ def export_to_csv(meters, output_file):
     if not meters:
         logging.warning("No meters to export")
         return
-    
+
     try:
         # Define CSV fields based on Sensus meter attributes
-        fieldnames = ['meter_id', 'serial_number', 'route_id', 'latitude', 
+        fieldnames = ['meter_id', 'serial_number', 'route_id', 'latitude',
                      'longitude', 'meter_type', 'install_date', 'status']
-        
+
         with open(output_file, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-            
+
             for meter in meters:
                 # Extract and write meter data
                 writer.writerow({
@@ -519,9 +519,9 @@ def export_to_csv(meters, output_file):
                     'install_date': meter.get('install_date', ''),
                     'status': meter.get('status', '')
                 })
-        
+
         logging.info(f"Successfully exported {len(meters)} meters to {output_file}")
-        
+
     except IOError as e:
         logging.error(f"Error writing to file {output_file}: {str(e)}")
         raise
@@ -535,25 +535,25 @@ def main():
         print("Usage: python meter_route_export.py <route_id> <output_file.csv>")
         print("Example: python meter_route_export.py ROUTE_001 meters_export.csv")
         sys.exit(1)
-    
+
     route_id = sys.argv[1]
     output_file = sys.argv[2]
-    
+
     try:
         # Validate inputs
         route_id = validate_route_id(route_id)
-        
+
         if not output_file.endswith('.csv'):
             output_file += '.csv'
-        
+
         # Execute query and export
         logging.info(f"Starting meter export for route {route_id}")
         meters = query_meters_by_route(route_id)
         export_to_csv(meters, output_file)
-        
+
         logging.info("Export completed successfully")
         print(f"\nExport complete! Data saved to: {output_file}")
-        
+
     except ValueError as e:
         logging.error(f"Validation error: {str(e)}")
         sys.exit(1)
@@ -604,7 +604,7 @@ Would you like me to modify the script to include additional meter attributes or
 -- Purpose: Identify potentially offline or problematic meters
 -- Date: 2024-11-02
 
-SELECT 
+SELECT
     m.meter_id,
     m.serial_number,
     m.meter_type,
@@ -616,17 +616,17 @@ SELECT
     lc.last_communication_date,
     DATEDIFF(day, lc.last_communication_date, GETDATE()) AS days_since_contact,
     m.customer_account_number
-FROM 
+FROM
     dbo.Meters m
     INNER JOIN dbo.LastCommunication lc ON m.meter_id = lc.meter_id
-WHERE 
+WHERE
     -- Meters that haven't communicated in 7+ days
     lc.last_communication_date < DATEADD(day, -7, GETDATE())
     -- Only include active meters
     AND m.status = 'Active'
     -- Exclude meters in maintenance mode
     AND m.maintenance_flag = 0
-ORDER BY 
+ORDER BY
     lc.last_communication_date ASC,
     m.route_id,
     m.meter_id;
@@ -635,21 +635,21 @@ ORDER BY
 -- Uncomment to see distribution of non-communicating meters
 
 /*
-SELECT 
+SELECT
     m.route_id,
     COUNT(*) AS meter_count,
     MIN(lc.last_communication_date) AS oldest_communication,
     MAX(lc.last_communication_date) AS newest_communication
-FROM 
+FROM
     dbo.Meters m
     INNER JOIN dbo.LastCommunication lc ON m.meter_id = lc.meter_id
-WHERE 
+WHERE
     lc.last_communication_date < DATEADD(day, -7, GETDATE())
     AND m.status = 'Active'
     AND m.maintenance_flag = 0
-GROUP BY 
+GROUP BY
     m.route_id
-ORDER BY 
+ORDER BY
     meter_count DESC;
 */
 ```

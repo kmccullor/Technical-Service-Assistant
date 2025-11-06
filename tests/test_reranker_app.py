@@ -230,6 +230,10 @@ class TestIntelligentRouting:
                 "ollama-server-2": {"healthy": True, "response_time": 0.2},
                 "ollama-server-3": {"healthy": False, "response_time": 5.0},
                 "ollama-server-4": {"healthy": True, "response_time": 0.15},
+                "ollama-server-5": {"healthy": True, "response_time": 0.12},
+                "ollama-server-6": {"healthy": True, "response_time": 0.18},
+                "ollama-server-7": {"healthy": True, "response_time": 0.09},
+                "ollama-server-8": {"healthy": False, "response_time": 3.0},
             }
             yield mock_health
 

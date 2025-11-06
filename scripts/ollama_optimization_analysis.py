@@ -53,6 +53,10 @@ class OllamaContainerOptimizer:
             "11435": "ollama-server-2",  # Secondary
             "11436": "ollama-server-3",  # Tertiary
             "11437": "ollama-server-4",  # Quaternary
+            "11438": "ollama-server-5",  # Additional
+            "11439": "ollama-server-6",  # Additional
+            "11440": "ollama-server-7",  # Additional
+            "11441": "ollama-server-8",  # Additional
         }
 
         self.current_models = {

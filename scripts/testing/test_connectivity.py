@@ -28,6 +28,10 @@ DOCKER_HOSTNAMES = [
     {"name": "Ollama Server 2", "host": "ollama-server-2", "port": 11434},
     {"name": "Ollama Server 3", "host": "ollama-server-3", "port": 11434},
     {"name": "Ollama Server 4", "host": "ollama-server-4", "port": 11434},
+    {"name": "Ollama Server 5", "host": "ollama-server-5", "port": 11434},
+    {"name": "Ollama Server 6", "host": "ollama-server-6", "port": 11434},
+    {"name": "Ollama Server 7", "host": "ollama-server-7", "port": 11434},
+    {"name": "Ollama Server 8", "host": "ollama-server-8", "port": 11434},
     {"name": "Reranker Service", "host": "reranker", "port": 8008},
     {"name": "Frontend", "host": "frontend", "port": 8080},
 ]

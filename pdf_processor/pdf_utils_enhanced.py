@@ -695,6 +695,10 @@ def get_ai_classification(prompt: str) -> Optional[Dict[str, Any]]:
         "http://ollama-server-2:11434/api/generate",
         "http://ollama-server-3:11434/api/generate",
         "http://ollama-server-4:11434/api/generate",
+        "http://ollama-server-5:11434/api/generate",
+        "http://ollama-server-6:11434/api/generate",
+        "http://ollama-server-7:11434/api/generate",
+        "http://ollama-server-8:11434/api/generate",
     ]
 
     # Shuffle for load balancing
@@ -1190,6 +1194,10 @@ def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[s
         "http://ollama-server-2:11434/api/embed",
         "http://ollama-server-3:11434/api/embed",
         "http://ollama-server-4:11434/api/embed",
+        "http://ollama-server-5:11434/api/embed",
+        "http://ollama-server-6:11434/api/embed",
+        "http://ollama-server-7:11434/api/embed",
+        "http://ollama-server-8:11434/api/embed",
     ]
 
     # Use provided URL or use multi-instance load balancing (ignore settings.ollama_url default)

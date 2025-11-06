@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
 import { Copy } from 'lucide-react'
 import * as Toast from '@radix-ui/react-toast'
+import { MessageRenderer } from './message-renderer'
 // Helper to format message for copying (plain text + optional metadata)
 function formatMessageForCopy(message: Message): string {
   let text = message.content
@@ -576,10 +577,8 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
 
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg p-4 relative`}>
-              <div className="whitespace-pre-wrap break-words">
-                {message.content}
-              </div>
+             <div className={`max-w-[80%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg p-4 relative`}>
+               <MessageRenderer content={message.content} />
               {/* Copy button for assistant messages */}
               {message.role === 'assistant' && (
                 <button

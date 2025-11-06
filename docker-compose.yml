@@ -155,22 +155,20 @@ services:
   reranker:
     build:
       context: .
-      dockerfile: reranker/Dockerfile
+      dockerfile: ./reranker/Dockerfile
     container_name: reranker
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     ports:
       - "8008:8008"
       - "9092:9091"
       - "8050:8050"
-    command: ["python", "app.py"]
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - LOG_LEVEL=info
@@ -196,7 +194,7 @@ services:
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7b
       - NODE_ENV=production
-      - NEXT_PUBLIC_APP_URL=http://RNI-LLM-01.lab.sensus.net:3000
+      - NEXT_PUBLIC_APP_URL=https://rni-llm-01.lab.sensus.net
       - RERANKER_ENABLED=true
       - CONFIDENCE_THRESHOLD=0.2
       - VECTOR_WEIGHT=0.6
@@ -215,8 +213,6 @@ services:
       - SERP_API_KEY=disabled-using-local
       - LANGFUSE_PUBLIC_KEY=disabled-using-local
       - LANGFUSE_SECRET_KEY=disabled-using-local
-    ports:
-      - "3000:3000"
     depends_on:
       - pgvector
       - redis
@@ -317,12 +313,16 @@ services:
       - OLLAMA_TARGETS=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EXPORTER_PORT=9105
       - REQUEST_TIMEOUT=2
-      - CACHE_TTL=5
+       - CACHE_TTL=5
     depends_on:
-      - ollama-server-1
-      - ollama-server-2
-      - ollama-server-3
-      - ollama-server-4
+       - ollama-server-1
+       - ollama-server-2
+       - ollama-server-3
+       - ollama-server-4
+       - ollama-server-5
+       - ollama-server-6
+       - ollama-server-7
+       - ollama-server-8
     ports:
       - "9105:9105"
     healthcheck:
