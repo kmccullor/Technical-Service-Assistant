@@ -90,7 +90,7 @@ export default function HomePage() {
           onConversationDeleted={handleConversationDeleted}
         />
       )}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col min-h-0">
         <div className="border-b p-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Technical Services Assistant</h1>
@@ -108,13 +108,15 @@ export default function HomePage() {
           </div>
         </div>
         {user ? (
-          <ChatInterface
-            conversationId={currentConversationId}
-            onConversationCreated={handleConversationCreated}
-            onConversationActivity={handleConversationActivity}
-          />
+          <div className="flex-1 min-h-0">
+            <ChatInterface
+              conversationId={currentConversationId}
+              onConversationCreated={handleConversationCreated}
+              onConversationActivity={handleConversationActivity}
+            />
+          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center px-4">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-medium">Welcome to Technical Service Assistant</h2>
               <p className="text-muted-foreground max-w-md">Authenticate to start secure, role-based retrieval augmented conversations. Your role will control access to private versus public knowledge.</p>

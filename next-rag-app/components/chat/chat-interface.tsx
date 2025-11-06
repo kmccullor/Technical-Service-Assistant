@@ -90,16 +90,21 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [inputExpanded, setInputExpanded] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const isInitialScrollRef = useRef(true)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    const el = messagesContainerRef.current
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior })
+    }
   }
 
   useEffect(() => {
-    scrollToBottom()
+    scrollToBottom(isInitialScrollRef.current ? 'auto' : 'smooth')
+    isInitialScrollRef.current = false
   }, [messages])
 
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -169,6 +174,8 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
     } else {
       loadHistory(conversationId)
     }
+
+    isInitialScrollRef.current = true
 
     return () => {
       cancelled = true
@@ -533,7 +540,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
   return (
     <div
       ref={chatContainerRef}
-      className="flex flex-col h-full relative"
+      className="flex h-full min-h-0 flex-col relative"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -556,7 +563,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 pb-32 space-y-4">
         {historyLoading && messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin" />
@@ -650,12 +657,10 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
             </div>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 border-t bg-background p-4 z-10">
+      <div className="sticky bottom-0 z-10 border-t bg-background p-4">
         {/* File Upload Area */}
         {uploadedFile && (
           <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">

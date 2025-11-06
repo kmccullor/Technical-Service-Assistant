@@ -5,19 +5,17 @@ Combines vector retrieval with LLM generation for document-aware responses.
 Follows Pydantic AI best practices from https://ai.pydantic.dev/
 """
 
-from typing import List, Optional, Dict, Any, Union, cast
 import logging
 import os
-import httpx
-from httpx import Response
 import random
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+import httpx
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from httpx import Response
+from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
 # Setup basic logging
@@ -25,12 +23,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 if not logger.handlers:
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     logger.addHandler(handler)
 
 
 class RAGChatRequest(BaseModel):
     """Request model for RAG chat."""
+
     query: str = Field(..., description="User query")
     use_context: bool = Field(True, description="Whether to use document context")
     max_context_chunks: int = Field(5, description="Maximum number of context chunks to retrieve")
@@ -42,8 +41,12 @@ class RAGChatRequest(BaseModel):
 
 class RAGChatResponse(BaseModel):
     """Response model for RAG chat."""
+
     response: str = Field(..., description="Generated response")
     context_used: List[str] = Field(default_factory=list, description="Context chunks used")
+    context_metadata: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Context metadata with document info"
+    )
     web_sources: List[Dict[str, Any]] = Field(default_factory=list, description="Web sources used for citations")
     model: str = Field(..., description="Model used for generation")
     context_retrieved: bool = Field(..., description="Whether context was retrieved")
@@ -55,6 +58,7 @@ class RAGChatService:
     def __init__(self, ollama_urls: Optional[List[str]] = None, reranker_url: Optional[str] = None):
         """Initialize the RAG chat service."""
         import os
+
         if ollama_urls:
             self.ollama_urls = ollama_urls
         else:
@@ -71,10 +75,12 @@ class RAGChatService:
                     "http://ollama-server-5:11434",
                     "http://ollama-server-6:11434",
                     "http://ollama-server-7:11434",
-                    "http://ollama-server-8:11434"
+                    "http://ollama-server-8:11434",
                 ]
         logger.info(f"Using all {len(self.ollama_urls)} Ollama instances for load balancing")
-        self.reranker_url = reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
+        self.reranker_url = (
+            reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
+        )
 
         # Load model configurations
         self.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
@@ -84,7 +90,9 @@ class RAGChatService:
         self.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:latest")
 
         logger.info(f"Initialized RAGChatService with {len(self.ollama_urls)} Ollama instances: {self.ollama_urls}")
-        logger.info(f"Models: chat={self.chat_model}, coding={self.coding_model}, reasoning={self.reasoning_model}, vision={self.vision_model}")
+        logger.info(
+            f"Models: chat={self.chat_model}, coding={self.coding_model}, reasoning={self.reasoning_model}, vision={self.vision_model}"
+        )
 
         # Database connection for vector search
         self.db_host = os.getenv("DB_HOST", "pgvector")
@@ -98,7 +106,19 @@ class RAGChatService:
         query_lower = query.lower()
 
         # Coding-related queries
-        coding_keywords = ["code", "programming", "python", "javascript", "function", "class", "script", "debug", "error", "compile", "syntax"]
+        coding_keywords = [
+            "code",
+            "programming",
+            "python",
+            "javascript",
+            "function",
+            "class",
+            "script",
+            "debug",
+            "error",
+            "compile",
+            "syntax",
+        ]
         if any(keyword in query_lower for keyword in coding_keywords):
             return self.coding_model
 
@@ -115,17 +135,17 @@ class RAGChatService:
         # Default to chat model
         return self.chat_model
 
-    async def retrieve_context(self, query: str, max_chunks: int = 5) -> List[str]:
+    async def retrieve_context(self, query: str, max_chunks: int = 5) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
         logger.info(f"Starting context retrieval for query: {query[:50]}...")
         try:
             # Step 1: Try RAG knowledge base first
             query_embedding = await self._get_query_embedding(query)
-            rag_chunks = await self._vector_search(query_embedding, max_chunks)
+            rag_chunks, rag_metadata = await self._vector_search(query_embedding, max_chunks)
 
             if rag_chunks:
                 logger.info(f"Retrieved {len(rag_chunks)} RAG context chunks for query: {query[:50]}...")
-                return rag_chunks
+                return rag_chunks, rag_metadata
 
             # Step 2: If no RAG results, try web search
             logger.info(f"No RAG results found, trying web search for query: {query[:50]}...")
@@ -133,17 +153,30 @@ class RAGChatService:
 
             if web_results:
                 # Convert web results to context chunks
-                context_chunks = [f"Web Result: {result['title']}\n{result['content']}\nSource: {result['url']}" for result in web_results]
+                context_chunks = [
+                    f"Web Result: {result['title']}\n{result['content']}\nSource: {result['url']}"
+                    for result in web_results
+                ]
+                # Create metadata for web results
+                web_metadata = [
+                    {
+                        "content": result["content"],
+                        "file_name": result["title"],
+                        "document_type": "web",
+                        "distance": 1.0 - result["score"],  # Convert score to distance-like metric
+                    }
+                    for result in web_results
+                ]
                 logger.info(f"Retrieved {len(context_chunks)} web search context chunks")
-                return context_chunks
+                return context_chunks, web_metadata
 
             # Step 3: If still no results, return empty
             logger.info(f"No context found for query: {query[:50]}...")
-            return []
+            return [], []
 
         except Exception as e:
             logger.error(f"Context retrieval failed: {e}")
-            return []
+            return [], []
 
     async def _get_query_embedding(self, query: str) -> List[float]:
         """Generate embedding for the query using Ollama."""
@@ -170,7 +203,9 @@ class RAGChatService:
             logger.error(f"Embedding generation failed: {e}")
             raise
 
-    async def _vector_search(self, query_embedding: List[float], max_chunks: int) -> List[str]:
+    async def _vector_search(
+        self, query_embedding: List[float], max_chunks: int
+    ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Perform vector similarity search in the database."""
         try:
             conn = psycopg2.connect(
@@ -178,7 +213,7 @@ class RAGChatService:
                 database=self.db_name,
                 user=self.db_user,
                 password=self.db_password,
-                port=self.db_port
+                port=self.db_port,
             )
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -189,7 +224,9 @@ class RAGChatService:
                 """
                 SELECT
                     dc.content,
-                    dc.embedding <=> %s::vector as distance
+                    dc.embedding <=> %s::vector as distance,
+                    d.file_name,
+                    d.document_type
                 FROM document_chunks dc
                 JOIN documents d ON dc.document_id = d.id
                  WHERE dc.embedding IS NOT NULL
@@ -205,13 +242,22 @@ class RAGChatService:
             cursor.close()
             conn.close()
 
-            # Extract content from results
+            # Extract content and metadata from results
             context_chunks = [row["content"] for row in results]
-            return context_chunks
+            context_metadata = [
+                {
+                    "content": row["content"],
+                    "file_name": row["file_name"],
+                    "document_type": row["document_type"],
+                    "distance": row["distance"],
+                }
+                for row in results
+            ]
+            return context_chunks, context_metadata
 
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
-            return []
+            return [], []
 
     async def _web_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         """Perform web search with priority for sensus-training.com."""
@@ -221,7 +267,10 @@ class RAGChatService:
         cached_results = get_cached_web_results(query)
         if cached_results:
             logger.info(f"Using cached web results for query: {query[:50]}...")
-            return [{"title": r.title, "content": r.content, "url": r.url, "score": r.score} for r in cached_results[:max_results]]
+            return [
+                {"title": r.title, "content": r.content, "url": r.url, "score": r.score}
+                for r in cached_results[:max_results]
+            ]
 
         results = []
 
@@ -236,7 +285,10 @@ class RAGChatService:
 
         # Cache the results
         if results:
-            store_web_results(query, [{"title": r["title"], "url": r["url"], "content": r["content"], "score": r["score"]} for r in results])
+            store_web_results(
+                query,
+                [{"title": r["title"], "url": r["url"], "content": r["content"], "score": r["score"]} for r in results],
+            )
 
         return results[:max_results]
 
@@ -253,7 +305,7 @@ class RAGChatService:
                 "engines": "duckduckgo,google",
                 "safesearch": "0",
                 "time_range": "",
-                "lang": "en"
+                "lang": "en",
             }
 
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -264,12 +316,14 @@ class RAGChatService:
                     results = []
 
                     for result in data.get("results", [])[:3]:  # Limit to 3
-                        results.append({
-                            "title": result.get("title", ""),
-                            "url": result.get("url", ""),
-                            "content": result.get("content", ""),
-                            "score": 0.8  # Default score
-                        })
+                        results.append(
+                            {
+                                "title": result.get("title", ""),
+                                "url": result.get("url", ""),
+                                "content": result.get("content", ""),
+                                "score": 0.8,  # Default score
+                            }
+                        )
 
                     logger.info(f"SearXNG search returned {len(results)} results from sensus-training.com")
                     return results
@@ -294,7 +348,7 @@ class RAGChatService:
                 "engines": "duckduckgo,google,startpage",
                 "safesearch": "0",
                 "time_range": "",
-                "lang": "en"
+                "lang": "en",
             }
 
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -305,12 +359,14 @@ class RAGChatService:
                     results = []
 
                     for result in data.get("results", [])[:max_results]:
-                        results.append({
-                            "title": result.get("title", ""),
-                            "url": result.get("url", ""),
-                            "content": result.get("content", ""),
-                            "score": 0.7  # Default score
-                        })
+                        results.append(
+                            {
+                                "title": result.get("title", ""),
+                                "url": result.get("url", ""),
+                                "content": result.get("content", ""),
+                                "score": 0.7,  # Default score
+                            }
+                        )
 
                     logger.info(f"SearXNG broad search returned {len(results)} results")
                     return results
@@ -374,11 +430,15 @@ Sources: [list documentation sources]"""
 
         return {"system": system_prompt, "user": user_prompt}
 
-    async def generate_response(self, prompt_dict: Dict[str, str], model: str, temperature: float, max_tokens: int, stream: bool = False) -> Union[str, Response]:
+    async def generate_response(
+        self, prompt_dict: Dict[str, str], model: str, temperature: float, max_tokens: int, stream: bool = False
+    ) -> Union[str, Response]:
         """Generate response using Ollama chat API with system and user prompts."""
         # Randomly select an Ollama instance for load balancing
         selected_url = random.choice(self.ollama_urls)
-        logger.debug(f"Available instances: {self.ollama_urls}, Selected Ollama instance: {selected_url} for model {model}")
+        logger.debug(
+            f"Available instances: {self.ollama_urls}, Selected Ollama instance: {selected_url} for model {model}"
+        )
 
         system_prompt = prompt_dict.get("system", "")
         user_prompt = prompt_dict.get("user", "")
@@ -391,7 +451,7 @@ Sources: [list documentation sources]"""
                         "model": model,
                         "messages": [
                             {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
+                            {"role": "user", "content": user_prompt},
                         ],
                         "stream": stream,
                         "options": {"temperature": temperature, "num_predict": max_tokens},
@@ -416,17 +476,21 @@ Sources: [list documentation sources]"""
 
     async def chat(self, request: RAGChatRequest) -> Union[RAGChatResponse, Response]:
         """Process RAG-enhanced chat request with hierarchical search."""
-        logger.info(f"Processing chat request: query='{request.query[:50]}...', use_context={request.use_context}, stream={request.stream}")
+        logger.info(
+            f"Processing chat request: query='{request.query[:50]}...', use_context={request.use_context}, stream={request.stream}"
+        )
         context_chunks = []
+        context_metadata = []
         web_sources = []
 
         if request.use_context:
-            context_chunks = await self.retrieve_context(request.query, request.max_context_chunks)
+            context_chunks, context_metadata = await self.retrieve_context(request.query, request.max_context_chunks)
+            logger.info(f"Retrieved {len(context_chunks)} chunks and {len(context_metadata)} metadata items")
 
             # Extract web sources for citations
             for chunk in context_chunks:
                 if "Web Result:" in chunk and "Source:" in chunk:
-                    lines = chunk.split('\n')
+                    lines = chunk.split("\n")
                     title = lines[0].replace("Web Result: ", "") if lines else "Web Source"
                     url = ""
                     for line in lines:
@@ -450,6 +514,7 @@ Sources: [list documentation sources]"""
             return RAGChatResponse(
                 response=response_text,
                 context_used=context_chunks,
+                context_metadata=context_metadata,
                 web_sources=web_sources,
                 model=selected_model,
                 context_retrieved=len(context_chunks) > 0,
@@ -469,14 +534,13 @@ def add_rag_endpoints(app: FastAPI):
         if request.stream:
             # For streaming, return StreamingResponse
             response = cast(Response, await rag_service.chat(request))
+
             async def generate():
                 async for line in response.aiter_lines():  # type: ignore
                     if line.strip():
                         yield f"data: {line}\n\n"
-            return StreamingResponse(
-                content=generate(),
-                media_type="text/event-stream"
-            )
+
+            return StreamingResponse(content=generate(), media_type="text/event-stream")
         else:
             # For non-streaming, return JSON
             return await rag_service.chat(request)

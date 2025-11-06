@@ -3,36 +3,37 @@ Minimal Technical Service Assistant API
 Just the basic chat endpoints to get the frontend working.
 """
 
-from typing import List, Optional, Dict, Any
-import uvicorn
-import os
-import sys
-import psycopg2
 import hashlib
+import os
 import re
+import sys
 import time
+from typing import Any, Dict, List, Optional, cast
+
 import jwt
+import uvicorn
 
 # Add /app to Python path for imports
-sys.path.insert(0, '/app')
-from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import StreamingResponse, Response
-from pydantic import BaseModel, Field
-import json
+sys.path.insert(0, "/app")
 import asyncio
+import json
 import logging
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import Response, StreamingResponse
+from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
+from psycopg2.extras import RealDictCursor
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 print("Starting app.py execution")
 
 # Import auth endpoints
-from cache import get_db_connection
-from rag_chat import RAGChatService, add_rag_endpoints
-from rbac_endpoints import rbac_router
+from reranker.cache import get_db_connection
+from reranker.rag_chat import RAGChatResponse, RAGChatService, add_rag_endpoints
 
+from reranker.rbac_endpoints import rbac_router
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -40,10 +41,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
 # Test question endpoint
 @app.get("/api/admin/question-stats-test")
 def test_question_stats():
     return {"message": "Question stats endpoint works"}
+
 
 # Initialize RAG service
 rag_service = RAGChatService()
@@ -56,7 +59,8 @@ app.include_router(rbac_router)
 
 # Add intelligent routing endpoints
 print("Importing intelligent_router...")
-from intelligent_router import add_intelligent_routing_endpoints
+from reranker.intelligent_router import add_intelligent_routing_endpoints
+
 print("Calling add_intelligent_routing_endpoints...")
 add_intelligent_routing_endpoints(app)
 print("Intelligent routing endpoints added.")
@@ -127,36 +131,46 @@ def _normalize_question(question: str) -> str:
     # Convert to lowercase
     normalized = question.lower().strip()
     # Remove extra whitespace
-    normalized = re.sub(r'\s+', ' ', normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
     # Remove punctuation except essential ones
-    normalized = re.sub(r'[^\w\s\?\!\.]', '', normalized)
+    normalized = re.sub(r"[^\w\s\?\!\.]", "", normalized)
     return normalized
+
 
 def _hash_question(question: str) -> str:
     """Generate SHA-256 hash of normalized question."""
     normalized = _normalize_question(question)
-    return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
 
 def _categorize_question(question: str) -> str:
     """Auto-categorize question based on content."""
     q_lower = question.lower()
 
-    if any(word in q_lower for word in ['how to', 'how do', 'setup', 'install', 'configure']):
-        return 'technical_setup'
-    elif any(word in q_lower for word in ['what is', 'explain', 'definition', 'meaning']):
-        return 'explanatory'
-    elif any(word in q_lower for word in ['error', 'problem', 'issue', 'fail', 'broken']):
-        return 'troubleshooting'
-    elif any(word in q_lower for word in ['user', 'role', 'permission', 'admin', 'access']):
-        return 'user_management'
-    elif any(word in q_lower for word in ['report', 'dashboard', 'analytics', 'statistics']):
-        return 'reporting'
+    if any(word in q_lower for word in ["how to", "how do", "setup", "install", "configure"]):
+        return "technical_setup"
+    elif any(word in q_lower for word in ["what is", "explain", "definition", "meaning"]):
+        return "explanatory"
+    elif any(word in q_lower for word in ["error", "problem", "issue", "fail", "broken"]):
+        return "troubleshooting"
+    elif any(word in q_lower for word in ["user", "role", "permission", "admin", "access"]):
+        return "user_management"
+    elif any(word in q_lower for word in ["report", "dashboard", "analytics", "statistics"]):
+        return "reporting"
     else:
-        return 'general'
+        return "general"
 
-def _track_question_usage(question_text: str, user_id: int, conversation_id: int,
-                         response_time_ms: int, quality_score: float,
-                         search_method: str, citations_count: int, context_length: int):
+
+def _track_question_usage(
+    question_text: str,
+    user_id: int,
+    conversation_id: int,
+    response_time_ms: int,
+    quality_score: float,
+    search_method: str,
+    citations_count: int,
+    context_length: int,
+):
     """Track question usage in database."""
     try:
         question_hash = _hash_question(question_text)
@@ -166,29 +180,43 @@ def _track_question_usage(question_text: str, user_id: int, conversation_id: int
         cursor = conn.cursor()
 
         # Insert or get question pattern
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO question_patterns (question_hash, canonical_question, category)
             VALUES (%s, %s, %s)
             ON CONFLICT (question_hash) DO UPDATE SET
                 canonical_question = EXCLUDED.canonical_question,
                 category = EXCLUDED.category
             RETURNING id
-        """, [question_hash, question_text[:500], category])
+        """,
+            [question_hash, question_text[:500], category],
+        )
 
         pattern_result = cursor.fetchone()
         pattern_id = pattern_result[0] if pattern_result else None
 
         if pattern_id:
             # Insert usage record
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO question_usage (
                     question_pattern_id, user_id, conversation_id, question_text,
                     response_time_ms, response_quality_score, context_length,
                     search_method, citations_count
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, [pattern_id, user_id, conversation_id, question_text,
-                  response_time_ms, quality_score, context_length,
-                  search_method, citations_count])
+            """,
+                [
+                    pattern_id,
+                    user_id,
+                    conversation_id,
+                    question_text,
+                    response_time_ms,
+                    quality_score,
+                    context_length,
+                    search_method,
+                    citations_count,
+                ],
+            )
 
         conn.commit()
         cursor.close()
@@ -196,6 +224,7 @@ def _track_question_usage(question_text: str, user_id: int, conversation_id: int
 
     except Exception as e:
         logger.error(f"Failed to track question usage: {e}")
+
 
 def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
     if not authorization or not authorization.startswith("Bearer "):
@@ -234,8 +263,12 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                         is_active=True,
                         is_locked=False,
                         password_change_required=user_row.get("password_change_required", False),
-                        created_at=user_row["created_at"].isoformat() if user_row["created_at"] else "2024-01-01T00:00:00Z",
-                        updated_at=user_row["updated_at"].isoformat() if user_row["updated_at"] else "2024-01-01T00:00:00Z",
+                        created_at=user_row["created_at"].isoformat()
+                        if user_row["created_at"]
+                        else "2024-01-01T00:00:00Z",
+                        updated_at=user_row["updated_at"].isoformat()
+                        if user_row["updated_at"]
+                        else "2024-01-01T00:00:00Z",
                     )
             except Exception as e:
                 logger.error(f"Error looking up user {user_id}: {e}")
@@ -289,12 +322,44 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
             updated_at="2024-01-01T00:00:00Z",
         )
 
-    # Look up user from database
+    # Look up user from database, create if doesn't exist
     try:
+        # Extract name parts for user creation
+        email_parts = email.split("@")
+        username = email_parts[0] if email_parts else "user"
+        name_parts = username.replace(".", " ").replace("_", " ").split()
+        first_name = name_parts[0].capitalize() if name_parts else "User"
+        last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
+
+        logger.info(f"Looking up user with email: {email}")
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT * FROM users WHERE email = %s", [email])
         user_row = cursor.fetchone()
+        logger.info(f"User lookup result: {user_row is not None}")
+
+        if not user_row:
+            # User doesn't exist, create them
+            user_id = _deterministic_user_id(email)
+            role_id = 1 if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower() else 2
+
+            logger.info(f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}")
+            cursor.execute("""
+                INSERT INTO users (id, email, name, first_name, last_name, role_id, status, verified, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, 'active', true, NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE SET
+                    email = EXCLUDED.email,
+                    name = EXCLUDED.name,
+                    first_name = EXCLUDED.first_name,
+                    last_name = EXCLUDED.last_name,
+                    role_id = EXCLUDED.role_id,
+                    updated_at = NOW()
+                RETURNING *
+            """, [user_id, email, f"{first_name} {last_name}", first_name, last_name, role_id])
+            user_row = cursor.fetchone()
+            conn.commit()
+            logger.info(f"User creation result: {user_row}")
+
         cursor.close()
         conn.close()
 
@@ -304,7 +369,9 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                 email=user_row["email"],
                 first_name=user_row.get("first_name"),
                 last_name=user_row.get("last_name"),
-                full_name=user_row.get("name", f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}"),
+                full_name=user_row.get(
+                    "name", f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}"
+                ),
                 role_id=user_row.get("role_id", 2),
                 role_name="admin" if user_row.get("role_id") == 1 else "employee",
                 status=user_row.get("status", "active"),
@@ -317,9 +384,9 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                 updated_at=user_row["updated_at"].isoformat() if user_row["updated_at"] else "2024-01-01T00:00:00Z",
             )
     except Exception as e:
-        logger.error(f"Error looking up user {email}: {e}")
+        logger.error(f"Error looking up/creating user {email}: {e}")
 
-    # Fallback to mock user
+    # Fallback to mock user (should not reach here after database lookup/creation)
     email_parts = email.split("@")
     username = email_parts[0] if email_parts else "user"
     name_parts = username.replace(".", " ").replace("_", " ").split()
@@ -411,10 +478,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            "SELECT COUNT(*) as message_count FROM messages WHERE conversation_id = %s",
-            [conversation_id]
-        )
+        cursor.execute("SELECT COUNT(*) as message_count FROM messages WHERE conversation_id = %s", [conversation_id])
         context_result = cursor.fetchone()
         context_length = context_result[0] if context_result else 0
     finally:
@@ -455,7 +519,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 max_tokens=500,
             )
 
-            rag_response = await rag_service.chat(rag_request)
+            rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
 
             # Calculate response time
             end_time = time.time()
@@ -465,36 +529,37 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
             search_method = "rag"
             citations_count = 0
 
-            if hasattr(rag_response, 'web_sources') and rag_response.web_sources:
+            if rag_response.web_sources:
                 search_method = "web"
                 for source in rag_response.web_sources[:3]:
                     content_value = source.get("content", "") or ""
-                    snippet = (
-                        content_value[:200] + "..."
-                        if len(content_value) > 200
-                        else content_value
-                    )
+                    content = content_value[:200] + "..." if len(content_value) > 200 else content_value
                     sources_data.append(
                         {
                             "title": source.get("title", "Web Source"),
-                            "snippet": snippet,
-                            "url": source.get("url", ""),
+                            "content": content,
+                            "source": source.get("url", ""),
                             "score": source.get("score", 0.8),
                         }
                     )
                 citations_count = len(rag_response.web_sources)
-            elif hasattr(rag_response, 'context_used') and rag_response.context_used:
+            elif rag_response.context_metadata:
                 search_method = "rag"
-                for index, chunk in enumerate(rag_response.context_used[:3]):
-                    snippet = chunk[:200] + "..." if len(chunk) > 200 else chunk
+                for index, metadata in enumerate(rag_response.context_metadata[:3]):
+                    content = (
+                        metadata.get("content", "")[:200] + "..."
+                        if len(metadata.get("content", "")) > 200
+                        else metadata.get("content", "")
+                    )
                     sources_data.append(
                         {
-                            "title": f"RAG Context {index + 1}",
-                            "snippet": snippet,
-                            "score": 0.8 - (index * 0.1),
+                            "title": metadata.get("file_name", f"RAG Context {index + 1}"),
+                            "content": content,
+                            "source": metadata.get("document_type", "unknown"),
+                            "score": 1.0 - metadata.get("distance", 0.0),  # Convert distance to score
                         }
                     )
-                citations_count = len(rag_response.context_used)
+                citations_count = len(rag_response.context_metadata)
 
             # Calculate quality score based on citations and response length
             quality_score = min(1.0, (citations_count * 0.1) + (len(rag_response.response) / 1000.0))
@@ -508,7 +573,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 quality_score=quality_score,
                 search_method=search_method,
                 citations_count=citations_count,
-                context_length=context_length
+                context_length=context_length,
             )
 
             conn = get_db_connection()
@@ -545,48 +610,83 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
 
     return StreamingResponse(generate(), media_type="text/plain")
 
+
 # Conversation management endpoints
+MAX_CONVERSATIONS_PER_USER = 30
+RECENT_CONVERSATION_INTERVAL = "30 days"
+
+
 @app.get("/api/conversations", response_model=ConversationListResponse)
-def list_conversations(limit: int = 20, offset: int = 0, authorization: Optional[str] = Header(None)):
+def list_conversations(limit: int = MAX_CONVERSATIONS_PER_USER, offset: int = 0, authorization: Optional[str] = Header(None)):
     """List conversations for the authenticated user."""
     # Basic auth check
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     user = _user_from_authorization(authorization)
+    try:
+        requested_limit = int(limit)
+    except (TypeError, ValueError):
+        requested_limit = MAX_CONVERSATIONS_PER_USER
+    try:
+        requested_offset = int(offset)
+    except (TypeError, ValueError):
+        requested_offset = 0
+
+    effective_limit = max(1, min(requested_limit, MAX_CONVERSATIONS_PER_USER))
+    effective_offset = max(0, requested_offset)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         try:
-            cursor.execute(
-                "SELECT COUNT(*) as total FROM conversations WHERE user_id = %s",
-                [user.id],
-            )
+            count_query = """
+                WITH conversation_activity AS (
+                    SELECT
+                        c.id,
+                        COALESCE(MAX(m.created_at), c.updated_at, c.created_at) AS last_activity
+                    FROM conversations c
+                    LEFT JOIN messages m ON c.id = m.conversation_id
+                    WHERE c.user_id = %s
+                    GROUP BY c.id, c.updated_at, c.created_at
+                )
+                SELECT COUNT(*) AS total
+                FROM conversation_activity
+                WHERE last_activity >= NOW() - INTERVAL %s
+            """
+            cursor.execute(count_query, [user.id, RECENT_CONVERSATION_INTERVAL])
             count_result = cursor.fetchone()
-            raw_total = count_result["total"] if count_result else 0
-            try:
-                total = int(raw_total)
-            except (TypeError, ValueError):
-                total = 0
+            total = int(count_result["total"]) if count_result and count_result.get("total") is not None else 0
 
             conversations_query = """
+                WITH conversation_activity AS (
+                    SELECT
+                        c.id,
+                        c.title,
+                        c.created_at,
+                        c.updated_at,
+                        COALESCE(MAX(m.created_at), c.updated_at, c.created_at) AS last_activity
+                    FROM conversations c
+                    LEFT JOIN messages m ON c.id = m.conversation_id
+                    WHERE c.user_id = %s
+                    GROUP BY c.id, c.title, c.created_at, c.updated_at
+                )
                 SELECT
-                    c.id,
-                    c.title,
-                    c.created_at,
-                    c.updated_at,
-                    COALESCE(MAX(m.created_at), c.updated_at, c.created_at) AS last_message_at,
-                    COUNT(m.id) AS message_count
-                FROM conversations c
-                LEFT JOIN messages m ON c.id = m.conversation_id
-                WHERE c.user_id = %s
-                GROUP BY c.id, c.title, c.created_at, c.updated_at
-                ORDER BY COALESCE(MAX(m.created_at), c.updated_at, c.created_at) DESC
+                    id,
+                    title,
+                    created_at,
+                    updated_at,
+                    last_activity
+                FROM conversation_activity
+                WHERE last_activity >= NOW() - INTERVAL %s
+                ORDER BY last_activity DESC
                 LIMIT %s OFFSET %s
             """
-            cursor.execute(conversations_query, [user.id, limit, offset])
+            cursor.execute(
+                conversations_query,
+                [user.id, RECENT_CONVERSATION_INTERVAL, effective_limit, effective_offset],
+            )
             conversations_data = cursor.fetchall()
         finally:
             cursor.close()
@@ -595,40 +695,30 @@ def list_conversations(limit: int = 20, offset: int = 0, authorization: Optional
         conversations = []
         for conv in conversations_data:
             created_at_value = conv.get("created_at")
-            last_message_value = conv.get("last_message_at") or conv.get("updated_at")
+            last_message_value = conv.get("last_activity") or conv.get("updated_at")
             created_at_str = (
-                created_at_value.isoformat()
-                if hasattr(created_at_value, "isoformat")
-                else created_at_value
+                created_at_value.isoformat() if hasattr(created_at_value, "isoformat") else created_at_value
             )
             updated_at_str = (
-                last_message_value.isoformat()
-                if hasattr(last_message_value, "isoformat")
-                else last_message_value
+                last_message_value.isoformat() if hasattr(last_message_value, "isoformat") else last_message_value
             )
-            conversations.append(ConversationSummary(
-                id=conv["id"],
-                title=conv["title"],
-                createdAt=created_at_str,
-                updatedAt=updated_at_str,
-            ))
+            conversations.append(
+                ConversationSummary(
+                    id=conv["id"],
+                    title=conv["title"],
+                    createdAt=created_at_str,
+                    updatedAt=updated_at_str,
+                )
+            )
 
-        has_more = (offset + len(conversations)) < total
+        has_more = (effective_offset + len(conversations)) < total
 
-        return ConversationListResponse(
-            conversations=conversations,
-            total=total,
-            hasMore=has_more
-        )
+        return ConversationListResponse(conversations=conversations, total=total, hasMore=has_more)
 
     except Exception as e:
         logger.error(f"Error listing conversations: {e}")
         # Fallback to empty list
-        return ConversationListResponse(
-            conversations=[],
-            total=0,
-            hasMore=False
-        )
+        return ConversationListResponse(conversations=[], total=0, hasMore=False)
 
 
 @app.post("/api/conversations")
@@ -718,18 +808,20 @@ def get_conversation(conversation_id: int, authorization: Optional[str] = Header
         messages = []
         for msg in messages_data:
             created_at_value = msg.get("created_at")
-            messages.append(MessageInfo(
-                id=msg["id"],
-                role=msg["role"],
-                content=msg["content"],
-                citations=msg["citations"],
-                createdAt=created_at_value.isoformat() if hasattr(created_at_value, "isoformat") else created_at_value,
-            ))
+            messages.append(
+                MessageInfo(
+                    id=msg["id"],
+                    role=msg["role"],
+                    content=msg["content"],
+                    citations=msg["citations"],
+                    createdAt=created_at_value.isoformat()
+                    if hasattr(created_at_value, "isoformat")
+                    else created_at_value,
+                )
+            )
 
         # Calculate updated_at as the latest message time
-        timestamps = [
-            msg.get("created_at") for msg in messages_data if hasattr(msg.get("created_at"), "isoformat")
-        ]
+        timestamps = [msg.get("created_at") for msg in messages_data if hasattr(msg.get("created_at"), "isoformat")]
         updated_at_value = conv_result.get("updated_at")
         if updated_at_value is not None and hasattr(updated_at_value, "isoformat"):
             timestamps.append(updated_at_value)
@@ -742,7 +834,7 @@ def get_conversation(conversation_id: int, authorization: Optional[str] = Header
             if hasattr(conv_result["created_at"], "isoformat")
             else conv_result["created_at"],
             updatedAt=latest_timestamp.isoformat() if hasattr(latest_timestamp, "isoformat") else latest_timestamp,
-            messages=messages
+            messages=messages,
         )
 
     except HTTPException:
@@ -766,6 +858,10 @@ def delete_conversation(conversation_id: int, authorization: Optional[str] = Hea
         cursor = conn.cursor()
 
         try:
+            # Clean up dependent analytics data before removing the conversation itself
+            delete_usage_query = "DELETE FROM question_usage WHERE conversation_id = %s"
+            cursor.execute(delete_usage_query, [conversation_id])
+
             delete_query = "DELETE FROM conversations WHERE id = %s AND user_id = %s"
             cursor.execute(delete_query, [conversation_id, user.id])
 
@@ -778,7 +874,7 @@ def delete_conversation(conversation_id: int, authorization: Optional[str] = Hea
             cursor.close()
             conn.close()
 
-        return {"message": f"Conversation {conversation_id} deleted successfully"}
+        return Response(status_code=204)
 
     except HTTPException:
         raise
@@ -793,6 +889,7 @@ async def auth_health():
     try:
         # Check database connectivity
         from config import get_db_connection
+
         conn = get_db_connection()
         conn.close()
 
@@ -800,7 +897,7 @@ async def auth_health():
             "status": "healthy",
             "service": "auth",
             "database": "connected",
-            "message": "Auth service and database are healthy"
+            "message": "Auth service and database are healthy",
         }
     except Exception as e:
         return {
@@ -808,16 +905,20 @@ async def auth_health():
             "service": "auth",
             "database": "disconnected",
             "error": str(e),
-            "message": "Auth service is running but database is unavailable"
+            "message": "Auth service is running but database is unavailable",
         }
 
+
 print("Defining /api/ollama-health endpoint")
+
+
 @app.get("/api/ollama-health")
 async def ollama_health():
     """Check health status of all Ollama instances with graceful error handling."""
     try:
         # Import here to avoid circular imports
         from intelligent_router import intelligent_router
+
         await intelligent_router.refresh_health_status_force()
 
         status_summary = []
@@ -861,7 +962,7 @@ async def ollama_health():
             "error": str(e),
             "healthy_instances": 0,
             "total_instances": 0,
-            "instances": []
+            "instances": [],
         }
 
 
@@ -958,20 +1059,15 @@ def list_users(limit: int = 50, offset: int = 0, search: Optional[str] = None):
         processed_users = []
         for user in users:
             user_dict = dict(user)
-            if 'created_at' in user_dict and user_dict['created_at']:
-                user_dict['created_at'] = user_dict['created_at'].isoformat()
-            if 'updated_at' in user_dict and user_dict['updated_at']:
-                user_dict['updated_at'] = user_dict['updated_at'].isoformat()
+            if "created_at" in user_dict and user_dict["created_at"]:
+                user_dict["created_at"] = user_dict["created_at"].isoformat()
+            if "updated_at" in user_dict and user_dict["updated_at"]:
+                user_dict["updated_at"] = user_dict["updated_at"].isoformat()
             processed_users.append(user_dict)
 
         try:
             items = [UserListItem(**user) for user in processed_users]
-            return UserListResponse(
-                total=total,
-                limit=limit,
-                offset=offset,
-                items=items
-            )
+            return UserListResponse(total=total, limit=limit, offset=offset, items=items)
         except Exception as e:
             print(f"Pydantic validation error: {e}")
             raise
@@ -989,7 +1085,7 @@ def list_users(limit: int = 50, offset: int = 0, search: Optional[str] = None):
                 "status": "active",
                 "verified": True,
                 "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
+                "updated_at": "2024-01-01T00:00:00Z",
             },
             {
                 "id": 2,
@@ -1001,22 +1097,23 @@ def list_users(limit: int = 50, offset: int = 0, search: Optional[str] = None):
                 "status": "active",
                 "verified": True,
                 "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z"
-            }
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
         ]
 
         if search:
-            mock_users = [u for u in mock_users if search.lower() in u["email"].lower() or search.lower() in u["first_name"].lower() or search.lower() in u["last_name"].lower()]
+            mock_users = [
+                u
+                for u in mock_users
+                if search.lower() in u["email"].lower()
+                or search.lower() in u["first_name"].lower()
+                or search.lower() in u["last_name"].lower()
+            ]
 
         total = len(mock_users)
-        items = mock_users[offset:offset + limit]
+        items = mock_users[offset : offset + limit]
 
-        return UserListResponse(
-            total=total,
-            limit=limit,
-            offset=offset,
-            items=[UserListItem(**user) for user in items]
-        )
+        return UserListResponse(total=total, limit=limit, offset=offset, items=[UserListItem(**user) for user in items])
 
 
 @app.get("/api/admin/roles", response_model=List[RoleResponse])
@@ -1049,7 +1146,7 @@ def list_roles():
         conn.close()
 
         return [RoleResponse(**dict(role)) for role in roles]
-    except Exception as e:
+    except Exception:
         # Fallback to mock data
         mock_roles = [
             {
@@ -1058,7 +1155,7 @@ def list_roles():
                 "description": "Administrator with full access",
                 "permissions": ["read", "write", "admin"],
                 "system": True,
-                "user_count": 1
+                "user_count": 1,
             },
             {
                 "id": 2,
@@ -1066,8 +1163,8 @@ def list_roles():
                 "description": "Standard employee access",
                 "permissions": ["read", "write"],
                 "system": True,
-                "user_count": 1
-            }
+                "user_count": 1,
+            },
         ]
         return [RoleResponse(**role) for role in mock_roles]
 
@@ -1117,7 +1214,7 @@ def get_rni_versions():
             "version_name": "Initial Release",
             "description": "First version of the system",
             "release_date": "2024-01-01",
-            "is_active": True
+            "is_active": True,
         }
     ]
     return mock_versions
@@ -1141,7 +1238,7 @@ def get_database_instances():
             "server_name": "pgvector",
             "port": 5432,
             "description": "Main vector database",
-            "is_active": True
+            "is_active": True,
         }
     ]
     return mock_instances
@@ -1274,19 +1371,21 @@ def list_documents(request: DocumentListRequest):
 
         documents = []
         for row in cursor.fetchall():
-            documents.append(DocumentInfo(
-                id=row["id"],
-                file_name=row["file_name"],
-                title=row["title"],
-                document_type=row["document_type"],
-                product_name=row["product_name"],
-                product_version=row["product_version"],
-                privacy_level=row["privacy_level"] or "public",
-                file_size=row["file_size"],
-                chunk_count=row["chunk_count"],
-                processed_at=row["processed_at"].isoformat() if row["processed_at"] else None,
-                created_at=row["created_at"].isoformat(),
-            ))
+            documents.append(
+                DocumentInfo(
+                    id=row["id"],
+                    file_name=row["file_name"],
+                    title=row["title"],
+                    document_type=row["document_type"],
+                    product_name=row["product_name"],
+                    product_version=row["product_version"],
+                    privacy_level=row["privacy_level"] or "public",
+                    file_size=row["file_size"],
+                    chunk_count=row["chunk_count"],
+                    processed_at=row["processed_at"].isoformat() if row["processed_at"] else None,
+                    created_at=row["created_at"].isoformat(),
+                )
+            )
 
         cursor.close()
         conn.close()
@@ -1294,13 +1393,9 @@ def list_documents(request: DocumentListRequest):
         has_more = (request.offset + len(documents)) < total_count
 
         return DocumentListResponse(
-            documents=documents,
-            total_count=total_count,
-            offset=request.offset,
-            limit=request.limit,
-            has_more=has_more
+            documents=documents, total_count=total_count, offset=request.offset, limit=request.limit, has_more=has_more
         )
-    except Exception as e:
+    except Exception:
         # Fallback to mock data if database connection fails
         mock_documents = [
             {
@@ -1314,7 +1409,7 @@ def list_documents(request: DocumentListRequest):
                 "file_size": 2048576,
                 "chunk_count": 45,
                 "processed_at": "2024-01-01T12:00:00Z",
-                "created_at": "2024-01-01T10:00:00Z"
+                "created_at": "2024-01-01T10:00:00Z",
             },
             {
                 "id": 2,
@@ -1327,7 +1422,7 @@ def list_documents(request: DocumentListRequest):
                 "file_size": 1536000,
                 "chunk_count": 32,
                 "processed_at": "2024-01-01T13:00:00Z",
-                "created_at": "2024-01-01T11:00:00Z"
+                "created_at": "2024-01-01T11:00:00Z",
             },
             {
                 "id": 3,
@@ -1340,16 +1435,18 @@ def list_documents(request: DocumentListRequest):
                 "file_size": 1024000,
                 "chunk_count": 28,
                 "processed_at": "2024-01-01T14:00:00Z",
-                "created_at": "2024-01-01T12:00:00Z"
-            }
+                "created_at": "2024-01-01T12:00:00Z",
+            },
         ]
 
         # Apply same filtering logic as above
         if request.search_term:
             search_lower = request.search_term.lower()
-            mock_documents = [d for d in mock_documents if
-                             search_lower in d["file_name"].lower() or
-                             (d["title"] and search_lower in d["title"].lower())]
+            mock_documents = [
+                d
+                for d in mock_documents
+                if search_lower in d["file_name"].lower() or (d["title"] and search_lower in d["title"].lower())
+            ]
 
         if request.document_type:
             mock_documents = [d for d in mock_documents if d["document_type"] == request.document_type]
@@ -1381,7 +1478,7 @@ def list_documents(request: DocumentListRequest):
             total_count=total_count,
             offset=request.offset,
             limit=request.limit,
-            has_more=has_more
+            has_more=has_more,
         )
 
 
@@ -1403,8 +1500,11 @@ def metrics():
 def test_endpoint():
     return {"message": "test endpoint works"}
 
+
 # Question analytics endpoints
 print("Loading question analytics endpoints")
+
+
 class QuestionStatsResponse(BaseModel):
     total_questions: int
     unique_questions: int
@@ -1412,6 +1512,7 @@ class QuestionStatsResponse(BaseModel):
     avg_quality_score: float
     top_categories: List[Dict[str, Any]]
     recent_questions: List[Dict[str, Any]]
+
 
 class QuestionDetailResponse(BaseModel):
     question_hash: str
@@ -1425,6 +1526,7 @@ class QuestionDetailResponse(BaseModel):
     last_used: str
     unique_users: int
     recent_usage: List[Dict[str, Any]]
+
 
 @app.get("/api/admin/question-stats", response_model=QuestionStatsResponse)
 def get_question_stats(limit: int = 10, authorization: Optional[str] = Header(None)):
@@ -1442,18 +1544,21 @@ def get_question_stats(limit: int = 10, authorization: Optional[str] = Header(No
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Overall stats
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 COUNT(*) as total_questions,
                 COUNT(DISTINCT question_pattern_id) as unique_questions,
                 AVG(response_time_ms) as avg_response_time,
                 AVG(response_quality_score) as avg_quality_score
             FROM question_usage
-        """)
+        """
+        )
         overall_stats = cursor.fetchone()
 
         # Top categories
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 qp.category,
                 COUNT(*) as usage_count,
@@ -1463,11 +1568,14 @@ def get_question_stats(limit: int = 10, authorization: Optional[str] = Header(No
             GROUP BY qp.category
             ORDER BY usage_count DESC
             LIMIT %s
-        """, [limit])
+        """,
+            [limit],
+        )
         top_categories = cursor.fetchall()
 
         # Recent questions
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 qp.canonical_question,
                 qp.category,
@@ -1478,7 +1586,9 @@ def get_question_stats(limit: int = 10, authorization: Optional[str] = Header(No
             JOIN question_patterns qp ON qu.question_pattern_id = qp.id
             ORDER BY qu.created_at DESC
             LIMIT %s
-        """, [limit])
+        """,
+            [limit],
+        )
         recent_questions = cursor.fetchall()
 
         cursor.close()
@@ -1490,12 +1600,13 @@ def get_question_stats(limit: int = 10, authorization: Optional[str] = Header(No
             avg_response_time=overall_stats["avg_response_time"] or 0.0,
             avg_quality_score=overall_stats["avg_quality_score"] or 0.0,
             top_categories=[dict(cat) for cat in top_categories],
-            recent_questions=[dict(q) for q in recent_questions]
+            recent_questions=[dict(q) for q in recent_questions],
         )
 
     except Exception as e:
         logger.error(f"Error getting question stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve question statistics")
+
 
 @app.get("/api/admin/question-stats/{question_hash}", response_model=QuestionDetailResponse)
 def get_question_detail(question_hash: str, limit: int = 10, authorization: Optional[str] = Header(None)):
@@ -1513,16 +1624,20 @@ def get_question_detail(question_hash: str, limit: int = 10, authorization: Opti
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Question pattern details
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM question_statistics WHERE question_hash = %s
-        """, [question_hash])
+        """,
+            [question_hash],
+        )
         pattern_stats = cursor.fetchone()
 
         if not pattern_stats:
             raise HTTPException(status_code=404, detail="Question pattern not found")
 
         # Recent usage
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 qu.question_text,
                 qu.response_time_ms,
@@ -1537,7 +1652,9 @@ def get_question_detail(question_hash: str, limit: int = 10, authorization: Opti
             WHERE qp.question_hash = %s
             ORDER BY qu.created_at DESC
             LIMIT %s
-        """, [question_hash, limit])
+        """,
+            [question_hash, limit],
+        )
         recent_usage = cursor.fetchall()
 
         cursor.close()
@@ -1554,7 +1671,7 @@ def get_question_detail(question_hash: str, limit: int = 10, authorization: Opti
             negative_feedback=pattern_stats["negative_feedback"],
             last_used=pattern_stats["last_used"].isoformat() if pattern_stats["last_used"] else None,
             unique_users=pattern_stats["unique_users"],
-            recent_usage=[dict(usage) for usage in recent_usage]
+            recent_usage=[dict(usage) for usage in recent_usage],
         )
 
     except HTTPException:
@@ -1563,8 +1680,11 @@ def get_question_detail(question_hash: str, limit: int = 10, authorization: Opti
         logger.error(f"Error getting question detail: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve question details")
 
+
 @app.post("/api/feedback")
-def submit_feedback(message_id: int, rating: str, comment: Optional[str] = None, authorization: Optional[str] = Header(None)):
+def submit_feedback(
+    message_id: int, rating: str, comment: Optional[str] = None, authorization: Optional[str] = Header(None)
+):
     """Submit user feedback for a question response."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -1579,25 +1699,31 @@ def submit_feedback(message_id: int, rating: str, comment: Optional[str] = None,
         cursor = conn.cursor()
 
         # Update the message with feedback
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE messages
             SET citations = jsonb_set(citations, '{feedback}', %s)
             WHERE id = %s AND conversation_id IN (
                 SELECT id FROM conversations WHERE user_id = %s
             )
-        """, [json.dumps({"rating": rating, "comment": comment, "user_id": user.id}), message_id, user.id])
+        """,
+            [json.dumps({"rating": rating, "comment": comment, "user_id": user.id}), message_id, user.id],
+        )
 
         if cursor.rowcount == 0:
             conn.rollback()
             raise HTTPException(status_code=404, detail="Message not found or access denied")
 
         # Also update question_usage if this message is part of tracked questions
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE question_usage
             SET user_feedback = %s
             WHERE conversation_id = (SELECT conversation_id FROM messages WHERE id = %s)
             AND question_text = (SELECT content FROM messages WHERE id = %s AND role = 'user')
-        """, [rating, message_id, message_id])
+        """,
+            [rating, message_id, message_id],
+        )
 
         conn.commit()
         cursor.close()

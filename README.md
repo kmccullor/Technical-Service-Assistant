@@ -142,3 +142,10 @@ Set `NEXT_PUBLIC_BACKEND_URL=https://your-backend-host:8008` to bypass rewrites 
 | Temporary remote backend testing | Export `NEXT_PUBLIC_BACKEND_URL` before build/run |
 
 New backend endpoints under `/api/auth/*` are automatically covered by the rewrite.
+
+## Conversation Management & Retention
+
+- **Per-user isolation:** The `/api/conversations` endpoints scope all reads, writes, and deletes to the authenticated user, preventing cross-user history access.
+- **Retention guardrails:** Listings are capped at the 30 most recent conversations with activity inside the last 30 days, keeping the sidebar focused on active work.
+- **Safe deletion:** Removing a conversation now also clears related analytics (such as `question_usage`) and returns HTTP 204 so the UI can refresh without parsing a payload.
+- **Frontend alignment:** The Next.js sidebar calls the API with `?limit=30`, reflects the same 30-day window, and relies on the 204 status to trigger its refresh.

@@ -91,12 +91,12 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
         }
         throw new Error(detail || `Failed to load conversations (status ${res.status})`)
       }
-      const data = await res.json()
-      if (!Array.isArray(data)) {
+      const responseData = await res.json()
+      if (!responseData || !Array.isArray(responseData.conversations)) {
         setConversations([])
         return
       }
-      const mapped = data.map((item: any) => ({
+      const mapped = responseData.conversations.map((item: any) => ({
         id: item.id,
         title: item.title ?? 'Untitled conversation',
         createdAt: (item.createdAt ?? item.created_at ?? null) as string | null,
