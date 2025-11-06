@@ -33,6 +33,9 @@ else
 fi
 
 # Configuration
+MONITOR_HOST="rni-llm-01.lab.sensus.net"
+PROM_BASE="http://${MONITOR_HOST}:9091"
+GRAFANA_BASE="http://${MONITOR_HOST}:3001"
 BACKUP_DIR="$PROJECT_ROOT/backup/$(date '+%Y%m%d_%H%M%S')_end_of_day"
 REPORT_FILE="$LOG_DIR/daily_report_${DATE_STAMP}.md"
 EOD_LOG="$LOG_DIR/end_of_day_automation_$DATE_STAMP.log"
@@ -241,13 +244,13 @@ DISK_USAGE=$(df -h /home | tail -1 | awk '{print $5}')
 MEMORY_USAGE=$(free | awk '/^Mem:/ {printf "%.1f", $3/$2 * 100}')%
 
 # Monitoring snapshot (Prometheus + Alertmanager)
-FIRING_ALERTS=$(curl -s --max-time 5 http://localhost:9091/api/v1/alerts 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; print(sum(1 for a in d.get('data',{}).get('alerts',[]) if a.get('state')=='firing'))" 2>/dev/null || echo "N/A")
+FIRING_ALERTS=$(curl -s --max-time 5 "${PROM_BASE}/api/v1/alerts" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; print(sum(1 for a in d.get('data',{}).get('alerts',[]) if a.get('state')=='firing'))" 2>/dev/null || echo "N/A")
 
-FIRING_ALERT_NAMES=$(curl -s --max-time 5 http://localhost:9091/api/v1/alerts 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; names=[a.get('labels',{}).get('alertname') for a in d.get('data',{}).get('alerts',[]) if a.get('state')=='firing']; names=[n for n in names if n]; print(', '.join(names[:5]) if names else 'None')" 2>/dev/null || echo "N/A")
+FIRING_ALERT_NAMES=$(curl -s --max-time 5 "${PROM_BASE}/api/v1/alerts" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; names=[a.get('labels',{}).get('alertname') for a in d.get('data',{}).get('alerts',[]) if a.get('state')=='firing']; names=[n for n in names if n]; print(', '.join(names[:5]) if names else 'None')" 2>/dev/null || echo "N/A")
 
-REFRESH_AGE=$(curl -s --max-time 5 "http://localhost:9091/api/v1/query?query=ingestion:last_refresh_age_seconds" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; r=d.get('data',{}).get('result',[]); print(int(float(r[0]['value'][1])) if r else 'N/A')" 2>/dev/null || echo "N/A")
+REFRESH_AGE=$(curl -s --max-time 5 "${PROM_BASE}/api/v1/query?query=ingestion:last_refresh_age_seconds" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; r=d.get('data',{}).get('result',[]); print(int(float(r[0]['value'][1])) if r else 'N/A')" 2>/dev/null || echo "N/A")
 
-DOCS_PROCESSED_24H=$(curl -s --max-time 5 "http://localhost:9091/api/v1/query?query=increase(docling_documents_processed_total[24h])" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; r=d.get('data',{}).get('result',[]); print(int(float(r[0]['value'][1])) if r else 0)" 2>/dev/null || echo "0")
+DOCS_PROCESSED_24H=$(curl -s --max-time 5 "${PROM_BASE}/api/v1/query?query=increase(docling_documents_processed_total[24h])" 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin) if sys.stdin.read().strip() else {}; r=d.get('data',{}).get('result',[]); print(int(float(r[0]['value'][1])) if r else 0)" 2>/dev/null || echo "0")
 
 cat >> "$REPORT_FILE" << EOF
 ## 🎯 System Health Overview
@@ -729,7 +732,7 @@ $(if [[ -f "$LOG_DIR/performance_test_$DATE_STAMP.log" ]]; then echo "Performanc
 
 **Next automated report**: Tomorrow at scheduled time
 **Manual reports**: Run \`./scripts/end_of_day.sh\` anytime
-**System monitoring**: Available at http://localhost:3001 (Grafana)
+**System monitoring**: Available at ${GRAFANA_BASE} (Grafana)
 
 EOF
 

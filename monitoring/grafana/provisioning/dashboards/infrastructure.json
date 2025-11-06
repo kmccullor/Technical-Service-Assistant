@@ -37,7 +37,7 @@
         },
         "gridPos": {
           "h": 8,
-          "w": 12,
+          "w": 24,
           "x": 0,
           "y": 0
         },
@@ -96,8 +96,12 @@
                     "value": null
                   },
                   {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
                     "color": "red",
-                    "value": 80
+                    "value": 90
                   }
                 ]
               }
@@ -113,8 +117,8 @@
         "gridPos": {
           "h": 8,
           "w": 12,
-          "x": 12,
-          "y": 0
+          "x": 0,
+          "y": 8
         },
         "id": 2,
         "options": {
@@ -130,8 +134,8 @@
         },
         "targets": [
           {
-            "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[1m]))) or 0",
-            "legendFormat": "CPU Usage %",
+            "expr": "label_replace(((avg by (instance) (1 - rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) * 100), \"node\", \"$1\", \"instance\", \"(.*):.*\") OR on() vector(0)",
+            "legendFormat": "{{node}} CPU",
             "refId": "A"
           }
         ],
@@ -176,14 +180,18 @@
                     "value": null
                   },
                   {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
                     "color": "red",
-                    "value": 80
+                    "value": 90
                   }
                 ]
               }
             },
             "mappings": [],
-            "unit": "bytes"
+            "unit": "percent"
           },
           "overrides": []
         },
@@ -193,7 +201,7 @@
         "gridPos": {
           "h": 8,
           "w": 12,
-          "x": 0,
+          "x": 12,
           "y": 8
         },
         "id": 3,
@@ -210,14 +218,9 @@
         },
         "targets": [
           {
-            "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
-            "legendFormat": "Memory Used",
+            "expr": "label_replace(((avg by (instance) ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes)) * 100), \"node\", \"$1\", \"instance\", \"(.*):.*\") OR on() vector(0)",
+            "legendFormat": "{{node}} Memory",
             "refId": "A"
-          },
-          {
-            "expr": "node_memory_MemAvailable_bytes",
-            "legendFormat": "Memory Available",
-            "refId": "B"
           }
         ],
         "title": "System Memory Usage",
@@ -261,14 +264,18 @@
                     "value": null
                   },
                   {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
                     "color": "red",
-                    "value": 80
+                    "value": 85
                   }
                 ]
               }
             },
             "mappings": [],
-            "unit": "bytes"
+            "unit": "percent"
           },
           "overrides": []
         },
@@ -278,8 +285,8 @@
         "gridPos": {
           "h": 8,
           "w": 12,
-          "x": 12,
-          "y": 8
+          "x": 0,
+          "y": 16
         },
         "id": 4,
         "options": {
@@ -295,8 +302,8 @@
         },
         "targets": [
           {
-            "expr": "node_filesystem_size_bytes{fstype!=\"tmpfs\"} - node_filesystem_avail_bytes{fstype!=\"tmpfs\"}",
-            "legendFormat": "Disk Used - {{mountpoint}}",
+            "expr": "label_replace(((1 - node_filesystem_avail_bytes{fstype!~\"tmpfs|aufs|overlay|squashfs\",mountpoint!~\"/run/credentials.*\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|aufs|overlay|squashfs\",mountpoint!~\"/run/credentials.*\"}) * 100), \"node\", \"$1\", \"instance\", \"(.*):.*\") OR on() vector(0)",
+            "legendFormat": "{{node}} {{mountpoint}}",
             "refId": "A"
           }
         ],
@@ -359,7 +366,7 @@
           "h": 8,
           "w": 24,
           "x": 0,
-          "y": 16
+          "y": 24
         },
         "id": 5,
         "options": {
@@ -386,6 +393,87 @@
           }
         ],
         "title": "API Request Rate",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "uid": "prometheus"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "mappings": [],
+            "unit": "Bps"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "label_replace((sum by (instance) (rate(container_network_receive_bytes_total{id=\"/\"}[5m]))), \"node\", \"$1\", \"instance\", \"(.*):.*\") OR on() vector(0)",
+            "legendFormat": "{{node}} RX",
+            "refId": "A"
+          },
+          {
+            "expr": "label_replace((sum by (instance) (rate(container_network_transmit_bytes_total{id=\"/\"}[5m]))), \"node\", \"$1\", \"instance\", \"(.*):.*\") OR on() vector(0)",
+            "legendFormat": "{{node}} TX",
+            "refId": "B"
+          }
+        ],
+        "title": "Network Throughput",
         "type": "timeseries"
       }
     ],

@@ -78,7 +78,7 @@ Phase 2B advanced monitoring has been **successfully implemented** with comprehe
 
 ### **Operational Status**
 - ✅ **Prometheus**: Running successfully on port `:9091`
-- ✅ **Grafana**: Accessible at `http://localhost:3001` (admin/admin)
+- ✅ **Grafana**: Accessible at `http://rni-llm-01.lab.sensus.net:3001` (admin/admin)
 - ✅ **Reranker Metrics**: Exposing custom metrics at `http://localhost:8008/metrics`
 - ✅ **Service Discovery**: Prometheus successfully discovering and monitoring targets
 - ✅ **Dashboard Provisioning**: Automatic dashboard and datasource configuration
@@ -86,11 +86,11 @@ Phase 2B advanced monitoring has been **successfully implemented** with comprehe
 ### **Validation Results**
 ```bash
 # Prometheus targets validation
-curl -s http://localhost:9091/api/v1/targets
+curl -s http://rni-llm-01.lab.sensus.net:9091/api/v1/targets
 # Result: All configured targets discoverable, reranker showing UP status
 
 # Grafana health check
-curl -s http://localhost:3001/api/health
+curl -s http://rni-llm-01.lab.sensus.net:3001/api/health
 # Result: {"database": "ok", "version": "12.2.0"}
 
 # Metrics endpoint validation
@@ -146,8 +146,8 @@ The monitoring system is architected to support Phase 2C accuracy improvements:
 ## 📞 Access Information
 
 ### **Dashboard Access**
-- **Grafana**: http://localhost:3001 (username: `admin`, password: `admin`)
-- **Prometheus**: http://localhost:9091
+- **Grafana**: http://rni-llm-01.lab.sensus.net:3001 (username: `admin`, password: `admin`)
+- **Prometheus**: http://rni-llm-01.lab.sensus.net:9091
 - **Service Metrics**: http://localhost:8008/metrics
 - **Container Metrics**: http://localhost:8081
 
@@ -162,7 +162,7 @@ docker logs grafana
 
 # Test metrics
 curl http://localhost:8008/metrics
-curl http://localhost:9091/api/v1/targets
+curl http://rni-llm-01.lab.sensus.net:9091/api/v1/targets
 ```
 
 ## 🏆 Achievement Summary

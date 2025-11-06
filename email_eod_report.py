@@ -23,6 +23,8 @@ from pathlib import Path
 
 import requests
 
+PROMETHEUS_BASE_URL = os.getenv("PROMETHEUS_BASE_URL", "http://rni-llm-01.lab.sensus.net:9091")
+
 
 class EODEmailSender:
     """Simple email sender for end-of-day reports."""
@@ -369,14 +371,14 @@ Full report is attached as a markdown file.
 
         try:
             # Check if Prometheus is available
-            response = requests.get("http://localhost:9091/api/v1/query?query=up", timeout=5)
+            response = requests.get(f"{PROMETHEUS_BASE_URL}/api/v1/query?query=up", timeout=5)
             if response.status_code != 200:
                 return metrics
 
             metrics["prometheus_available"] = True
 
             # Get firing alerts
-            alerts_response = requests.get("http://localhost:9091/api/v1/alerts", timeout=5)
+            alerts_response = requests.get(f"{PROMETHEUS_BASE_URL}/api/v1/alerts", timeout=5)
             if alerts_response.status_code == 200:
                 alerts_data = alerts_response.json()
                 firing_alerts = [a for a in alerts_data.get("data", {}).get("alerts", []) if a.get("state") == "firing"]
@@ -386,7 +388,7 @@ Full report is attached as a markdown file.
 
             # Get documents processed in 24h
             query = "increase(docling_documents_processed_total[24h])"
-            response = requests.get(f"http://localhost:9091/api/v1/query?query={query}", timeout=5)
+            response = requests.get(f"{PROMETHEUS_BASE_URL}/api/v1/query?query={query}", timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 result = data.get("data", {}).get("result", [])
@@ -394,7 +396,7 @@ Full report is attached as a markdown file.
 
             # Get performance monitor refresh age
             query = "ingestion:last_refresh_age_seconds"
-            response = requests.get(f"http://localhost:9091/api/v1/query?query={query}", timeout=5)
+            response = requests.get(f"{PROMETHEUS_BASE_URL}/api/v1/query?query={query}", timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 result = data.get("data", {}).get("result", [])

@@ -191,7 +191,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "ollama_instances_online",
+          "expr": "sum(ollama_instance_up) OR on() vector(0)",
           "interval": "",
           "legendFormat": "Ollama Instances Online",
           "refId": "A"

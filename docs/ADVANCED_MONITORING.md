@@ -42,8 +42,8 @@ docker logs grafana
 ```
 
 ### 2. Access Dashboards
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090
+- **Grafana**: http://rni-llm-01.lab.sensus.net:3001 (admin/admin)
+- **Prometheus**: http://rni-llm-01.lab.sensus.net:9091
 - **cAdvisor**: http://localhost:8081
 
 ### 3. Import Dashboards
@@ -194,7 +194,7 @@ REDIS_ADDR=redis://redis:6379
 #### 1. Metrics Not Appearing
 ```bash
 # Check Prometheus targets
-curl http://localhost:9090/api/v1/targets
+curl http://rni-llm-01.lab.sensus.net:9091/api/v1/targets
 
 # Check service metrics endpoint
 curl http://localhost:8008/metrics
@@ -212,7 +212,7 @@ docker logs grafana
 ls -la monitoring/grafana/dashboards/
 
 # Check datasource connection
-curl http://localhost:3001/api/datasources
+curl http://rni-llm-01.lab.sensus.net:3001/api/datasources
 ```
 
 #### 3. Alert Rules Not Firing
@@ -221,7 +221,7 @@ curl http://localhost:3001/api/datasources
 promtool check rules monitoring/prometheus/alerts.yml
 
 # View active alerts
-curl http://localhost:9090/api/v1/alerts
+curl http://rni-llm-01.lab.sensus.net:9091/api/v1/alerts
 ```
 
 ### Performance Tuning

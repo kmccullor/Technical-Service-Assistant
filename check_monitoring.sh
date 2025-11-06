@@ -17,15 +17,20 @@ echo "📊 Monitoring Services Status:"
 echo "=============================="
 
 # Check Prometheus
-if curl -s http://localhost:9091/-/healthy > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Prometheus${NC} - Running on http://localhost:9091"
+PROM_HOST="rni-llm-01.lab.sensus.net"
+GRAFANA_HOST="rni-llm-01.lab.sensus.net"
+PROM_API="http://${PROM_HOST}:9091"
+GRAFANA_URL="http://${GRAFANA_HOST}:3001"
+
+if curl -s "http://${PROM_HOST}:9091/-/healthy" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Prometheus${NC} - Running on http://${PROM_HOST}:9091"
 else
     echo -e "${RED}❌ Prometheus${NC} - Not accessible"
 fi
 
 # Check Grafana
-if curl -s http://localhost:3001/api/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Grafana${NC} - Running on http://localhost:3001"
+if curl -s "http://${GRAFANA_HOST}:3001/api/health" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Grafana${NC} - Running on http://${GRAFANA_HOST}:3001"
     echo "   Default login: admin/admin"
 else
     echo -e "${RED}❌ Grafana${NC} - Not accessible"
@@ -69,7 +74,7 @@ echo ""
 echo "🎯 Prometheus Target Status:"
 echo "==========================="
 
-TARGETS=$(curl -s http://localhost:9091/api/v1/targets | jq -r '.data.activeTargets[] | "\(.labels.job):\(.health)"' 2>/dev/null)
+TARGETS=$(curl -s "${PROM_API}/api/v1/targets" | jq -r '.data.activeTargets[] | "\(.labels.job):\(.health)"' 2>/dev/null)
 
 if [ $? -eq 0 ] && [ ! -z "$TARGETS" ]; then
     while IFS=: read -r job health; do
@@ -96,15 +101,15 @@ echo ""
 
 echo "🌐 Access URLs:"
 echo "==============="
-echo "• Prometheus: http://localhost:9091"
-echo "• Grafana: http://localhost:3001 (admin/admin)"
+echo "• Prometheus: ${PROM_API}"
+echo "• Grafana: ${GRAFANA_URL} (admin/admin)"
 echo "• cAdvisor: http://localhost:8081"
 echo "• Node Metrics: http://localhost:9100/metrics"
 echo ""
 
 echo "📊 Quick Grafana Setup:"
 echo "======================="
-echo "1. Open http://localhost:3001"
+echo "1. Open ${GRAFANA_URL}"
 echo "2. Login with admin/admin"
 echo "3. Dashboards are pre-configured and auto-imported"
 echo "4. Check 'Technical Service Assistant' folder"

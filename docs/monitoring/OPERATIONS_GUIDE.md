@@ -72,7 +72,7 @@ python email_eod_report.py your-email@domain.com
 ### Prometheus & Grafana Setup
 **Access URLs**:
 - Grafana: http://localhost:3000
-- Prometheus: http://localhost:9091
+- Prometheus: http://rni-llm-01.lab.sensus.net:9091
 - Alertmanager: http://localhost:9093
 
 #### Key Metrics Monitored
@@ -109,7 +109,7 @@ python email_eod_report.py your-email@domain.com
 ./verify_monitoring.sh
 
 # View metrics
-curl http://localhost:9090/api/v1/query?query=up
+curl http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=up
 ```
 
 ## Cron Job Management

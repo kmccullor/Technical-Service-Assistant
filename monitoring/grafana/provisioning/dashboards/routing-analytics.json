@@ -22,7 +22,7 @@
         },
         "targets": [
           {
-            "expr": "ollama_instance_up",
+            "expr": "ollama_instance_up OR on() vector(0)",
             "legendFormat": "{{exported_instance}}"
           }
         ],

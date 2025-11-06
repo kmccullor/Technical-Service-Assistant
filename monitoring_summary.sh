@@ -18,8 +18,9 @@ echo ""
 
 echo -e "${BLUE}🌐 Access Points:${NC}"
 echo "=================="
-echo "• Grafana Dashboard: http://localhost:3001 (admin/admin)"
-echo "• Prometheus Metrics: http://localhost:9091"
+HOST_FQDN="rni-llm-01.lab.sensus.net"
+echo "• Grafana Dashboard: http://${HOST_FQDN}:3001 (admin/admin)"
+echo "• Prometheus Metrics: http://${HOST_FQDN}:9091"
 echo "• Container Stats: http://localhost:8081"
 echo "• System Metrics: http://localhost:9100/metrics"
 echo "• Database Metrics: http://localhost:9187/metrics"
@@ -62,9 +63,12 @@ echo -e "${GREEN}🎯 Monitoring Targets Status:${NC}"
 echo "============================="
 
 # Quick status check
-if curl -s http://localhost:9091/api/v1/targets > /dev/null 2>&1; then
-    UP_COUNT=$(curl -s http://localhost:9091/api/v1/targets | jq -r '.data.activeTargets[] | select(.health=="up") | .labels.job' | wc -l)
-    TOTAL_COUNT=$(curl -s http://localhost:9091/api/v1/targets | jq -r '.data.activeTargets[] | .labels.job' | wc -l)
+PROM_URL="http://${HOST_FQDN}:9091"
+GRAFANA_URL="http://${HOST_FQDN}:3001"
+
+if curl -s "${PROM_URL}/api/v1/targets" > /dev/null 2>&1; then
+    UP_COUNT=$(curl -s "${PROM_URL}/api/v1/targets" | jq -r '.data.activeTargets[] | select(.health=="up") | .labels.job' | wc -l)
+    TOTAL_COUNT=$(curl -s "${PROM_URL}/api/v1/targets" | jq -r '.data.activeTargets[] | .labels.job' | wc -l)
     echo "• Monitored Services: $UP_COUNT/$TOTAL_COUNT healthy"
 else
     echo "• Prometheus status check failed"
@@ -89,12 +93,12 @@ echo "# Restart monitoring stack"
 echo "docker compose restart prometheus grafana"
 echo ""
 echo "# View Prometheus targets"
-echo "curl http://localhost:9091/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health: .health}'"
+echo "curl ${PROM_URL}/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health: .health}'"
 echo ""
 
 echo -e "${PURPLE}📋 Next Steps:${NC}"
 echo "=============="
-echo "1. 🌐 Open Grafana at http://localhost:3001"
+echo "1. 🌐 Open Grafana at ${GRAFANA_URL}"
 echo "2. 🔑 Login with admin/admin (change password on first login)"
 echo "3. 📊 Explore the pre-configured dashboards"
 echo "4. 🎯 Set up alerting for critical metrics"

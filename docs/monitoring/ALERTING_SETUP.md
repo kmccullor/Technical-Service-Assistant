@@ -61,10 +61,10 @@ Email receiver example is commented until SMTP is available.
    ```
 2. Reload Prometheus (already enabled with lifecycle API):
    ```bash
-   curl -X POST http://localhost:9091/-/reload
+   curl -X POST http://rni-llm-01.lab.sensus.net:9091/-/reload
    ```
 3. Visit:
-   - Prometheus Alerts: http://localhost:9091/alerts
+   - Prometheus Alerts: http://rni-llm-01.lab.sensus.net:9091/alerts
    - Alertmanager UI:   http://localhost:9093
    - Grafana Alerting (Explore -> Alerting -> Alert rules / Alert instances)
 4. Force a test alert:

@@ -58,14 +58,14 @@ Historical note (replaced): The earlier approach `ollama_instances_online OR 4` 
    ```
 3. Confirm metric:
    ```bash
-   curl -s http://localhost:9091/api/v1/query?query=ollama_instances_online
+   curl -s http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=ollama_instances_online
    ```
 
 ### Troubleshooting
 | Symptom | Probable Cause | Resolution |
 |---------|----------------|------------|
 | Panel shows "No data" even though metric exists in Prometheus | Query returned a scalar without time series context and stat panel reduction produced null (earlier `ollama_instances_online OR 4` pattern) | Use `sum(ollama_instance_up) OR on() vector(0)`; ensure panel time range includes last scrape interval |
-| Panel shows "No data" on startup | Exporter not scraped yet | Wait one scrape interval (15s) or reload Prometheus: `curl -X POST http://localhost:9091/-/reload` |
+| Panel shows "No data" on startup | Exporter not scraped yet | Wait one scrape interval (15s) or reload Prometheus: `curl -X POST http://rni-llm-01.lab.sensus.net:9091/-/reload` |
 | Panel shows constant expected value (e.g. 4) even when instances down | Hardcoded fallback (`OR 4`) masking real outage | Replace with `OR on() vector(0)` and rely on per-instance gauges; add alert on drop |
 | Individual instance disappearance not reflected | Only aggregated metric used | Add a table / stat list panel querying `ollama_instance_up` by `instance` for granular visibility |
 | Duplicate dashboards warnings | Duplicate JSON names or archived files inside provisioning path | Move/archive duplicates outside provisioning tree |

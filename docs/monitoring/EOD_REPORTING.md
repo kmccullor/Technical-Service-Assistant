@@ -60,7 +60,7 @@ export EOD_WEBHOOK_URL="https://hooks.slack.com/services/..."
 export EOD_EMAIL="admin@company.com"
 
 # Monitoring Endpoints
-export PROMETHEUS_URL="http://localhost:9091"
+export PROMETHEUS_URL="http://rni-llm-01.lab.sensus.net:9091"
 export ALERTMANAGER_URL="http://localhost:9093"
 ```
 
@@ -183,7 +183,7 @@ EOF
 
 | Issue | Cause | Resolution |
 |-------|-------|-----------|
-| No Prometheus metrics | Service down or unreachable | Check `http://localhost:9091/api/v1/query?query=up` |
+| No Prometheus metrics | Service down or unreachable | Check `http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=up` |
 | Email delivery fails | SMTP credentials or config | Test with `python email_eod_report.py --test` |
 | Missing documentation stats | Git repository issues | Verify git commands work: `git log --since=yesterday` |
 | Container count mismatch | Docker permission or service issues | Check `docker ps` output and permissions |

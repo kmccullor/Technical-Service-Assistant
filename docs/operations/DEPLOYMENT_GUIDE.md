@@ -36,8 +36,8 @@ curl http://localhost:8050/health
 curl http://localhost:3000/api/status
 
 # Verify monitoring
-open http://localhost:3001  # Grafana (admin/admin)
-open http://localhost:9091  # Prometheus
+open http://rni-llm-01.lab.sensus.net:3001  # Grafana (admin/admin)
+open http://rni-llm-01.lab.sensus.net:9091  # Prometheus
 ```
 
 ### Complete Service Inventory (20 Services)
@@ -182,16 +182,16 @@ Avoid hard-coding `-d postgres` in operational scripts—this leads to writing o
 | Database | `docker compose exec pgvector pg_isready` | `ready` |
 
 ### Monitoring Dashboard Access
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9091
+- **Grafana**: http://rni-llm-01.lab.sensus.net:3001 (admin/admin)
+- **Prometheus**: http://rni-llm-01.lab.sensus.net:9091
 - **Container Metrics**: http://localhost:8081 (cAdvisor)
 
 ### Key Metrics to Monitor
 ```bash
 # System performance metrics
-curl -s http://localhost:9091/api/v1/query?query=avg_query_duration_seconds
-curl -s http://localhost:9091/api/v1/query?query=container_cpu_usage_seconds_total
-curl -s http://localhost:9091/api/v1/query?query=container_memory_usage_bytes
+curl -s http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=avg_query_duration_seconds
+curl -s http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=container_cpu_usage_seconds_total
+curl -s http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=container_memory_usage_bytes
 ```
 
 ---

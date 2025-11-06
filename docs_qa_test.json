@@ -369,7 +369,7 @@
       },
       {
         "question": "What monitoring dashboards are available?",
-        "answer": "Grafana at http://localhost:3001 (admin/admin) and Prometheus at http://localhost:9091.",
+        "answer": "Grafana at http://rni-llm-01.lab.sensus.net:3001 (admin/admin) and Prometheus at http://rni-llm-01.lab.sensus.net:9091.",
         "confidence_required": 100
       }
     ]

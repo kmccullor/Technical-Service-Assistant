@@ -4,11 +4,14 @@ Debug script to identify what's causing node-exporter connection storms.
 This will help identify the pattern and frequency of connections.
 """
 
+import os
 import subprocess
 import time
 from datetime import datetime
 
 import requests
+
+PROMETHEUS_BASE_URL = os.getenv("PROMETHEUS_BASE_URL", "http://rni-llm-01.lab.sensus.net:9091")
 
 
 def test_node_exporter_access():
@@ -37,7 +40,7 @@ def monitor_connections():
 def check_prometheus_targets():
     """Check if Prometheus is properly configured"""
     try:
-        response = requests.get("http://localhost:9091/api/v1/targets", timeout=5)
+        response = requests.get(f"{PROMETHEUS_BASE_URL}/api/v1/targets", timeout=5)
         targets = response.json()
         node_targets = [
             t

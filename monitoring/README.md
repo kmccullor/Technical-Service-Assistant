@@ -16,8 +16,8 @@ docker compose up -d prometheus grafana postgres-exporter redis-exporter node-ex
 ```
 
 ### Access Dashboards
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9091
+- **Grafana**: http://rni-llm-01.lab.sensus.net:3001 (admin/admin)
+- **Prometheus**: http://rni-llm-01.lab.sensus.net:9091
 - **cAdvisor**: http://localhost:8081
 
 ## 📈 Available Metrics
@@ -157,7 +157,7 @@ All dashboards are responsive and work well on mobile devices for on-the-go moni
 docker ps --filter "name=prometheus|grafana|exporter|cadvisor"
 
 # Check Prometheus targets
-curl http://localhost:9091/api/v1/targets
+curl http://rni-llm-01.lab.sensus.net:9091/api/v1/targets
 
 # View container logs
 docker logs prometheus
@@ -192,4 +192,4 @@ docker compose up -d
 
 **Your Technical Service Assistant monitoring stack is production-ready!** 🚀
 
-Access Grafana at http://localhost:3001 to start exploring your system metrics and performance dashboards.
+Access Grafana at http://rni-llm-01.lab.sensus.net:3001 to start exploring your system metrics and performance dashboards.

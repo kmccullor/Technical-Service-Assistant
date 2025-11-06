@@ -78,7 +78,7 @@ Alert suggestions (add to `alerts.yml` when alertmanager is enabled):
 # Inside repo
 docker compose logs -f docling_processor
 curl -s http://localhost:9110/metrics | grep docling_documents_processed_total
-curl -s 'http://localhost:9091/api/v1/query?query=histogram_quantile(0.95,sum by (le) (rate(docling_processing_duration_seconds_bucket[15m])))'
+curl -s 'http://rni-llm-01.lab.sensus.net:9091/api/v1/query?query=histogram_quantile(0.95,sum by (le) (rate(docling_processing_duration_seconds_bucket[15m])))'
 ```
 
 ## Usage
