@@ -5,42 +5,35 @@ on:
   schedule:
     - cron: '0 6 * * *'
 
-env:
-  PLAYWRIGHT_BASE_URL: https://rni-llm-01.lab.sensus.net
-  PLAYWRIGHT_API_KEY: ${{ secrets.PLAYWRIGHT_API_KEY }}
-  PLAYWRIGHT_BEARER_TOKEN: ${{ secrets.PLAYWRIGHT_BEARER_TOKEN }}
-
 jobs:
   performance-ux:
     runs-on: self-hosted
+    env:
+      PLAYWRIGHT_BASE_URL: https://rni-llm-01.lab.sensus.net
+      PLAYWRIGHT_API_KEY: ${{ secrets.PLAYWRIGHT_API_KEY }}
+      PLAYWRIGHT_BEARER_TOKEN: ${{ secrets.PLAYWRIGHT_BEARER_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: |
           cd next-rag-app
           npm install
 
-      - name: Install Playwright browsers
-        run: |
-          cd next-rag-app
-          npx playwright install --with-deps
-
-      - name: Run Playwright performance suite
-        run: |
-          cd next-rag-app
-          npx playwright test --config=playwright.config.ts
+      - name: Run Playwright in official container
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
           PLAYWRIGHT_API_KEY: ${{ env.PLAYWRIGHT_API_KEY }}
           PLAYWRIGHT_BEARER_TOKEN: ${{ env.PLAYWRIGHT_BEARER_TOKEN }}
+        run: |
+          ./scripts/testing/run_playwright_docker.sh
 
       - name: Upload Playwright report
         if: always()
