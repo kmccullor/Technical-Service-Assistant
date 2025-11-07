@@ -1,19 +1,19 @@
 # Performance UX Testing
 
-This document captures the plan for frontend performance monitoring using Playwright (and future Lighthouse coverage).
-
 ## Playwright Performance Smoke
 - Config: `next-rag-app/playwright.config.ts` with serial tests under `tests/performance/`.
 - Environment variables:
   - `PLAYWRIGHT_BASE_URL` (default `https://rni-llm-01.lab.sensus.net`)
-  - `PLAYWRIGHT_API_KEY` / `PLAYWRIGHT_BEARER_TOKEN` for authenticated API calls.
-- `npx playwright test --config=playwright.config.ts` produces `playwright-report/` with HTML + JSON metrics.
-- GitHub Actions workflow (`.github/workflows/playwright.yml`) runs on schedule and upload reports.
+  - `PLAYWRIGHT_API_KEY` / `PLAYWRIGHT_BEARER_TOKEN`
+- Execution options:
+  1. `cd next-rag-app && npx playwright test --config=playwright.config.ts`
+  2. `./scripts/testing/run_playwright_docker.sh` (builds/runs inside Playwright’s official Docker image, ensuring dependencies are available).
+- GitHub workflow `.github/workflows/playwright.yml` runs nightly / on-demand; upload artifacts include the HTML report.
+
+## Lighthouse Snapshot (CLI)
+- Config: `next-rag-app/tests/performance/lighthouse.config.cjs`.
+- Command: `./scripts/testing/run_lighthouse.sh` (uses node:18 container, runs `lhci autorun`, writes reports to `next-rag-app/lighthouse-report`).
 
 ## Backend Metrics Hook (future work)
-- Emit request latency histograms (p95) from reranker and expose via Prometheus.
-- Capture those metrics alongside the Playwright run for a single, unified report.
-
-## Lighthouse Integration (future work)
-- Add a `make lighthouse` target using Chrome’s Lighthouse CLI against deployed frontend.
-- Include results in CI artifacts and highlight regressions.
+- Emit latency histograms from reranker endpoints and surface them in Prometheus.
+- Capture those metrics alongside the Playwright run for correlation.
