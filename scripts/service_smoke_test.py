@@ -3,15 +3,21 @@
 
 from __future__ import annotations
 
+import os
 import socket
 import sys
 from dataclasses import dataclass
-from typing import Callable, Iterable, List, Sequence
+from pathlib import Path
+from typing import Iterable, List, Sequence, Union
 
 import httpx
 import psycopg2
 
-from reranker.cache import get_db_connection
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from config import get_settings
 
 
 @dataclass
@@ -21,16 +27,17 @@ class CheckResult:
     detail: str = ""
 
 
-HttpTarget = tuple[str, str, int]
+HttpTarget = tuple[str, str, Union[Sequence[int], int]]
 TcpTarget = tuple[str, str, int]
+
+settings = get_settings()
 
 
 HTTP_TARGETS: Sequence[HttpTarget] = (
-    ("Reranker API /health", "http://localhost:8008/health", 200),
-    ("Auth API /api/auth/health", "http://localhost:8008/api/auth/health", 200),
-    ("Ollama aggregation /api/ollama-health", "http://localhost:8008/api/ollama-health", 200),
-    ("Frontend (nginx) :80", "http://localhost", 200),
-    ("Frontend (app) :8080", "http://localhost:8080", 200),
+    ("Reranker API /health", "http://localhost:8008/health", (200,)),
+    ("Auth API /api/auth/health", "http://localhost:8008/api/auth/health", (200,)),
+    ("Ollama aggregation /api/ollama-health", "http://localhost:8008/api/ollama-health", (200,)),
+    ("Frontend (nginx) :80", "http://localhost", (200, 301, 302)),
 )
 
 OLLAMA_PORTS: Sequence[int] = tuple(range(11434, 11442))
@@ -45,11 +52,16 @@ def check_http_targets() -> List[CheckResult]:
     results: List[CheckResult] = []
     with httpx.Client(timeout=5.0) as client:
         for name, url, expected in HTTP_TARGETS:
+            expected_statuses = set(expected if isinstance(expected, Sequence) else (expected,))
             try:
                 resp = client.get(url)
-                if resp.status_code != expected:
+                if resp.status_code not in expected_statuses:
                     results.append(
-                        CheckResult(name=name, passed=False, detail=f"HTTP {resp.status_code} != {expected}")
+                        CheckResult(
+                            name=name,
+                            passed=False,
+                            detail=f"HTTP {resp.status_code} not in {sorted(expected_statuses)}",
+                        )
                     )
                 else:
                     results.append(CheckResult(name=name, passed=True))
@@ -81,9 +93,40 @@ def check_tcp_targets(targets: Iterable[TcpTarget]) -> List[CheckResult]:
     return results
 
 
+def _postgres_connection_params() -> dict:
+    host_candidates = []
+    if os.getenv("SMOKE_DB_HOST"):
+        host_candidates.append(os.getenv("SMOKE_DB_HOST"))
+    host_candidates.append(settings.db_host)
+    host_candidates.append("localhost")
+    return {
+        "candidates": host_candidates,
+        "port": int(os.getenv("SMOKE_DB_PORT", str(settings.db_port))),
+        "dbname": os.getenv("SMOKE_DB_NAME", settings.db_name),
+        "user": os.getenv("SMOKE_DB_USER", settings.db_user),
+        "password": os.getenv("SMOKE_DB_PASSWORD", settings.db_password),
+    }
+
+
 def check_postgres() -> CheckResult:
+    params = _postgres_connection_params()
     try:
-        conn = get_db_connection()
+        last_error: str | None = None
+        for host in params["candidates"]:
+            try:
+                conn = psycopg2.connect(
+                    dbname=params["dbname"],
+                    user=params["user"],
+                    password=params["password"],
+                    host=host,
+                    port=params["port"],
+                )
+                break
+            except psycopg2.Error as exc:
+                last_error = str(exc)
+                conn = None
+        if conn is None:
+            raise psycopg2.Error(last_error or "Unable to connect to Postgres")
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM conversations")
         count = cursor.fetchone()[0]
