@@ -25,6 +25,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - `make quality-report` – refresh QA dashboards (`quality_dashboard.html`).
 - `make check-db` – verify ingestion data; `make health-check` – container status.
 - `make smoke-test` – run the automated service smoke test (verifies API health, Ollama, Redis, Postgres, Grafana/Prometheus, and nginx).
+  - CI: GitHub Actions (`quality.yml`) has a `smoke-test` job that runs this target on the self-hosted runner after unit/integration suites succeed, ensuring live services stay healthy.
 
 ### Repository Map
 - Documentation: `docs/` (see [docs/README.md](docs/README.md) for an index).

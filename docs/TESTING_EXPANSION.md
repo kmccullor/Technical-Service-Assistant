@@ -11,6 +11,7 @@ This document tracks the initiatives required to deliver the broader test covera
 - TODO:
   - Integrate the smoke test with CI (e.g., `quality.yml`) and nightly cron to catch drifting services.
   - Extend the script with authenticated chat and ingestion probes once stable mock credentials exist.
+  - ✅ `quality.yml` now includes a `smoke-test` job that runs on the self-hosted runner after unit+integration suites succeed; it executes `make smoke-test` so production services are validated before deployment prep.
 
 ## 2. Load & Stress Testing
 
