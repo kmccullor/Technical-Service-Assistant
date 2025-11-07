@@ -71,6 +71,7 @@ temp/
 
 # Backup files
 backup/
+backups/
 archive/
 *.tar.gz
 *.zip

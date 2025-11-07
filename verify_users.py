@@ -7,6 +7,7 @@ Simple script to verify users when email is not available.
 
 import logging
 import os
+from datetime import datetime
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -53,7 +54,8 @@ def verify_all_pending_users():
                 status = 'active',
                 updated_at = %s
             WHERE status = 'pending_verification' OR verified = false
-        """
+        """,
+            (datetime.utcnow(),),
         )
 
         conn.commit()
