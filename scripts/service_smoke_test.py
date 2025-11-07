@@ -97,14 +97,16 @@ def _postgres_connection_params() -> dict:
     host_candidates = []
     if os.getenv("SMOKE_DB_HOST"):
         host_candidates.append(os.getenv("SMOKE_DB_HOST"))
+    if os.getenv("DB_HOST"):
+        host_candidates.append(os.getenv("DB_HOST"))
     host_candidates.append(settings.db_host)
     host_candidates.append("localhost")
     return {
         "candidates": host_candidates,
-        "port": int(os.getenv("SMOKE_DB_PORT", str(settings.db_port))),
-        "dbname": os.getenv("SMOKE_DB_NAME", settings.db_name),
-        "user": os.getenv("SMOKE_DB_USER", settings.db_user),
-        "password": os.getenv("SMOKE_DB_PASSWORD", settings.db_password),
+        "port": int(os.getenv("SMOKE_DB_PORT") or os.getenv("DB_PORT", str(settings.db_port))),
+        "dbname": os.getenv("SMOKE_DB_NAME") or os.getenv("DB_NAME", settings.db_name),
+        "user": os.getenv("SMOKE_DB_USER") or os.getenv("DB_USER", settings.db_user),
+        "password": os.getenv("SMOKE_DB_PASSWORD") or os.getenv("DB_PASSWORD", settings.db_password),
     }
 
 
