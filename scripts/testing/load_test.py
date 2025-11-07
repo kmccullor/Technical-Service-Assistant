@@ -11,30 +11,50 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
+import requests
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env", override=False)
 
 DEFAULT_TARGET = os.getenv("LOAD_TEST_TARGET_URL", "https://rni-llm-01.lab.sensus.net")
-DEFAULT_ENDPOINTS = [
+DEFAULT_PUBLIC_ENDPOINTS = [
     "/health",
     "/api/ollama-health",
     "/api/auth/health",
-    "/api/chat",
 ]
+DEFAULT_CHAT_ENDPOINT = "/api/chat"
+DEFAULT_DOC_ENDPOINT = "/api/temp-upload"
 
 
-def build_k6_script(target: str, endpoints: List[str], vus: int, duration: str, timeout: str) -> str:
+def build_k6_script(
+    target: str,
+    vus: int,
+    duration: str,
+    timeout: str,
+    public_endpoints: Sequence[str],
+    chat_endpoint: str,
+    doc_endpoint: str,
+    api_key: str,
+    bearer_token: str,
+) -> str:
+    headers = {}
+    if api_key:
+        headers["X-API-Key"] = api_key
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
+
+    headers_js = json.dumps(headers)
+
     return f"""
 import http from 'k6/http';
 import {{ check, sleep }} from 'k6';
 
 export const options = {{
   scenarios: {{
-    constant: {{
+    public: {{
       executor: 'constant-vus',
       vus: {vus},
       duration: '{duration}',
@@ -47,15 +67,51 @@ export const options = {{
 }};
 
 const BASE_URL = '{target}';
-const ENDPOINTS = {json.dumps(endpoints)};
+const PUBLIC_ENDPOINTS = {json.dumps(list(public_endpoints))};
+const CHAT_ENDPOINT = '{chat_endpoint}';
+const DOC_ENDPOINT = '{doc_endpoint}';
+const HEADERS = {headers_js};
+
+function chatPayload() {{
+  return JSON.stringify({{
+    conversationId: null,
+    message: 'Provide a short summary of the Technical Service Assistant.',
+    displayMessage: 'Provide a short summary of the Technical Service Assistant.'
+  }});
+}}
+
+function docPayload() {{
+  const boundary = '----k6boundary';
+  const body = `--${{boundary}}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="test.txt"\r\n` +
+    `Content-Type: text/plain\r\n\r\n` +
+    `temporary content\r\n` +
+    `--${{boundary}}--\r\n`;
+  return {{ body, boundary }};
+}}
 
 export default function () {{
-  for (const endpoint of ENDPOINTS) {{
-    const res = http.get(`${{BASE_URL}}${{endpoint}}`, {{ timeout: '{timeout}' }});
-    check(res, {{
-      'status is 200': (r) => r.status === 200,
-    }});
+  for (const endpoint of PUBLIC_ENDPOINTS) {{
+    const res = http.get(`${{BASE_URL}}${{endpoint}}`, {{ timeout: '{timeout}', headers: HEADERS }});
+    check(res, {{ 'status is 200': (r) => r.status === 200 }});
   }}
+
+  const chatRes = http.post(`${{BASE_URL}}${{CHAT_ENDPOINT}}`, chatPayload(), {{
+    timeout: '{timeout}',
+    headers: {{ ...HEADERS, 'Content-Type': 'application/json', Accept: 'text/event-stream' }},
+  }});
+  check(chatRes, {{ 'chat 200': (r) => r.status === 200 }});
+
+  const doc = docPayload();
+  const docRes = http.post(`${{BASE_URL}}${{DOC_ENDPOINT}}`, doc.body, {{
+    headers: {{
+      ...HEADERS,
+      'Content-Type': `multipart/form-data; boundary=${{doc.boundary}}`
+    }},
+    timeout: '{timeout}',
+  }});
+  check(docRes, {{ 'doc 200/202': (r) => r.status === 200 || r.status === 202 }});
+
   sleep(0.1);
 }}
 """
@@ -63,10 +119,10 @@ export default function () {{
 
 def run_k6(script_path: Path, summary_path: Path) -> subprocess.CompletedProcess[str]:
     cmd = [
-        "k6",
-        "run",
-        "--quiet",
-        "--summary-export",
+        'k6',
+        'run',
+        '--quiet',
+        '--summary-export',
         str(summary_path),
         str(script_path),
     ]
@@ -80,32 +136,63 @@ def summarize(summary_path: Path) -> dict:
         return json.load(f)
 
 
+def fetch_prometheus_snapshot(url: str, out_dir: Path) -> Path | None:
+    if not url:
+        return None
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f'prometheus_snapshot_{timestamp}.json'
+        out_path.write_text(response.text)
+        return out_path
+    except Exception as exc:
+        print(f'Warning: failed to fetch Prometheus snapshot: {exc}')
+        return None
+
+
 def write_report(report_dir: Path, summary: dict) -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    out_path = report_dir / f"load_test_summary_{timestamp}.json"
-    with out_path.open("w") as f:
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    out_path = report_dir / f'load_test_summary_{timestamp}.json'
+    with out_path.open('w') as f:
         json.dump(summary, f, indent=2)
     return out_path
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run K6 load test against TSA stack")
-    parser.add_argument("--target", default=DEFAULT_TARGET, help="Base URL for requests")
-    parser.add_argument("--endpoints", nargs="+", default=DEFAULT_ENDPOINTS, help="Endpoints to hit")
-    parser.add_argument("--vus", type=int, default=100, help="Concurrent virtual users")
-    parser.add_argument("--duration", default="2m", help="Test duration (e.g. 1m, 5m)")
-    parser.add_argument("--timeout", default="30s", help="Per-request timeout")
-    parser.add_argument("--report-dir", default="load_test_results", help="Directory for summary output")
+    parser = argparse.ArgumentParser(description='Run K6 load test against TSA stack')
+    parser.add_argument('--target', default=DEFAULT_TARGET)
+    parser.add_argument('--vus', type=int, default=100)
+    parser.add_argument('--duration', default='2m')
+    parser.add_argument('--timeout', default='30s')
+    parser.add_argument('--public-endpoints', nargs='+', default=DEFAULT_PUBLIC_ENDPOINTS)
+    parser.add_argument('--chat-endpoint', default=DEFAULT_CHAT_ENDPOINT)
+    parser.add_argument('--doc-endpoint', default=DEFAULT_DOC_ENDPOINT)
+    parser.add_argument('--api-key', default=os.getenv('LOAD_TEST_API_KEY', os.getenv('API_KEY', '')))
+    parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
+    parser.add_argument('--report-dir', default='load_test_results')
+    parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
     args = parser.parse_args()
 
-    k6_script = build_k6_script(args.target, args.endpoints, args.vus, args.duration, args.timeout)
+    script = build_k6_script(
+        args.target,
+        args.vus,
+        args.duration,
+        args.timeout,
+        args.public_endpoints,
+        args.chat_endpoint,
+        args.doc_endpoint,
+        args.api_key,
+        args.bearer_token,
+    )
 
-    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".js") as tmp:
-        tmp.write(k6_script)
+    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.js') as tmp:
+        tmp.write(script)
         script_path = Path(tmp.name)
 
-    summary_path = Path(tempfile.mktemp(suffix=".json"))
+    summary_path = Path(tempfile.mktemp(suffix='.json'))
 
     try:
         result = run_k6(script_path, summary_path)
@@ -117,19 +204,24 @@ def main() -> int:
 
     if summary:
         saved = write_report(Path(args.report_dir), summary)
-        print(f"📁 Summary saved to {saved}")
+        print(f'📁 Summary saved to {saved}')
         try:
-            metrics = summary.get("metrics", {})
-            http_req_duration = metrics.get("http_req_duration", {})
-            http_req_failed = metrics.get("http_req_failed", {})
-            p95 = http_req_duration.get("percentiles", {}).get("95.0")
-            fail_rate = http_req_failed.get("rate")
+            metrics = summary.get('metrics', {})
+            http_req_duration = metrics.get('http_req_duration', {})
+            http_req_failed = metrics.get('http_req_failed', {})
+            p95 = http_req_duration.get('percentiles', {}).get('95.0')
+            fail_rate = http_req_failed.get('rate')
             if p95 is not None:
-                print(f"  P95 latency: {p95:.0f} ms")
+                print(f'  P95 latency: {p95:.0f} ms')
             if fail_rate is not None:
-                print(f"  Failure rate: {fail_rate * 100:.2f}%")
+                print(f'  Failure rate: {fail_rate * 100:.2f}%')
         except Exception:
             pass
+
+    if args.prometheus_url:
+        snapshot = fetch_prometheus_snapshot(args.prometheus_url, Path(args.report_dir))
+        if snapshot:
+            print(f'Prometheus snapshot saved to {snapshot}')
 
     if result.stdout:
         print(result.stdout)
@@ -138,5 +230,5 @@ def main() -> int:
     return result.returncode
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
