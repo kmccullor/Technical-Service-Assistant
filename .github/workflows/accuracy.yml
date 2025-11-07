@@ -1,0 +1,44 @@
+name: Accuracy Evaluation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'
+
+jobs:
+  eval-accuracy:
+    runs-on: self-hosted
+    env:
+      ACCURACY_BASE_URL: https://rni-llm-01.lab.sensus.net
+      ACCURACY_API_KEY: ${{ secrets.ACCURACY_API_KEY }}
+      ACCURACY_BEARER_TOKEN: ${{ secrets.ACCURACY_BEARER_TOKEN }}
+      ACCURACY_THRESHOLD: ${{ vars.ACCURACY_THRESHOLD || '90' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run accuracy harness
+        run: |
+          ACCURACY_BASE_URL="${{ env.ACCURACY_BASE_URL }}" \
+          ACCURACY_API_KEY="${{ env.ACCURACY_API_KEY }}" \
+          ACCURACY_BEARER_TOKEN="${{ env.ACCURACY_BEARER_TOKEN }}" \
+          ACCURACY_THRESHOLD="${{ env.ACCURACY_THRESHOLD }}" \
+          make eval-accuracy
+
+      - name: Upload accuracy logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: accuracy-logs
+          path: tests/accuracy_logs/

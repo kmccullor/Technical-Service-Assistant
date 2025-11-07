@@ -13,6 +13,6 @@
   - `ACCURACY_API_KEY`, `ACCURACY_BEARER_TOKEN`
   - `ACCURACY_THRESHOLD`
 
-## CI Integration (future work)
-- Add a workflow job that runs `make eval-accuracy` after deployments.
-- Surface accuracy percentage in dashboards and block merges when below threshold.
+## CI Integration
+- GitHub workflow `.github/workflows/accuracy.yml` runs nightly / on-demand, executes `make eval-accuracy`, and uploads logs as artifacts.
+- Failures (accuracy below threshold) block the workflow and surface in alerting.

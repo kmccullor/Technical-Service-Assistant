@@ -19,5 +19,47 @@
     "required_keywords": ["health", "services", "reranker"],
     "optional_keywords": ["redis", "ollama"],
     "forbidden_keywords": []
+  },
+  {
+    "id": "load_test",
+    "question": "What does make load-test do and what tool does it rely on?",
+    "required_keywords": ["load-test", "k6", "endpoints"],
+    "optional_keywords": ["VUs", "summary"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "eval_accuracy",
+    "question": "Explain how make eval-accuracy works and where the dataset lives.",
+    "required_keywords": ["accuracy", "dataset", "tests/data"],
+    "optional_keywords": ["threshold", "logs"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "docker_stack",
+    "question": "List the core Docker services required for the Technical Service Assistant stack.",
+    "required_keywords": ["reranker", "frontend", "pgvector"],
+    "optional_keywords": ["redis", "ollama"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "rbac_router",
+    "question": "What functionality does the RBAC router provide?",
+    "required_keywords": ["roles", "permissions", "users"],
+    "optional_keywords": ["admin", "auth"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "document_ingestion",
+    "question": "How are documents ingested and processed in the pdf_processor?",
+    "required_keywords": ["pdf_processor", "OCR", "chunks"],
+    "optional_keywords": ["tables", "images"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "smoke_vs_health",
+    "question": "Differentiate between make health-check and make smoke-test.",
+    "required_keywords": ["health-check", "smoke-test", "services"],
+    "optional_keywords": ["curl", "redis"],
+    "forbidden_keywords": []
   }
 ]
