@@ -87,6 +87,9 @@ health-check: ## 🏥 Quick health check of core services
 smoke-test: ## 🚨 Run automated service smoke test
 	$(PYTHON) scripts/service_smoke_test.py
 
+load-test: ## 🔥 Run K6 load test harness (requires k6 installed locally)
+	$(PYTHON) scripts/testing/load_test.py
+
 check-logs: ## 📋 Show recent error logs from all containers
 	@echo "🔍 Recent Error Logs (Last 24 Hours)..."
 	@echo "=== PDF Processor ==="
