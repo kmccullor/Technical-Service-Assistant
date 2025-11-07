@@ -1,0 +1,50 @@
+name: Performance UX Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+env:
+  PLAYWRIGHT_BASE_URL: https://rni-llm-01.lab.sensus.net
+  PLAYWRIGHT_API_KEY: ${{ secrets.PLAYWRIGHT_API_KEY }}
+  PLAYWRIGHT_BEARER_TOKEN: ${{ secrets.PLAYWRIGHT_BEARER_TOKEN }}
+
+jobs:
+  performance-ux:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd next-rag-app
+          npm install
+
+      - name: Install Playwright browsers
+        run: |
+          cd next-rag-app
+          npx playwright install --with-deps
+
+      - name: Run Playwright performance suite
+        run: |
+          cd next-rag-app
+          npx playwright test --config=playwright.config.ts
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
+          PLAYWRIGHT_API_KEY: ${{ env.PLAYWRIGHT_API_KEY }}
+          PLAYWRIGHT_BEARER_TOKEN: ${{ env.PLAYWRIGHT_BEARER_TOKEN }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: next-rag-app/playwright-report

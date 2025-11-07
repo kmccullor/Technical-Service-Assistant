@@ -56,6 +56,8 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - Deployment guidance: `docs/REMOTE_DEPLOYMENT.md`
 - Monitoring and quality: `docs/ADVANCED_MONITORING.md`, `quality_dashboard.html`
 - Testing roadmap: `docs/TESTING_EXPANSION.md`
+- Performance UX plan: `docs/PERFORMANCE_UX.md`
+- Accuracy harness: `docs/ACCURACY_HARNESS.md`
 
 ## Configuration & Environment Variable Precedence
 
