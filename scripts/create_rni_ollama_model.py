@@ -22,13 +22,13 @@ def create_rni_modelfile():
     knowledge_samples = []
 
     if os.path.exists(training_data_path):
-        with open(training_data_path, 'r', encoding='utf-8') as f:
+        with open(training_data_path, "r", encoding="utf-8") as f:
             for i, line in enumerate(f):
                 if i >= 10:  # Just get first 10 examples for knowledge base
                     break
                 try:
                     data = json.loads(line)
-                    knowledge_samples.append(data['output'][:500])  # First 500 chars
+                    knowledge_samples.append(data["output"][:500])  # First 500 chars
                 except:
                     continue
 
@@ -202,7 +202,7 @@ def main():
     modelfile_content = create_rni_modelfile()
 
     modelfile_path = model_dir / "Modelfile"
-    with open(modelfile_path, 'w', encoding='utf-8') as f:
+    with open(modelfile_path, "w", encoding="utf-8") as f:
         f.write(modelfile_content)
 
     logger.info(f"Modelfile created at {modelfile_path}")
@@ -212,7 +212,7 @@ def main():
     injection_script = create_knowledge_injection_script()
 
     script_path = model_dir / "knowledge_injector.py"
-    with open(script_path, 'w', encoding='utf-8') as f:
+    with open(script_path, "w", encoding="utf-8") as f:
         f.write(injection_script)
 
     logger.info(f"Knowledge injection script created at {script_path}")
@@ -252,19 +252,19 @@ python knowledge_injector.py
 """
 
     readme_path = model_dir / "README.md"
-    with open(readme_path, 'w', encoding='utf-8') as f:
+    with open(readme_path, "w", encoding="utf-8") as f:
         f.write(instructions)
 
     logger.info(f"Setup instructions created at {readme_path}")
-    logger.info("\n" + "="*50)
+    logger.info("\n" + "=" * 50)
     logger.info("RNI-TRAINED MODEL CREATION COMPLETE!")
-    logger.info("="*50)
+    logger.info("=" * 50)
     logger.info(f"Model files created in: {model_dir}")
     logger.info("\nNext steps:")
     logger.info("1. cd models/rni-mistral")
     logger.info("2. ollama create rni-mistral -f Modelfile")
     logger.info("3. ollama run rni-mistral")
-    logger.info("="*50)
+    logger.info("=" * 50)
 
 
 if __name__ == "__main__":

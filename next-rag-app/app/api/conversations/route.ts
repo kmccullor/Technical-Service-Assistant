@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt))
       .limit(limit)
 
-    return NextResponse.json(recentConversations)
+    return NextResponse.json({ conversations: recentConversations })
   } catch (error) {
     console.error('Error fetching conversations:', error)
     return NextResponse.json(

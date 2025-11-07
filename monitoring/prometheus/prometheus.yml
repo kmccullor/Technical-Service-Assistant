@@ -71,14 +71,6 @@ scrape_configs:
       - targets: ['performance-monitor:9109']
     scrape_interval: 30s
 
-  # Docling processor metrics
-  - job_name: 'docling-processor'
-    static_configs:
-      - targets: ['docling_processor:9110']
-    scrape_interval: 30s
-
-
-
   # Grafana monitoring
   - job_name: 'grafana'
     static_configs:
@@ -86,6 +78,27 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
+  # Nginx reverse proxy metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 15s
+
+  # Frontend availability probe
+  - job_name: 'frontend-probe'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://frontend:3000/api/status
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
   # Alertmanager monitoring
   - job_name: 'alertmanager'
     static_configs:

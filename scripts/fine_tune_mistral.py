@@ -10,19 +10,17 @@ import json
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import Dict, List
 
 import torch
 from datasets import Dataset
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    TrainingArguments,
-    Trainer,
     DataCollatorForLanguageModeling,
+    Trainer,
+    TrainingArguments,
 )
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -77,7 +75,7 @@ class MistralFineTuner:
             target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
             lora_dropout=0.05,
             bias="none",
-            task_type="CAUSAL_LM"
+            task_type="CAUSAL_LM",
         )
 
         self.model = prepare_model_for_kbit_training(self.model)
@@ -90,7 +88,7 @@ class MistralFineTuner:
         logger.info(f"Loading training data from {data_path}")
 
         data = []
-        with open(data_path, 'r', encoding='utf-8') as f:
+        with open(data_path, "r", encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     data.append(json.loads(line))
@@ -120,11 +118,7 @@ class MistralFineTuner:
 
         # Tokenize
         tokenized = self.tokenizer(
-            formatted_texts,
-            truncation=True,
-            padding=False,
-            max_length=2048,
-            return_tensors="pt"
+            formatted_texts, truncation=True, padding=False, max_length=2048, return_tensors="pt"
         )
 
         return tokenized
@@ -135,9 +129,7 @@ class MistralFineTuner:
 
         # Preprocess dataset
         processed_dataset = train_dataset.map(
-            self.preprocess_function,
-            batched=True,
-            remove_columns=train_dataset.column_names
+            self.preprocess_function, batched=True, remove_columns=train_dataset.column_names
         )
 
         # Training arguments
@@ -159,8 +151,7 @@ class MistralFineTuner:
 
         # Data collator
         data_collator = DataCollatorForLanguageModeling(
-            tokenizer=self.tokenizer,
-            mlm=False  # Not masked language modeling
+            tokenizer=self.tokenizer, mlm=False  # Not masked language modeling
         )
 
         # Trainer
@@ -197,7 +188,7 @@ MESSAGE "You are an expert in RNI systems, gas metering technology, and utility 
 """
 
         modelfile_path = f"{model_dir}/Modelfile"
-        with open(modelfile_path, 'w') as f:
+        with open(modelfile_path, "w") as f:
             f.write(ollama_modelfile.strip())
 
         logger.info(f"Created Ollama Modelfile at {modelfile_path}")

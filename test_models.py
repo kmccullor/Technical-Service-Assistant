@@ -3,9 +3,9 @@
 Test script to verify all models are working on all Ollama instances.
 """
 
-import requests
-import time
 import sys
+
+import requests
 
 # Model configurations
 MODELS = {
@@ -13,28 +13,26 @@ MODELS = {
     "chat": "mistral:7b",
     "coding": "codellama:7b",
     "reasoning": "llama3.2:3b",
-    "vision": "llava:7b"
+    "vision": "llava:7b",
 }
 
 # Ollama servers
 SERVERS = [f"http://localhost:{11434 + i}" for i in range(8)]
+
 
 def test_model(server_base_url, model, model_type, prompt="Hello, test message"):
     """Test a model on a specific server."""
     try:
         if model_type == "embedding":
             url = f"{server_base_url}/api/embeddings"
-            payload = {
-                "model": model,
-                "prompt": prompt
-            }
+            payload = {"model": model, "prompt": prompt}
         else:
             url = f"{server_base_url}/api/generate"
             payload = {
                 "model": model,
                 "prompt": prompt,
                 "stream": False,
-                "options": {"num_predict": 10}  # Short response for testing
+                "options": {"num_predict": 10},  # Short response for testing
             }
 
         response = requests.post(url, json=payload, timeout=30)
@@ -52,6 +50,7 @@ def test_model(server_base_url, model, model_type, prompt="Hello, test message")
             return False, f"HTTP {response.status_code}: {response.text}"
     except Exception as e:
         return False, str(e)
+
 
 def main():
     print("Testing all models on all Ollama instances...")
@@ -98,6 +97,7 @@ def main():
     else:
         print("⚠️  SOME TESTS FAILED. Check the output above for details.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

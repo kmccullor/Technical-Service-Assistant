@@ -40,6 +40,8 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data_1:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -55,6 +57,8 @@ services:
       - "11435:11434"
     volumes:
       - ollama_data_2:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -70,6 +74,8 @@ services:
       - "11436:11434"
     volumes:
       - ollama_data_3:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -85,6 +91,8 @@ services:
       - "11437:11434"
     volumes:
       - ollama_data_4:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -100,6 +108,8 @@ services:
       - "11438:11434"
     volumes:
       - ollama_data_5:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -115,6 +125,8 @@ services:
       - "11439:11434"
     volumes:
       - ollama_data_6:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -130,6 +142,8 @@ services:
       - "11440:11434"
     volumes:
       - ollama_data_7:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -145,6 +159,8 @@ services:
       - "11441:11434"
     volumes:
       - ollama_data_8:/root/.ollama
+      - ./ollama_config/startup.sh:/startup.sh:ro
+    entrypoint: ["/bin/sh", "/startup.sh"]
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 && echo 'server:idle' || (echo 'server:starting' && exit 1)"]
       interval: 15s
@@ -190,7 +206,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
       - USE_LOCAL_MODELS=true
       - OLLAMA_BASE_URL=http://ollama-server-1:11434
-      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434
+      - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - CHAT_MODEL=mistral:7b
       - NODE_ENV=production
@@ -313,16 +329,16 @@ services:
       - OLLAMA_TARGETS=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EXPORTER_PORT=9105
       - REQUEST_TIMEOUT=2
-       - CACHE_TTL=5
+      - CACHE_TTL=5
     depends_on:
-       - ollama-server-1
-       - ollama-server-2
-       - ollama-server-3
-       - ollama-server-4
-       - ollama-server-5
-       - ollama-server-6
-       - ollama-server-7
-       - ollama-server-8
+      - ollama-server-1
+      - ollama-server-2
+      - ollama-server-3
+      - ollama-server-4
+      - ollama-server-5
+      - ollama-server-6
+      - ollama-server-7
+      - ollama-server-8
     ports:
       - "9105:9105"
     healthcheck:
@@ -364,6 +380,38 @@ services:
       - redis
     healthcheck:
       test: ["CMD", "/redis_exporter", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.11.0
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - "-nginx.scrape-uri=http://tsa-nginx/nginx_status"
+    depends_on:
+      - nginx
+    ports:
+      - "9113:9113"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9113/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/blackbox/blackbox.yml"
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./monitoring/blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9115/metrics"]
       interval: 30s
       timeout: 5s
       retries: 3

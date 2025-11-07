@@ -2,10 +2,9 @@ import os
 import shutil
 import time
 from datetime import datetime
-
-import psycopg2
 from importlib import metadata
 
+import psycopg2
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
@@ -15,6 +14,7 @@ try:
 except (ImportError, AttributeError):
     # Fall back for older docling releases
     from docling.pipeline.standard_pdf_pipeline import PdfPipelineOptions
+
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 from config import get_settings

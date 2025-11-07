@@ -21,10 +21,10 @@ import psycopg2
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
-from utils.rbac_models import User
 
 from config import get_settings
 from utils.auth_system import AuthManager, get_auth_manager, get_current_user
+from utils.rbac_models import User
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 

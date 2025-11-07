@@ -1,15 +1,4 @@
 groups:
-  - name: docling_recording
-    interval: 30s
-    rules:
-      - record: docling:processing_duration_seconds:p95_15m
-        expr: histogram_quantile(0.95, sum by (le) (rate(docling_processing_duration_seconds_bucket[15m])))
-      - record: docling:processing_duration_seconds:avg_5m
-        expr: rate(docling_processing_duration_seconds_sum[5m]) / rate(docling_processing_duration_seconds_count[5m])
-      - record: docling:failure_ratio:10m
-        expr: (rate(docling_documents_failed_total[10m]) / (rate(docling_documents_processed_total[10m]) + 1))
-      - record: docling:docs_processed:24h
-        expr: increase(docling_documents_processed_total[24h])
   - name: performance_monitor_recording
     interval: 60s
     rules:

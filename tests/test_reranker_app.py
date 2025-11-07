@@ -10,9 +10,9 @@ Comprehensive test coverage for reranker/app.py including:
 Following Ring 2 proven patterns for mocking and isolation.
 """
 
+import types
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
-import types
 
 import pytest
 from fastapi.testclient import TestClient
@@ -73,7 +73,7 @@ with patch.dict(
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    from reranker.app import app, _deterministic_user_id
+    from reranker.app import _deterministic_user_id, app
 
 
 class StubCursor:

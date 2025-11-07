@@ -6,15 +6,17 @@ Loads Q&A from docs_qa_test.json and tests responses from Ollama models.
 Compares answers and calculates confidence scores.
 """
 
+import asyncio
 import json
 import logging
-import asyncio
-import httpx
-from typing import Dict, List, Any
 from pathlib import Path
+from typing import Any, Dict, List
+
+import httpx
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class DocsQATester:
     """Test AI responses against documentation Q&A pairs."""
@@ -25,26 +27,28 @@ class DocsQATester:
 
     async def load_qa_pairs(self, qa_file: str) -> List[Dict[str, Any]]:
         """Load Q&A pairs from JSON file."""
-        with open(qa_file, 'r') as f:
+        with open(qa_file, "r") as f:
             data = json.load(f)
 
         qa_pairs = []
         for doc in data:
-            for qa in doc['qa_pairs']:
-                qa_pairs.append({
-                    'document': doc['document'],
-                    'question': qa['question'],
-                    'expected_answer': qa['answer'],
-                    'confidence_required': qa.get('confidence_required', 100)
-                })
+            for qa in doc["qa_pairs"]:
+                qa_pairs.append(
+                    {
+                        "document": doc["document"],
+                        "question": qa["question"],
+                        "expected_answer": qa["answer"],
+                        "confidence_required": qa.get("confidence_required", 100),
+                    }
+                )
 
         logger.info(f"Loaded {len(qa_pairs)} Q&A pairs from {len(data)} documents")
         return qa_pairs
 
     async def test_single_qa(self, qa_pair: Dict[str, Any]) -> Dict[str, Any]:
         """Test a single Q&A pair."""
-        question = qa_pair['question']
-        expected = qa_pair['expected_answer']
+        question = qa_pair["question"]
+        expected = qa_pair["expected_answer"]
 
         # Get AI response
         response = await self.get_ai_response(question)
@@ -53,12 +57,12 @@ class DocsQATester:
         confidence = self.calculate_confidence(response, expected)
 
         return {
-            'document': qa_pair['document'],
-            'question': question,
-            'expected_answer': expected,
-            'ai_response': response,
-            'confidence': confidence,
-            'passed': confidence >= qa_pair['confidence_required']
+            "document": qa_pair["document"],
+            "question": question,
+            "expected_answer": expected,
+            "ai_response": response,
+            "confidence": confidence,
+            "passed": confidence >= qa_pair["confidence_required"],
         }
 
     async def get_ai_response(self, question: str) -> str:
@@ -100,11 +104,11 @@ Always base your responses on technical documentation and established procedures
                         "model": self.model,
                         "messages": [
                             {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": question}
+                            {"role": "user", "content": question},
                         ],
                         "stream": False,
-                        "options": {"temperature": 0.1, "num_predict": 500}
-                    }
+                        "options": {"temperature": 0.1, "num_predict": 500},
+                    },
                 )
 
                 if response.status_code == 200:
@@ -159,17 +163,17 @@ Always base your responses on technical documentation and established procedures
             result = await self.test_single_qa(qa)
             results.append(result)
 
-            if result['passed']:
+            if result["passed"]:
                 passed += 1
 
         overall_confidence = (passed / total) * 100 if total > 0 else 0
 
         summary = {
-            'total_tests': total,
-            'passed': passed,
-            'failed': total - passed,
-            'overall_confidence': overall_confidence,
-            'results': results
+            "total_tests": total,
+            "passed": passed,
+            "failed": total - passed,
+            "overall_confidence": overall_confidence,
+            "results": results,
         }
 
         logger.info(f"Test complete: {passed}/{total} passed ({overall_confidence:.1f}% confidence)")
@@ -177,10 +181,11 @@ Always base your responses on technical documentation and established procedures
 
     def save_results(self, results: Dict[str, Any], output_file: str):
         """Save test results to JSON file."""
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Results saved to {output_file}")
+
 
 async def main():
     """Main test runner."""
@@ -203,11 +208,12 @@ async def main():
     print(f"Failed: {results['failed']}")
     print(f"Overall confidence: {results['overall_confidence']:.1f}%")
 
-    if results['overall_confidence'] < 100:
+    if results["overall_confidence"] < 100:
         print("\nFailed tests:")
-        for result in results['results']:
-            if not result['passed']:
+        for result in results["results"]:
+            if not result["passed"]:
                 print(f"- {result['document']}: {result['question'][:50]}... (confidence: {result['confidence']:.1f}%)")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

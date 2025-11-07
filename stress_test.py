@@ -4,25 +4,22 @@ Stress test script for Technical Service Assistant
 Tests multiple endpoints under concurrent load
 """
 
-import asyncio
-import time
-import statistics
-from concurrent.futures import ThreadPoolExecutor
-import requests
-from typing import List, Dict, Any
 import json
+import statistics
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List
+
+import requests
 
 # Test configuration
 TARGET_URL = "https://rni-llm-01.lab.sensus.net"
-ENDPOINTS = [
-    "/health",
-    "/api/ollama-health",
-    "/api/auth/health"
-]
+ENDPOINTS = ["/health", "/api/ollama-health", "/api/auth/health"]
 
 CONCURRENT_USERS = 50
 REQUESTS_PER_USER = 10
 TIMEOUT = 30
+
 
 class StressTest:
     def __init__(self):
@@ -31,6 +28,7 @@ class StressTest:
         self.session.verify = False
         # Suppress SSL warnings
         import urllib3
+
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def make_request(self, endpoint: str) -> Dict[str, Any]:
@@ -46,7 +44,7 @@ class StressTest:
                 "status_code": response.status_code,
                 "response_time": end_time - start_time,
                 "success": response.status_code == 200,
-                "error": None
+                "error": None,
             }
         except Exception as e:
             end_time = time.time()
@@ -55,7 +53,7 @@ class StressTest:
                 "status_code": None,
                 "response_time": end_time - start_time,
                 "success": False,
-                "error": str(e)
+                "error": str(e),
             }
 
     def run_user_simulation(self, user_id: int) -> List[Dict[str, Any]]:
@@ -98,10 +96,10 @@ class StressTest:
                 "concurrent_users": CONCURRENT_USERS,
                 "requests_per_user": REQUESTS_PER_USER,
                 "total_requests": len(all_results),
-                "total_time": total_time
+                "total_time": total_time,
             },
             "results": all_results,
-            "analysis": analysis
+            "analysis": analysis,
         }
 
     def analyze_results(self, results: List[Dict[str, Any]], total_time: float) -> Dict[str, Any]:
@@ -129,8 +127,10 @@ class StressTest:
                 "min_response_time": min(response_times),
                 "max_response_time": max(response_times),
                 "median_response_time": statistics.median(response_times),
-                "p95_response_time": statistics.quantiles(response_times, n=20)[18] if len(response_times) >= 20 else max(response_times),
-                "errors": [r["error"] for r in endpoint_results if r["error"]]
+                "p95_response_time": statistics.quantiles(response_times, n=20)[18]
+                if len(response_times) >= 20
+                else max(response_times),
+                "errors": [r["error"] for r in endpoint_results if r["error"]],
             }
 
         # Overall stats
@@ -147,14 +147,14 @@ class StressTest:
             "min_response_time": min(all_response_times),
             "max_response_time": max(all_response_times),
             "median_response_time": statistics.median(all_response_times),
-            "p95_response_time": statistics.quantiles(all_response_times, n=20)[18] if len(all_response_times) >= 20 else max(all_response_times),
-            "total_errors": total_requests - successful_requests
+            "p95_response_time": statistics.quantiles(all_response_times, n=20)[18]
+            if len(all_response_times) >= 20
+            else max(all_response_times),
+            "total_errors": total_requests - successful_requests,
         }
 
-        return {
-            "overall": overall_stats,
-            "by_endpoint": endpoint_stats
-        }
+        return {"overall": overall_stats, "by_endpoint": endpoint_stats}
+
 
 def main():
     tester = StressTest()
@@ -223,6 +223,7 @@ def main():
         print("  ⚠️ Moderate Throughput: Acceptable throughput")
     else:
         print("  ❌ Low Throughput: Poor throughput")
+
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -30,6 +29,7 @@ settings = get_settings()
 @dataclass
 class TrainingExample:
     """Single training example for fine-tuning."""
+
     instruction: str
     input_text: str
     output: str
@@ -40,6 +40,7 @@ class TrainingExample:
 @dataclass
 class TrainingDataset:
     """Complete training dataset."""
+
     examples: List[TrainingExample]
     metadata: Dict[str, Any]
 
@@ -49,6 +50,7 @@ class RNIModelTrainer:
 
     def __init__(self):
         from config import get_settings
+
         settings = get_settings()
         # Force localhost for local development
         db_host = "localhost"
@@ -58,7 +60,7 @@ class RNIModelTrainer:
             "database": settings.db_name,
             "user": settings.db_user,
             "password": settings.db_password or "postgres",  # Default password for local dev
-            "port": settings.db_port
+            "port": settings.db_port,
         }
 
     def extract_training_data(self) -> TrainingDataset:
@@ -71,13 +73,14 @@ class RNIModelTrainer:
             user=self.db_config["user"],
             password=self.db_config["password"],
             port=self.db_config["port"],
-            cursor_factory=RealDictCursor
+            cursor_factory=RealDictCursor,
         )
         cursor = conn.cursor()
 
         try:
             # Get all document chunks with metadata
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     dc.id,
                     dc.document_id,
@@ -98,7 +101,8 @@ class RNIModelTrainer:
                 WHERE LENGTH(dc.content) > 200  -- Filter out very short chunks
                 ORDER BY d.id, dc.chunk_index
                 LIMIT 10000  -- Limit for initial testing
-            """)
+            """
+            )
 
             rows = cursor.fetchall()
             logger.info(f"Extracted {len(rows)} document chunks for training")
@@ -117,7 +121,7 @@ class RNIModelTrainer:
                 "extraction_date": "2025-11-02",
                 "source": "PGVector document_chunks",
                 "model_target": "mistral:7b",
-                "domain": "RNI Technical Documentation"
+                "domain": "RNI Technical Documentation",
             }
 
             dataset = TrainingDataset(examples=examples, metadata=metadata)
@@ -131,32 +135,36 @@ class RNIModelTrainer:
 
     def _create_training_example(self, row: Dict) -> Optional[TrainingExample]:
         """Convert a database row into a training example."""
-        content = row['content'].strip()
+        content = row["content"].strip()
 
         # Skip if content is too short or generic
         if len(content) < 200:
             return None
 
         # Create instruction based on document type and content
-        doc_type = row.get('document_type', 'document')
-        product = row.get('product_name', 'system')
-        title = row.get('title', row.get('file_name', 'Unknown'))
+        doc_type = row.get("document_type", "document")
+        product = row.get("product_name", "system")
+        title = row.get("title", row.get("file_name", "Unknown"))
 
         # Generate appropriate instruction
-        if doc_type == 'user_guide':
+        if doc_type == "user_guide":
             instruction = f"You are a technical support specialist for {product}. Provide clear, step-by-step guidance based on the following documentation."
-        elif doc_type == 'technical_specification':
+        elif doc_type == "technical_specification":
             instruction = f"You are an expert engineer working with {product}. Explain the technical specifications and requirements clearly."
-        elif doc_type == 'release_notes':
-            instruction = f"You are a product manager for {product}. Explain the changes and improvements in this release."
-        elif doc_type == 'troubleshooting':
+        elif doc_type == "release_notes":
+            instruction = (
+                f"You are a product manager for {product}. Explain the changes and improvements in this release."
+            )
+        elif doc_type == "troubleshooting":
             instruction = f"You are a support engineer for {product}. Help diagnose and resolve technical issues."
         else:
-            instruction = f"You are a technical expert for {product}. Provide accurate information based on the documentation."
+            instruction = (
+                f"You are a technical expert for {product}. Provide accurate information based on the documentation."
+            )
 
         # Create input (the question/context)
-        section_title = row.get('section_title', '')
-        page = row.get('page_number', 0)
+        section_title = row.get("section_title", "")
+        page = row.get("page_number", 0)
 
         input_text = f"Document: {title}"
         if section_title:
@@ -173,8 +181,8 @@ class RNIModelTrainer:
             instruction=instruction,
             input_text=input_text,
             output=output,
-            source_document=row['file_name'],
-            chunk_index=row['chunk_index']
+            source_document=row["file_name"],
+            chunk_index=row["chunk_index"],
         )
 
     def save_training_data(self, dataset: TrainingDataset, output_path: str):
@@ -183,10 +191,10 @@ class RNIModelTrainer:
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             # Save metadata
-            metadata_file = output_path.replace('.jsonl', '_metadata.json')
-            with open(metadata_file, 'w', encoding='utf-8') as mf:
+            metadata_file = output_path.replace(".jsonl", "_metadata.json")
+            with open(metadata_file, "w", encoding="utf-8") as mf:
                 json.dump(dataset.metadata, mf, indent=2, ensure_ascii=False)
 
             # Save training examples in JSONL format
@@ -195,9 +203,9 @@ class RNIModelTrainer:
                 formatted_example = {
                     "instruction": example.instruction,
                     "input": example.input_text,
-                    "output": example.output
+                    "output": example.output,
                 }
-                f.write(json.dumps(formatted_example, ensure_ascii=False) + '\n')
+                f.write(json.dumps(formatted_example, ensure_ascii=False) + "\n")
 
         logger.info(f"Saved {len(dataset.examples)} training examples")
 
@@ -229,24 +237,26 @@ class RNIModelTrainer:
 
                 for question in questions:
                     # Find relevant context from nearby chunks
-                    context_chunks = chunks[max(0, i-1):min(len(chunks), i+2)]
+                    context_chunks = chunks[max(0, i - 1) : min(len(chunks), i + 2)]
                     context = "\n\n".join([c.output for c in context_chunks])
 
-                    instruction_examples.append(TrainingExample(
-                        instruction="You are a technical expert. Answer the following question based on the provided documentation.",
-                        input_text=f"Question: {question}\n\nDocumentation:\n{context[:2000]}",
-                        output=chunk.output,
-                        source_document=doc,
-                        chunk_index=chunk.chunk_index
-                    ))
+                    instruction_examples.append(
+                        TrainingExample(
+                            instruction="You are a technical expert. Answer the following question based on the provided documentation.",
+                            input_text=f"Question: {question}\n\nDocumentation:\n{context[:2000]}",
+                            output=chunk.output,
+                            source_document=doc,
+                            chunk_index=chunk.chunk_index,
+                        )
+                    )
 
         new_dataset = TrainingDataset(
             examples=instruction_examples,
             metadata={
                 **dataset.metadata,
                 "tuning_type": "instruction_tuning",
-                "instruction_examples": len(instruction_examples)
-            }
+                "instruction_examples": len(instruction_examples),
+            },
         )
 
         logger.info(f"Created {len(instruction_examples)} instruction tuning examples")
@@ -257,7 +267,7 @@ class RNIModelTrainer:
         questions = []
 
         # Simple heuristic-based question generation
-        sentences = content.split('.')[:3]  # First few sentences
+        sentences = content.split(".")[:3]  # First few sentences
 
         for sentence in sentences:
             sentence = sentence.strip()
@@ -265,13 +275,13 @@ class RNIModelTrainer:
                 continue
 
             # Generate different types of questions
-            if 'how to' in sentence.lower() or 'steps' in sentence.lower():
+            if "how to" in sentence.lower() or "steps" in sentence.lower():
                 questions.append(f"How do I {sentence.lower().replace('to ', '')}?")
-            elif 'configuration' in sentence.lower():
+            elif "configuration" in sentence.lower():
                 questions.append("How do I configure this system?")
-            elif 'troubleshoot' in sentence.lower():
+            elif "troubleshoot" in sentence.lower():
                 questions.append("How do I troubleshoot this issue?")
-            elif 'install' in sentence.lower():
+            elif "install" in sentence.lower():
                 questions.append("How do I install this software?")
             else:
                 # Generic question

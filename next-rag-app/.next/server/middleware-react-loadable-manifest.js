@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"components/ui/dialog-client.tsx -> @/components/ui/dialog\":{\"id\":\"components/ui/dialog-client.tsx -> @/components/ui/dialog\",\"files\":[\"static/chunks/_app-pages-browser_components_ui_dialog_tsx.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST="{\"components/ui/dialog-client.tsx -> @/components/ui/dialog\":{\"id\":\"components/ui/dialog-client.tsx -> @/components/ui/dialog\",\"files\":[]}}"

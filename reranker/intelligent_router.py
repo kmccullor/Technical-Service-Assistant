@@ -1,6 +1,6 @@
-from utils.logging_config import setup_logging
-
 import os
+
+from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
 logger = setup_logging(
@@ -575,5 +575,7 @@ def add_intelligent_routing_endpoints(app):
             "instances": status_summary,
         }
 
-    app.add_api_route("/api/intelligent-route", intelligent_route, methods=["POST"], response_model=ModelSelectionResponse)
+    app.add_api_route(
+        "/api/intelligent-route", intelligent_route, methods=["POST"], response_model=ModelSelectionResponse
+    )
     app.add_api_route("/api/ollama-health", ollama_health, methods=["GET"])
