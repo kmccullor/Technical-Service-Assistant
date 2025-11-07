@@ -33,7 +33,7 @@ echo "[$(date)] 📧 Using Gmail password: ${GMAIL_APP_PASSWORD:0:4}***"
 
 # Use enhanced EOD reporting with auto-Gmail detection and monitoring integration
 EOD_SENDER_PASSWORD="$GMAIL_APP_PASSWORD" \
-python email_eod_report.py "kmccullor@gmail.com,kevin.mccullor@xylem.com,jim.hitchcock@xylem.com" "$REPORT_FILE"
+python email_eod_report.py "kmccullor@gmail.com" "$REPORT_FILE"
 
 if [ $? -eq 0 ]; then
     echo "[$(date)] ✅ Daily report sent successfully to kmccullor@gmail.com"
