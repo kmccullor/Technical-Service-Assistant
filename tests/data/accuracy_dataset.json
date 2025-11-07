@@ -1,0 +1,23 @@
+[
+  {
+    "id": "platform_overview",
+    "question": "What is the Technical Service Assistant and what components does it include?",
+    "required_keywords": ["Technical Service Assistant", "FastAPI", "Next.js"],
+    "optional_keywords": ["Docker", "Ollama"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "auth_flow",
+    "question": "How does the authentication system in the Technical Service Assistant work?",
+    "required_keywords": ["JWT", "RBAC", "password"],
+    "optional_keywords": ["verification", "reset"],
+    "forbidden_keywords": []
+  },
+  {
+    "id": "smoke_test",
+    "question": "Describe the purpose of the make smoke-test command.",
+    "required_keywords": ["health", "services", "reranker"],
+    "optional_keywords": ["redis", "ollama"],
+    "forbidden_keywords": []
+  }
+]

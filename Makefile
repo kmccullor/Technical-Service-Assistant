@@ -90,6 +90,17 @@ smoke-test: ## 🚨 Run automated service smoke test
 load-test: ## 🔥 Run K6 load test harness (requires k6 installed locally)
 	$(PYTHON) scripts/testing/load_test.py
 
+eval-accuracy: ## 🎯 Run accuracy harness against curated prompt set
+	ACCURACY_THRESHOLD?=90
+	ACCURACY_BASE_URL?=https://rni-llm-01.lab.sensus.net
+	ACCURACY_API_KEY?=$(API_KEY)
+	ACCURACY_BEARER_TOKEN?=
+	ACCURACY_THRESHOLD=$(ACCURACY_THRESHOLD) \
+	ACCURACY_BASE_URL=$(ACCURACY_BASE_URL) \
+	ACCURACY_API_KEY=$(ACCURACY_API_KEY) \
+	ACCURACY_BEARER_TOKEN=$(ACCURACY_BEARER_TOKEN) \
+	$(PYTHON) scripts/testing/accuracy_eval.py
+
 check-logs: ## 📋 Show recent error logs from all containers
 	@echo "🔍 Recent Error Logs (Last 24 Hours)..."
 	@echo "=== PDF Processor ==="

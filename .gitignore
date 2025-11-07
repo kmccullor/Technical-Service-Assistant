@@ -147,5 +147,9 @@ backup/
 logs/*.log
 next-rag-app/node_modules/
 next-rag-app/.next/
+next-rag-app/playwright-report/
+next-rag-app/test-results/
 .venv/
 __pycache__/
+load_test_results/
+tests/accuracy_logs/

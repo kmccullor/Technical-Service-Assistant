@@ -32,8 +32,7 @@ This document tracks the initiatives required to deliver the broader test covera
 
 - Goal: enforce “100% correct” responses on a curated evaluation set.
 - Proposed workflow:
-  - Build a labeled dataset (questions, expected answers, citations) sourced from existing QA scripts.
-  - Create `make eval-accuracy` that runs the dataset through the live stack, evaluates semantic similarity plus rule-based checks, and outputs a pass/fail report.
+  - ✅ Added `tests/data/accuracy_dataset.json` along with `scripts/testing/accuracy_eval.py` and `make eval-accuracy`. The harness streams `/api/chat`, checks required keywords, and writes JSON summaries to `tests/accuracy_logs/`.
   - Hook the evaluation into CI so regressions block releases; expose the latest accuracy score inside `quality_dashboard.html`.
 
 By iteratively tackling each section, the project will gain confidence across reliability, scalability, user experience, and answer correctness.
