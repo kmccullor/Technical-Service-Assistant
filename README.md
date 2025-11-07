@@ -26,6 +26,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - `make check-db` – verify ingestion data; `make health-check` – container status.
 - `make smoke-test` – run the automated service smoke test (verifies API health, Ollama, Redis, Postgres, Grafana/Prometheus, and nginx).
   - CI: GitHub Actions (`quality.yml`) has a `smoke-test` job that runs this target on the self-hosted runner after unit/integration suites succeed, ensuring live services stay healthy.
+  - The smoke test auto-loads `.env`, so it works out-of-the-box when run from the repo root (set `SMOKE_DB_HOST` only if you need to override the Compose host).
 
 ### Repository Map
 - Documentation: `docs/` (see [docs/README.md](docs/README.md) for an index).

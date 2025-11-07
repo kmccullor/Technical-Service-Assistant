@@ -13,9 +13,16 @@ from typing import Iterable, List, Sequence, Union
 import httpx
 import psycopg2
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+for env_path in (ROOT / ".env", ROOT.parent / ".env"):
+    if env_path.exists():
+        load_dotenv(env_path, override=False)
+        break
 
 from config import get_settings
 
