@@ -146,5 +146,6 @@ backup/
 *.log
 logs/*.log
 next-rag-app/node_modules/
+next-rag-app/.next/
 .venv/
 __pycache__/

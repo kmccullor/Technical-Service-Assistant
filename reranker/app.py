@@ -4,6 +4,7 @@ Just the basic chat endpoints to get the frontend working.
 """
 
 import hashlib
+from datetime import datetime
 import os
 import re
 import sys
@@ -226,6 +227,22 @@ def _track_question_usage(
         logger.error(f"Failed to track question usage: {e}")
 
 
+def _serialize_timestamp(value: Optional[Any], default: Optional[str] = None) -> Optional[str]:
+    """Convert datetime-like objects to ISO strings."""
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(value).isoformat()
+        except Exception:
+            return default
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
 def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -249,6 +266,8 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                 conn.close()
 
                 if user_row:
+                    created_at_value = user_row.get("created_at")
+                    updated_at_value = user_row.get("updated_at")
                     return UserResponse(
                         id=user_row["id"],
                         email=user_row["email"],
@@ -259,16 +278,12 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                         role_name="admin" if user_row.get("role_id") == 1 else "employee",
                         status=user_row.get("status", "active"),
                         verified=user_row.get("verified", True),
-                        last_login=user_row.get("last_login"),
+                        last_login=_serialize_timestamp(user_row.get("last_login")),
                         is_active=True,
                         is_locked=False,
                         password_change_required=user_row.get("password_change_required", False),
-                        created_at=user_row["created_at"].isoformat()
-                        if user_row["created_at"]
-                        else "2024-01-01T00:00:00Z",
-                        updated_at=user_row["updated_at"].isoformat()
-                        if user_row["updated_at"]
-                        else "2024-01-01T00:00:00Z",
+                        created_at=_serialize_timestamp(created_at_value, "2024-01-01T00:00:00Z"),
+                        updated_at=_serialize_timestamp(updated_at_value, "2024-01-01T00:00:00Z"),
                     )
             except Exception as e:
                 logger.error(f"Error looking up user {user_id}: {e}")
