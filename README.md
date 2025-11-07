@@ -24,6 +24,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - `pytest --cov --cov-fail-under=95` – manual coverage verification.
 - `make quality-report` – refresh QA dashboards (`quality_dashboard.html`).
 - `make check-db` – verify ingestion data; `make health-check` – container status.
+- `make smoke-test` – run the automated service smoke test (verifies API health, Ollama, Redis, Postgres, Grafana/Prometheus, and nginx).
 
 ### Repository Map
 - Documentation: `docs/` (see [docs/README.md](docs/README.md) for an index).
@@ -50,6 +51,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - Ops & troubleshooting: `TROUBLESHOOTING.md`, `docs/server_documentation.md`
 - Deployment guidance: `docs/REMOTE_DEPLOYMENT.md`
 - Monitoring and quality: `docs/ADVANCED_MONITORING.md`, `quality_dashboard.html`
+- Testing roadmap: `docs/TESTING_EXPANSION.md`
 
 ## Configuration & Environment Variable Precedence
 

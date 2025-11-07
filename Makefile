@@ -84,6 +84,9 @@ health-check: ## 🏥 Quick health check of core services
 	@df -h . | tail -1
 	@free -h | head -2
 
+smoke-test: ## 🚨 Run automated service smoke test
+	$(PYTHON) scripts/service_smoke_test.py
+
 check-logs: ## 📋 Show recent error logs from all containers
 	@echo "🔍 Recent Error Logs (Last 24 Hours)..."
 	@echo "=== PDF Processor ==="
