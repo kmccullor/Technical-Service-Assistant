@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Sequence
 
 import requests
+import shutil
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,15 +118,33 @@ export default function () {{
 """
 
 
-def run_k6(script_path: Path, summary_path: Path) -> subprocess.CompletedProcess[str]:
-    cmd = [
-        'k6',
-        'run',
-        '--quiet',
-        '--summary-export',
-        str(summary_path),
-        str(script_path),
-    ]
+def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subprocess.CompletedProcess[str]:
+    if use_docker:
+        script_dir = script_path.parent.resolve()
+        summary_dir = summary_path.parent.resolve()
+        cmd = [
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            f"{script_dir}:/scripts",
+            "-v",
+            f"{summary_dir}:/results",
+            "grafana/k6",
+            "run",
+            "--summary-export",
+            f"/results/{summary_path.name}",
+            f"/scripts/{script_path.name}",
+        ]
+    else:
+        cmd = [
+            "k6",
+            "run",
+            "--quiet",
+            "--summary-export",
+            str(summary_path),
+            str(script_path),
+        ]
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
@@ -174,6 +193,7 @@ def main() -> int:
     parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
     parser.add_argument('--report-dir', default='load_test_results')
     parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
+    parser.add_argument('--use-docker', action='store_true', help='Run k6 via grafana/k6 Docker image')
     args = parser.parse_args()
 
     script = build_k6_script(
@@ -188,14 +208,20 @@ def main() -> int:
         args.bearer_token,
     )
 
-    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.js') as tmp:
-        tmp.write(script)
-        script_path = Path(tmp.name)
+    report_dir = Path(args.report_dir)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    script_path = report_dir / f'k6_script_{timestamp}.js'
+    script_path.write_text(script)
+    summary_path = report_dir / f'k6_raw_summary_{timestamp}.json'
 
-    summary_path = Path(tempfile.mktemp(suffix='.json'))
+    use_docker = args.use_docker or shutil.which('k6') is None
+    if use_docker and shutil.which('docker') is None:
+        print('Docker is required to run k6 via container. Install docker or provide a native k6 binary.', file=sys.stderr)
+        return 1
 
     try:
-        result = run_k6(script_path, summary_path)
+        result = run_k6(script_path, summary_path, use_docker)
     finally:
         script_path.unlink(missing_ok=True)
 
