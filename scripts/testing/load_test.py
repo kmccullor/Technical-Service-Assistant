@@ -73,11 +73,11 @@ const CHAT_ENDPOINT = '{chat_endpoint}';
 const DOC_ENDPOINT = '{doc_endpoint}';
 const HEADERS = {headers_js};
 
-function chatPayload() {{
+function chatPayload(vu) {{
   return JSON.stringify({{
     conversationId: null,
-    message: 'Provide a short summary of the Technical Service Assistant.',
-    displayMessage: 'Provide a short summary of the Technical Service Assistant.'
+    message: `Provide a short summary of the Technical Service Assistant. Request #${{vu}}`,
+    displayMessage: `Provide a short summary of the Technical Service Assistant. Request #${{vu}}`
   }});
 }}
 
@@ -97,7 +97,7 @@ export default function () {{
     check(res, {{ 'status is 200': (r) => r.status === 200 }});
   }}
 
-  const chatRes = http.post(`${{BASE_URL}}${{CHAT_ENDPOINT}}`, chatPayload(), {{
+  const chatRes = http.post(`${{BASE_URL}}${{CHAT_ENDPOINT}}`, chatPayload(__VU), {{
     timeout: '{timeout}',
     headers: {{ ...HEADERS, 'Content-Type': 'application/json', Accept: 'text/event-stream' }},
   }});
@@ -231,7 +231,6 @@ def main() -> int:
         script_path.unlink(missing_ok=True)
 
     summary = summarize(summary_path)
-    summary_path.unlink(missing_ok=True)
 
     if summary:
         saved = write_report(Path(args.report_dir), summary)
