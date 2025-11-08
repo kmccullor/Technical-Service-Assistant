@@ -122,6 +122,8 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
     if use_docker:
         script_dir = script_path.parent.resolve()
         summary_dir = summary_path.parent.resolve()
+        env = os.environ.copy()
+        env.setdefault("K6_INSECURE_SKIP_TLS_VERIFY", "1")
         cmd = [
             "docker",
             "run",
@@ -130,6 +132,8 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
             f"{script_dir}:/scripts",
             "-v",
             f"{summary_dir}:/results",
+            "-e",
+            f"K6_INSECURE_SKIP_TLS_VERIFY={env['K6_INSECURE_SKIP_TLS_VERIFY']}",
             "grafana/k6",
             "run",
             "--summary-export",
@@ -137,6 +141,7 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
             f"/scripts/{script_path.name}",
         ]
     else:
+        env = os.environ.copy()
         cmd = [
             "k6",
             "run",
@@ -145,7 +150,7 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
             str(summary_path),
             str(script_path),
         ]
-    return subprocess.run(cmd, capture_output=True, text=True)
+    return subprocess.run(cmd, capture_output=True, text=True, env=env)
 
 
 def summarize(summary_path: Path) -> dict:
