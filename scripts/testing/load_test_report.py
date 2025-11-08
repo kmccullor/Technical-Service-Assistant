@@ -38,6 +38,14 @@ def find_latest_summary(directory: Path) -> Path:
     return summaries[-1]
 
 
+def send_alert(subject: str, body: str) -> None:
+    script = Path(__file__).resolve().parents[1] / "send_email.py"
+    if not script.exists():
+        print("send_email.py not found; skipping alert", file=sys.stderr)
+        return
+    subprocess.run([sys.executable, str(script), subject, body], check=False)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate latest load test summary against thresholds")
     parser.add_argument("--dir", default="load_test_results", help="Directory containing load_test_summary_*.json")
@@ -65,15 +73,31 @@ def main() -> int:
     print(f"  Failure rate: {metrics.fail_rate} (threshold {args.fail_threshold})")
 
     failed = False
+    reasons = []
     if metrics.p95_ms is not None and metrics.p95_ms > args.p95_threshold:
-        print("⚠️  P95 latency exceeded threshold", file=sys.stderr)
+        msg = "P95 latency exceeded threshold"
+        print(f"⚠️  {msg}", file=sys.stderr)
         failed = True
+        reasons.append(msg)
     if metrics.fail_rate is not None and metrics.fail_rate > args.fail_threshold:
-        print("⚠️  Failure rate exceeded threshold", file=sys.stderr)
+        msg = "Failure rate exceeded threshold"
+        print(f"⚠️  {msg}", file=sys.stderr)
         failed = True
+        reasons.append(msg)
 
     if failed:
+        subject = "Load Test Alert: thresholds exceeded"
+        body = f"""Load test summary: {summary_path}
+Requests: {metrics.req_count}
+P95 latency: {metrics.p95_ms} ms (threshold {args.p95_threshold} ms)
+Failure rate: {metrics.fail_rate} (threshold {args.fail_threshold})
+
+Reasons:
+- {"; ".join(reasons)}
+"""
+        send_alert(subject, body)
         return 1
+
     print("✅ Load test within thresholds")
     return 0
 
