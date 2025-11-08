@@ -27,6 +27,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - `make smoke-test` – run the automated service smoke test (verifies API health, Ollama, Redis, Postgres, Grafana/Prometheus, and nginx).
   - CI: GitHub Actions (`quality.yml`) has a `smoke-test` job that runs this target on the self-hosted runner after unit/integration suites succeed, ensuring live services stay healthy.
   - The smoke test auto-loads `.env`, so it works out-of-the-box when run from the repo root (set `SMOKE_DB_HOST` only if you need to override the Compose host).
+- `python scripts/collect_service_logs.py [tail_lines]` – grab recent Docker logs for reranker/frontend/pgvector/redis/nginx into `logs/smoke/<timestamp>/`; useful when smoke/load tests fail.
 - `make load-test` – execute the K6-based load harness (`scripts/testing/load_test.py`). Auto-falls back to the official `grafana/k6` Docker image if a native `k6` binary is not found. Summaries + optional Prometheus snapshots land under `load_test_results/`; run `python scripts/testing/load_test_report.py` to enforce thresholds locally.
 - `python scripts/reporting/nightly_summary.py` – generate a Markdown summary (`reports/nightly_summary_*.md`) that combines the most recent load-test and accuracy evaluations.
 - `make eval-accuracy` – run the accuracy harness (`scripts/testing/accuracy_eval.py`) against the curated dataset in `tests/data/accuracy_dataset.json`. Set `ACCURACY_API_KEY`/`ACCURACY_BEARER_TOKEN` as needed; results land in `tests/accuracy_logs/`.
