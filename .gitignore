@@ -153,3 +153,4 @@ next-rag-app/test-results/
 __pycache__/
 load_test_results/
 tests/accuracy_logs/
+reports/

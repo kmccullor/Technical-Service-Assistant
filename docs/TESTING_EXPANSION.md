@@ -19,6 +19,7 @@ This document tracks the initiatives required to deliver the broader test covera
 - Next steps:
   - ✅ Added `scripts/testing/load_test.py` (backed by `k6`) plus a `make load-test` target. Defaults: 100 VUs for 2 minutes, hitting `/health`, `/api/ollama-health`, `/api/auth/health`, `/api/chat`. Results and thresholds export to `load_test_results/`.
   - ✅ Added `scripts/testing/load_test_report.py` so nightly runs can enforce p95/failure thresholds and fail CI when SLOs regress.
+  - ✅ Added `scripts/reporting/nightly_summary.py` to aggregate the latest load + accuracy results into Markdown in `reports/` for quick review.
   - Capture Prometheus/Grafana metrics during the run (export as attachments) and fail the job when p95 latency or error-rate SLOs are exceeded.
   - Schedule high-load runs (e.g., nightly) and store results for regression analysis.
 
