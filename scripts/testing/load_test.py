@@ -123,7 +123,7 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
         script_dir = script_path.parent.resolve()
         summary_dir = summary_path.parent.resolve()
         env = os.environ.copy()
-        env.setdefault("K6_INSECURE_SKIP_TLS_VERIFY", "1")
+        env.setdefault("K6_INSECURE_SKIP_TLS_VERIFY", "true")
         cmd = [
             "docker",
             "run",
