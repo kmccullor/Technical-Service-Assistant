@@ -40,6 +40,13 @@ jobs:
         run: |
           make load-test
 
+      - name: Analyze load test results
+        env:
+          LOAD_TEST_P95_THRESHOLD: ${{ vars.LOAD_TEST_P95_THRESHOLD || '2000' }}
+          LOAD_TEST_FAIL_THRESHOLD: ${{ vars.LOAD_TEST_FAIL_THRESHOLD || '0.05' }}
+        run: |
+          python scripts/testing/load_test_report.py --dir load_test_results
+
       - name: Upload load test artifacts
         if: always()
         uses: actions/upload-artifact@v3
