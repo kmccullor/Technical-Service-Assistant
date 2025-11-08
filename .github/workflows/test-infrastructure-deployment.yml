@@ -2,8 +2,54 @@ env:
   IMAGE_NAME: ${{ github.repository }}/test-infrastructure
   REGISTRY: ghcr.io
 jobs:
+  accuracy-check:
+    runs-on: self-hosted
+    env:
+      ACCURACY_BASE_URL: https://rni-llm-01.lab.sensus.net
+      ACCURACY_API_KEY: ${{ secrets.ACCURACY_API_KEY }}
+      ACCURACY_BEARER_TOKEN: ${{ secrets.ACCURACY_BEARER_TOKEN }}
+      ACCURACY_THRESHOLD: ${{ vars.ACCURACY_THRESHOLD || '90' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run accuracy harness
+        run: |
+          ACCURACY_BASE_URL="${{ env.ACCURACY_BASE_URL }}" \
+          ACCURACY_API_KEY="${{ env.ACCURACY_API_KEY }}" \
+          ACCURACY_BEARER_TOKEN="${{ env.ACCURACY_BEARER_TOKEN }}" \
+          ACCURACY_THRESHOLD="${{ env.ACCURACY_THRESHOLD }}" \
+          make eval-accuracy
+
+  load-check:
+    runs-on: self-hosted
+    env:
+      LOAD_TEST_TARGET_URL: https://rni-llm-01.lab.sensus.net
+      LOAD_TEST_API_KEY: ${{ secrets.LOAD_TEST_API_KEY }}
+      LOAD_TEST_BEARER_TOKEN: ${{ secrets.LOAD_TEST_BEARER_TOKEN }}
+      LOAD_TEST_PROM_URL: ${{ secrets.LOAD_TEST_PROM_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run load test
+        run: |
+          LOAD_TEST_TARGET_URL="${{ env.LOAD_TEST_TARGET_URL }}" \
+          LOAD_TEST_API_KEY="${{ env.LOAD_TEST_API_KEY }}" \
+          LOAD_TEST_BEARER_TOKEN="${{ env.LOAD_TEST_BEARER_TOKEN }}" \
+          LOAD_TEST_PROM_URL="${{ env.LOAD_TEST_PROM_URL }}" \
+          python scripts/testing/load_test.py --use-docker
+
   build-and-deploy:
-    needs: quality-assurance
+    needs: [quality-assurance, accuracy-check, load-check]
     permissions:
       contents: read
       packages: write
