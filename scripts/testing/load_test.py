@@ -28,7 +28,7 @@ DEFAULT_PUBLIC_ENDPOINTS = [
     "/api/auth/health",
 ]
 DEFAULT_CHAT_ENDPOINT = "/api/chat"
-DEFAULT_DOC_ENDPOINT = "/api/temp-upload"
+DEFAULT_DOC_ENDPOINT = os.getenv("LOAD_TEST_DOC_ENDPOINT", "")
 
 
 def build_k6_script(
@@ -72,6 +72,7 @@ const BASE_URL = '{target}';
 const PUBLIC_ENDPOINTS = {json.dumps(list(public_endpoints))};
 const CHAT_ENDPOINT = '{chat_endpoint}';
 const DOC_ENDPOINT = '{doc_endpoint}';
+const ENABLE_DOC_UPLOAD = DOC_ENDPOINT && DOC_ENDPOINT.length > 0;
 const HEADERS = {headers_js};
 
 function chatPayload(vu) {{
@@ -104,15 +105,17 @@ export default function () {{
   }});
   check(chatRes, {{ 'chat 200': (r) => r.status === 200 }});
 
-  const doc = docPayload();
-  const docRes = http.post(`${{BASE_URL}}${{DOC_ENDPOINT}}`, doc.body, {{
-    headers: {{
-      ...HEADERS,
-      'Content-Type': `multipart/form-data; boundary=${{doc.boundary}}`
-    }},
-    timeout: '{timeout}',
-  }});
-  check(docRes, {{ 'doc 200/202': (r) => r.status === 200 || r.status === 202 }});
+  if (ENABLE_DOC_UPLOAD) {{
+    const doc = docPayload();
+    const docRes = http.post(`${{BASE_URL}}${{DOC_ENDPOINT}}`, doc.body, {{
+      headers: {{
+        ...HEADERS,
+        'Content-Type': `multipart/form-data; boundary=${{doc.boundary}}`
+      }},
+      timeout: '{timeout}',
+    }});
+    check(docRes, {{ 'doc 200/202': (r) => r.status === 200 || r.status === 202 }});
+  }}
 
   sleep(0.1);
 }}
@@ -192,7 +195,13 @@ def prompt(text: str, secret: bool = False) -> Optional[str]:
     return (getpass.getpass(text) if secret else input(text)).strip()
 
 
-def obtain_bearer_token(base_url: str, username: str, password: str, verify_tls: bool = True) -> Optional[str]:
+def obtain_bearer_token(
+    base_url: str,
+    username: str,
+    password: str,
+    verify_tls: bool = True,
+    attempted_insecure: bool = False,
+) -> Optional[str]:
     url = f"{base_url.rstrip('/')}/api/auth/login"
     try:
         response = requests.post(
@@ -202,6 +211,18 @@ def obtain_bearer_token(base_url: str, username: str, password: str, verify_tls:
             verify=verify_tls,
         )
         response.raise_for_status()
+    except requests.exceptions.SSLError as exc:
+        if verify_tls and not attempted_insecure:
+            print("Login TLS verification failed; retrying without certificate check (use --insecure-login to skip warning).", file=sys.stderr)
+            return obtain_bearer_token(
+                base_url,
+                username,
+                password,
+                verify_tls=False,
+                attempted_insecure=True,
+            )
+        print(f"Login failed: {exc}", file=sys.stderr)
+        return None
     except requests.RequestException as exc:
         print(f"Login failed: {exc}", file=sys.stderr)
         return None

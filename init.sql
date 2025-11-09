@@ -322,7 +322,7 @@ CREATE TABLE IF NOT EXISTS question_usage (
     id bigserial PRIMARY KEY,
     question_pattern_id bigint REFERENCES question_patterns(id),
     user_id bigint,
-    conversation_id bigint REFERENCES conversations(id),
+    conversation_id bigint REFERENCES conversations(id) ON DELETE CASCADE,
     question_text text NOT NULL,
     response_time_ms integer,
     response_quality_score float,

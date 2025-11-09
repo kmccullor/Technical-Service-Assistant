@@ -394,11 +394,6 @@ services:
       - nginx
     ports:
       - "9113:9113"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9113/metrics"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
 
   blackbox-exporter:
     image: prom/blackbox-exporter:latest
