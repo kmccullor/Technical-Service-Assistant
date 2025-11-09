@@ -71,9 +71,9 @@ python email_eod_report.py your-email@domain.com
 
 ### Prometheus & Grafana Setup
 **Access URLs**:
-- Grafana: http://localhost:3000
+- Grafana: http://rni-llm-01.lab.sensus.net:3001
 - Prometheus: http://rni-llm-01.lab.sensus.net:9091
-- Alertmanager: http://localhost:9093
+- Alertmanager: http://rni-llm-01.lab.sensus.net:9093
 
 #### Key Metrics Monitored
 - System resource usage (CPU, memory, disk)
