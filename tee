@@ -1,0 +1,320 @@
+data: {"type": "conversation_id", "conversationId": 1002}
+
+data: {"type": "token", "token": "Thinking: "}
+
+data: {"type": "token", "token": "Analyzing "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "question, "}
+
+data: {"type": "token", "token": "it "}
+
+data: {"type": "token", "token": "is "}
+
+data: {"type": "token", "token": "clear "}
+
+data: {"type": "token", "token": "that "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "user "}
+
+data: {"type": "token", "token": "is "}
+
+data: {"type": "token", "token": "asking "}
+
+data: {"type": "token", "token": "about "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "term "}
+
+data: {"type": "token", "token": "'ping'. "}
+
+data: {"type": "token", "token": "However, "}
+
+data: {"type": "token", "token": "in "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "provided "}
+
+data: {"type": "token", "token": "RNI "}
+
+data: {"type": "token", "token": "4.16 "}
+
+data: {"type": "token", "token": "documentation, "}
+
+data: {"type": "token", "token": "there "}
+
+data: {"type": "token", "token": "are "}
+
+data: {"type": "token", "token": "multiple "}
+
+data: {"type": "token", "token": "instances "}
+
+data: {"type": "token", "token": "of "}
+
+data: {"type": "token", "token": "'ping' "}
+
+data: {"type": "token", "token": "with "}
+
+data: {"type": "token", "token": "different "}
+
+data: {"type": "token", "token": "contexts. "}
+
+data: {"type": "token", "token": "These "}
+
+data: {"type": "token", "token": "include "}
+
+data: {"type": "token", "token": "Billing "}
+
+data: {"type": "token", "token": "Ping, "}
+
+data: {"type": "token", "token": "Ping "}
+
+data: {"type": "token", "token": "Response, "}
+
+data: {"type": "token", "token": "Alarm "}
+
+data: {"type": "token", "token": "ping, "}
+
+data: {"type": "token", "token": "and "}
+
+data: {"type": "token", "token": "Alarm "}
+
+data: {"type": "token", "token": "ping "}
+
+data: {"type": "token", "token": "again. "}
+
+data: {"type": "token", "token": "Answer: "}
+
+data: {"type": "token", "token": "To "}
+
+data: {"type": "token", "token": "provide "}
+
+data: {"type": "token", "token": "a "}
+
+data: {"type": "token", "token": "general "}
+
+data: {"type": "token", "token": "answer "}
+
+data: {"type": "token", "token": "about "}
+
+data: {"type": "token", "token": "'ping', "}
+
+data: {"type": "token", "token": "it "}
+
+data: {"type": "token", "token": "is "}
+
+data: {"type": "token", "token": "a "}
+
+data: {"type": "token", "token": "network "}
+
+data: {"type": "token", "token": "testing "}
+
+data: {"type": "token", "token": "tool "}
+
+data: {"type": "token", "token": "used "}
+
+data: {"type": "token", "token": "to "}
+
+data: {"type": "token", "token": "test "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "connectivity "}
+
+data: {"type": "token", "token": "between "}
+
+data: {"type": "token", "token": "two "}
+
+data: {"type": "token", "token": "devices "}
+
+data: {"type": "token", "token": "on "}
+
+data: {"type": "token", "token": "a "}
+
+data: {"type": "token", "token": "network "}
+
+data: {"type": "token", "token": "by "}
+
+data: {"type": "token", "token": "sending "}
+
+data: {"type": "token", "token": "a "}
+
+data: {"type": "token", "token": "small "}
+
+data: {"type": "token", "token": "data "}
+
+data: {"type": "token", "token": "packet "}
+
+data: {"type": "token", "token": "and "}
+
+data: {"type": "token", "token": "waiting "}
+
+data: {"type": "token", "token": "for "}
+
+data: {"type": "token", "token": "an "}
+
+data: {"type": "token", "token": "echo "}
+
+data: {"type": "token", "token": "response "}
+
+data: {"type": "token", "token": "back "}
+
+data: {"type": "token", "token": "from "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "receiving "}
+
+data: {"type": "token", "token": "device. "}
+
+data: {"type": "token", "token": "However, "}
+
+data: {"type": "token", "token": "in "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "context "}
+
+data: {"type": "token", "token": "of "}
+
+data: {"type": "token", "token": "RNI "}
+
+data: {"type": "token", "token": "4.16 "}
+
+data: {"type": "token", "token": "documentation, "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "term "}
+
+data: {"type": "token", "token": "'ping' "}
+
+data: {"type": "token", "token": "seems "}
+
+data: {"type": "token", "token": "to "}
+
+data: {"type": "token", "token": "be "}
+
+data: {"type": "token", "token": "used "}
+
+data: {"type": "token", "token": "in "}
+
+data: {"type": "token", "token": "specific "}
+
+data: {"type": "token", "token": "ways "}
+
+data: {"type": "token", "token": "related "}
+
+data: {"type": "token", "token": "to "}
+
+data: {"type": "token", "token": "communication "}
+
+data: {"type": "token", "token": "between "}
+
+data: {"type": "token", "token": "devices "}
+
+data: {"type": "token", "token": "within "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "AMI "}
+
+data: {"type": "token", "token": "system. "}
+
+data: {"type": "token", "token": "To "}
+
+data: {"type": "token", "token": "get "}
+
+data: {"type": "token", "token": "more "}
+
+data: {"type": "token", "token": "precise "}
+
+data: {"type": "token", "token": "information, "}
+
+data: {"type": "token", "token": "I "}
+
+data: {"type": "token", "token": "would "}
+
+data: {"type": "token", "token": "need "}
+
+data: {"type": "token", "token": "to "}
+
+data: {"type": "token", "token": "refer "}
+
+data: {"type": "token", "token": "to "}
+
+data: {"type": "token", "token": "each "}
+
+data: {"type": "token", "token": "specific "}
+
+data: {"type": "token", "token": "context "}
+
+data: {"type": "token", "token": "mentioned "}
+
+data: {"type": "token", "token": "in "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "question. "}
+
+data: {"type": "token", "token": "Sources: "}
+
+data: {"type": "token", "token": "- "}
+
+data: {"type": "token", "token": "Understanding "}
+
+data: {"type": "token", "token": "of "}
+
+data: {"type": "token", "token": "the "}
+
+data: {"type": "token", "token": "general "}
+
+data: {"type": "token", "token": "term "}
+
+data: {"type": "token", "token": "'ping' "}
+
+data: {"type": "token", "token": "from "}
+
+data: {"type": "token", "token": "common "}
+
+data: {"type": "token", "token": "network "}
+
+data: {"type": "token", "token": "knowledge "}
+
+data: {"type": "token", "token": "- "}
+
+data: {"type": "token", "token": "Context "}
+
+data: {"type": "token", "token": "1, "}
+
+data: {"type": "token", "token": "Context "}
+
+data: {"type": "token", "token": "2, "}
+
+data: {"type": "token", "token": "Context "}
+
+data: {"type": "token", "token": "3, "}
+
+data: {"type": "token", "token": "and "}
+
+data: {"type": "token", "token": "Context "}
+
+data: {"type": "token", "token": "4 "}
+
+data: {"type": "token", "token": "from "}
+
+data: {"type": "token", "token": "RNI "}
+
+data: {"type": "token", "token": "4.16 "}
+
+data: {"type": "token", "token": "documentation "}
+
+data: {"type": "sources", "sources": [{"title": "RNI 4.16 Multispeakv3_0_Integration_Guide_Section2_MeterReading.pdf", "content": "Billing Ping", "source": "integration_guide", "score": 0.8654489971879944}, {"title": "RNI 4.16 Multispeakv4_1_Integration_Guide_Section3_OutageDetection.pdf", "content": "Ping Response", "source": "integration_guide", "score": 0.8485258440705213}, {"title": "RNI 4.16 Multispeakv3_0_Integration_Guide_Section3_OutageDetection.pdf", "content": "Ping Response", "source": "integration_guide", "score": 0.8485258440705213}], "method": "rag"}
+
+data: {"type": "done"}
+

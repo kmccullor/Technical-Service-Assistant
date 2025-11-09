@@ -4,17 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 import requests
-import shutil
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -185,6 +186,32 @@ def write_report(report_dir: Path, summary: dict) -> Path:
     return out_path
 
 
+def prompt(text: str, secret: bool = False) -> Optional[str]:
+    if not sys.stdin.isatty():
+        return None
+    return (getpass.getpass(text) if secret else input(text)).strip()
+
+
+def obtain_bearer_token(base_url: str, username: str, password: str, verify_tls: bool = True) -> Optional[str]:
+    url = f"{base_url.rstrip('/')}/api/auth/login"
+    try:
+        response = requests.post(
+            url,
+            json={"email": username, "password": password},
+            timeout=30,
+            verify=verify_tls,
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"Login failed: {exc}", file=sys.stderr)
+        return None
+    data = response.json()
+    token = data.get("access_token")
+    if not token:
+        print(f"Unexpected login response: {json.dumps(data, indent=2)}", file=sys.stderr)
+    return token
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='Run K6 load test against TSA stack')
     parser.add_argument('--target', default=DEFAULT_TARGET)
@@ -199,7 +226,22 @@ def main() -> int:
     parser.add_argument('--report-dir', default='load_test_results')
     parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
     parser.add_argument('--use-docker', action='store_true', help='Run k6 via grafana/k6 Docker image')
+    parser.add_argument('--insecure-login', action='store_true', help='Skip TLS verification when prompting for credentials')
     args = parser.parse_args()
+
+    api_key = args.api_key or os.getenv('LOAD_TEST_API_KEY')
+    if not api_key:
+        prompted = prompt("API key (X-API-Key) [leave blank for none]: ")
+        api_key = prompted or ""
+
+    bearer_token = args.bearer_token or os.getenv('LOAD_TEST_BEARER_TOKEN')
+    if not bearer_token:
+        username = os.getenv('LOAD_TEST_USERNAME') or prompt("LOAD_TEST_USERNAME (email): ")
+        password = os.getenv('LOAD_TEST_PASSWORD') or (prompt("LOAD_TEST_PASSWORD: ", secret=True) if username else None)
+        if username and password:
+            bearer_token = obtain_bearer_token(args.target, username, password, verify_tls=not args.insecure_login)
+        else:
+            print("No bearer token provided; chat/doc uploads may fail", file=sys.stderr)
 
     script = build_k6_script(
         args.target,
@@ -209,8 +251,8 @@ def main() -> int:
         args.public_endpoints,
         args.chat_endpoint,
         args.doc_endpoint,
-        args.api_key,
-        args.bearer_token,
+        api_key,
+        bearer_token or "",
     )
 
     report_dir = Path(args.report_dir)
