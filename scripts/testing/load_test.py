@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -244,6 +245,7 @@ def main() -> int:
     parser.add_argument('--doc-endpoint', default=DEFAULT_DOC_ENDPOINT)
     parser.add_argument('--api-key', default=os.getenv('LOAD_TEST_API_KEY', os.getenv('API_KEY', '')))
     parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
+    parser.add_argument('--timeout-profile', default='', help='Path to model latency profile JSON')
     parser.add_argument('--report-dir', default='load_test_results')
     parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
     parser.add_argument('--use-docker', action='store_true', help='Run k6 via grafana/k6 Docker image')
@@ -264,11 +266,25 @@ def main() -> int:
         else:
             print("No bearer token provided; chat/doc uploads may fail", file=sys.stderr)
 
+    timeout_value = args.timeout
+    if args.timeout_profile:
+        profile_path = Path(args.timeout_profile)
+        try:
+            profile_data = json.loads(profile_path.read_text())
+            recommended = profile_data.get('recommended_load_test_timeout_seconds')
+            if recommended:
+                timeout_value = f"{math.ceil(float(recommended))}s"
+                print(
+                    f"Using timeout {timeout_value} derived from {profile_path.name}"
+                )
+        except Exception as exc:
+            print(f"Warning: failed to load timeout profile {profile_path}: {exc}", file=sys.stderr)
+
     script = build_k6_script(
         args.target,
         args.vus,
         args.duration,
-        args.timeout,
+        timeout_value,
         args.public_endpoints,
         args.chat_endpoint,
         args.doc_endpoint,

@@ -529,7 +529,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 query=request.message,
                 use_context=True,
                 max_context_chunks=5,
-                model=os.getenv("CHAT_MODEL", "mistral:7b"),
+                model="rni-mistral",
                 temperature=0.2,
                 max_tokens=500,
             )

@@ -215,25 +215,37 @@ class IntelligentRouter:
             ),
         }
 
+        def _unique_models(models):
+            seen = []
+            for m in models:
+                if m and m not in seen:
+                    seen.append(m)
+            return seen
+
+        general_models = _unique_models([chat_model, "mistral:7b", "mistral:latest", "llama3.1:8b"])
+        code_models = _unique_models([coding_model, "mistral:7b", "gemma2:2b", "phi3:mini"])
+        reasoning_models = _unique_models([reasoning_model, "llama3.1:8b", "llama3.2:3b", "mistral:latest"])
+        embedding_models = _unique_models([os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5"), "nomic-embed-text:v1.5", "nomic-embed-text:latest"])
+
         # Instance specialization mapping
         self.instance_specializations = {
             1: {  # General Chat & Document QA (11434)
-                "primary_models": ["mistral:7b", "mistral:latest", "llama3.1:8b"],
+                "primary_models": general_models,
                 "strengths": [QuestionType.CHAT, QuestionType.FACTUAL, QuestionType.TECHNICAL],
                 "description": "General chat and document QA",
             },
             2: {  # Code & Technical Analysis (11435)
-                "primary_models": ["mistral:7b", "gemma2:2b", "phi3:mini"],
+                "primary_models": code_models,
                 "strengths": [QuestionType.CODE, QuestionType.TECHNICAL],
                 "description": "Code and technical analysis",
             },
             3: {  # Advanced Reasoning & Math (11436)
-                "primary_models": ["llama3.1:8b", "llama3.2:3b", "mistral:latest"],
+                "primary_models": reasoning_models,
                 "strengths": [QuestionType.MATH, QuestionType.TECHNICAL],
                 "description": "Advanced reasoning and math",
             },
             4: {  # Embeddings & Search Optimization (11437)
-                "primary_models": ["nomic-embed-text:v1.5", "nomic-embed-text:latest"],
+                "primary_models": embedding_models,
                 "strengths": [],  # Embedding-focused
                 "description": "Embeddings and search optimization",
             },

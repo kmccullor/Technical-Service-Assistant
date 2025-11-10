@@ -14,6 +14,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 ### Core Services
 - `reranker/` – FastAPI APIs, embeddings, reranking, auth endpoints.
 - `pdf_processor/` – ingestion workers for PDFs (text/table/image extraction).
+- `redis-cache` – lightweight cache + instrumentation store (enable via `REDIS_URL`; chat metrics land under `tsa:chat:*`).
 - `next-rag-app/` – Next.js UI for querying, auth flows, and monitoring dashboards.
 - `utils/` – shared helpers (chunking, retrieval, RBAC middleware).
 - `scripts/` – operational tooling (checks, benchmarking, automation).
@@ -28,7 +29,8 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
   - CI: GitHub Actions (`quality.yml`) has a `smoke-test` job that runs this target on the self-hosted runner after unit/integration suites succeed, ensuring live services stay healthy.
   - The smoke test auto-loads `.env`, so it works out-of-the-box when run from the repo root (set `SMOKE_DB_HOST` only if you need to override the Compose host).
 - `python scripts/collect_service_logs.py [tail_lines]` – grab recent Docker logs for reranker/frontend/pgvector/redis/nginx into `logs/smoke/<timestamp>/`; useful when smoke/load tests fail.
-- `make load-test` – execute the K6-based load harness (`scripts/testing/load_test.py`). Auto-falls back to the official `grafana/k6` Docker image if a native `k6` binary is not found. Summaries + optional Prometheus snapshots land under `load_test_results/`; run `python scripts/testing/load_test_report.py` to enforce thresholds locally.
+- `make load-test` – execute the K6-based load harness (`scripts/testing/load_test.py`). Auto-falls back to the official `grafana/k6` Docker image if a native `k6` binary is not found. Summaries + optional Prometheus snapshots land under `load_test_results/`; run `python scripts/testing/load_test_report.py` to enforce thresholds locally. Pass `--timeout-profile load_test_results/model_latency_profile_*.json` to reuse measured scenario latencies as the per-request timeout budget.
+- `python scripts/testing/model_latency_profile.py --samples 3` – run targeted probes (simple chat, deep thinking, reasoning, code, vision) to capture response-time distributions and recommend safe timeout values for load tests. The script writes `model_latency_profile_<timestamp>.json`; feed that file to the load harness via `--timeout-profile` before kicking off `make load-test`.
 - Load harness prompts for `X-API-Key`/JWT at runtime when env vars aren’t set; you can also pre-set `LOAD_TEST_USERNAME`/`LOAD_TEST_PASSWORD` and it will hit `/api/auth/login` automatically (`--insecure-login` skips TLS verification for self-signed certs). The script retries once without TLS verification if the server presents a self-signed cert, so manual fiddling with `REQUESTS_CA_BUNDLE` is optional.
 - Set `LOAD_TEST_DOC_ENDPOINT=/api/documents` (or pass `--doc-endpoint`) if you want the load test to exercise document uploads; uploads are skipped by default to avoid 404s on deployments that don’t expose that route.
 - `python scripts/auth/get_load_test_token.py` – helper to hit `/api/auth/login` using `LOAD_TEST_USERNAME`/`LOAD_TEST_PASSWORD` env vars and print `export LOAD_TEST_BEARER_TOKEN=…`. Set `LOAD_TEST_VERIFY_TLS=false` if you need to skip TLS validation for self-signed certs.

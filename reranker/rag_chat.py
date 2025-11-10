@@ -18,6 +18,11 @@ from httpx import Response
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
+
+# Optional intelligent router import (kept local to avoid circular issues at startup)
+from reranker.intelligent_router import ModelSelectionRequest, QuestionType, intelligent_router
+
 # Setup basic logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,7 +38,7 @@ class RAGChatRequest(BaseModel):
     query: str = Field(..., description="User query")
     use_context: bool = Field(True, description="Whether to use document context")
     max_context_chunks: int = Field(5, description="Maximum number of context chunks to retrieve")
-    model: str = Field("rni-mistral", description="LLM model to use (auto-selected if not specified)")
+    model: str = Field("rni-mistral", description="LLM model to use; set to 'rni-mistral' or 'auto' for smart routing")
     temperature: float = Field(0.2, description="Generation temperature")
     max_tokens: int = Field(500, description="Maximum tokens to generate")
     stream: bool = Field(False, description="Whether to stream the response")
@@ -134,6 +139,27 @@ class RAGChatService:
 
         # Default to chat model
         return self.chat_model
+
+    async def _determine_model_and_instance(self, query: str) -> Tuple[str, Optional[str], QuestionType]:
+        """Use the intelligent router when available; fallback to local heuristics."""
+        try:
+            router_request = ModelSelectionRequest(query=query)
+            router_response = await intelligent_router.route_request(router_request)
+            logger.info(
+                "Router selected %s on %s for %s questions",
+                router_response.selected_model,
+                router_response.selected_instance,
+                router_response.question_type.value,
+            )
+            return (
+                router_response.selected_model,
+                router_response.instance_url,
+                router_response.question_type,
+            )
+        except Exception as exc:
+            logger.warning(f"Router selection failed; falling back to heuristics: {exc}")
+            question_type = intelligent_router.classify_question(query)
+            return self.select_model(query), None, question_type
 
     async def retrieve_context(self, query: str, max_chunks: int = 5) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
@@ -431,14 +457,21 @@ Sources: [list documentation sources]"""
         return {"system": system_prompt, "user": user_prompt}
 
     async def generate_response(
-        self, prompt_dict: Dict[str, str], model: str, temperature: float, max_tokens: int, stream: bool = False
+        self,
+        prompt_dict: Dict[str, str],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        stream: bool = False,
+        preferred_instance: Optional[str] = None,
     ) -> Union[str, Response]:
         """Generate response using Ollama chat API with system and user prompts."""
-        # Randomly select an Ollama instance for load balancing
-        selected_url = random.choice(self.ollama_urls)
+        # Select an Ollama instance (router hint wins, otherwise random)
+        selected_url = preferred_instance or random.choice(self.ollama_urls)
         logger.debug(
             f"Available instances: {self.ollama_urls}, Selected Ollama instance: {selected_url} for model {model}"
         )
+        track_instance_usage(selected_url)
 
         system_prompt = prompt_dict.get("system", "")
         user_prompt = prompt_dict.get("user", "")
@@ -502,15 +535,55 @@ Sources: [list documentation sources]"""
             logger.info(f"Retrieved {len(context_chunks)} context chunks ({len(web_sources)} from web) for query")
 
         prompt_dict = self.build_rag_prompt(request.query, context_chunks)
-        selected_model = self.select_model(request.query) if request.model == "rni-mistral" else request.model
-        logger.info(f"Selected model {selected_model} for query: {request.query[:50]}...")
+
+        model_value = (request.model or "").lower()
+        preferred_instance: Optional[str] = None
+        question_type: Optional[QuestionType] = None
+
+        if model_value in {"", "rni-mistral", "auto"}:
+            selected_model, preferred_instance, question_type = await self._determine_model_and_instance(request.query)
+        else:
+            selected_model = request.model
+            question_type = intelligent_router.classify_question(request.query)
+
+        logger.info(
+            "Selected model %s for query: %s (question_type=%s, preferred_instance=%s)",
+            selected_model,
+            request.query[:50] + ("..." if len(request.query) > 50 else ""),
+            question_type.value if question_type else "unknown",
+            preferred_instance,
+        )
+
+        track_model_usage(selected_model)
+        if question_type:
+            track_question_type(question_type.value)
 
         if request.stream:
             # For streaming, return the response object
-            return cast(Response, await self.generate_response(prompt_dict, selected_model, request.temperature, request.max_tokens, True))  # type: ignore
+            return cast(
+                Response,
+                await self.generate_response(
+                    prompt_dict,
+                    selected_model,
+                    request.temperature,
+                    request.max_tokens,
+                    True,
+                    preferred_instance,
+                ),
+            )  # type: ignore
         else:
             # For non-streaming, return the response text
-            response_text = cast(str, await self.generate_response(prompt_dict, selected_model, request.temperature, request.max_tokens, False))  # type: ignore
+            response_text = cast(
+                str,
+                await self.generate_response(
+                    prompt_dict,
+                    selected_model,
+                    request.temperature,
+                    request.max_tokens,
+                    False,
+                    preferred_instance,
+                ),
+            )  # type: ignore
             return RAGChatResponse(
                 response=response_text,
                 context_used=context_chunks,

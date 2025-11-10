@@ -71,6 +71,7 @@ class Settings:
     log_level: str
     uploads_dir: str
     archive_dir: str
+    redis_url: str | None
 
     # Performance & Reasoning
     max_reasoning_time_seconds: int
@@ -181,6 +182,7 @@ def get_settings() -> Settings:
     s.log_level = os.getenv("LOG_LEVEL", "INFO")
     s.uploads_dir = os.getenv("UPLOADS_DIR", "/app/uploads")
     s.archive_dir = os.getenv("ARCHIVE_DIR", os.path.join(s.uploads_dir, "archive"))
+    s.redis_url = os.getenv("REDIS_URL")
 
     # Performance & Reasoning
     s.max_reasoning_time_seconds = _get_int("MAX_REASONING_TIME_SECONDS", 15)
