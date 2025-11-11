@@ -52,9 +52,9 @@ spacy==3.8.2
 
 # Phase 3A Multimodal Enhancement
 opencv-python==4.10.0.84
-torch==2.5.1
+torch==2.7.1+cpu
 torchvision==0.20.1
-transformers==4.46.3
+transformers==4.53.0
 ollama==0.4.4
 
 # Optional: add version pins for frontend or other services later
