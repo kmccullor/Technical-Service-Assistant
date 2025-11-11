@@ -35,7 +35,7 @@ make up              # launch Postgres, Ollama, reranker, pdf pipeline, frontend
 - Set `LOAD_TEST_DOC_ENDPOINT=/api/documents` (or pass `--doc-endpoint`) if you want the load test to exercise document uploads; uploads are skipped by default to avoid 404s on deployments that don’t expose that route.
 - `python scripts/auth/get_load_test_token.py` – helper to hit `/api/auth/login` using `LOAD_TEST_USERNAME`/`LOAD_TEST_PASSWORD` env vars and print `export LOAD_TEST_BEARER_TOKEN=…`. Set `LOAD_TEST_VERIFY_TLS=false` if you need to skip TLS validation for self-signed certs.
 - `python scripts/reporting/nightly_summary.py` – generate a Markdown summary (`reports/nightly_summary_*.md`) that combines the most recent load-test and accuracy evaluations.
-- `make eval-accuracy` – run the accuracy harness (`scripts/testing/accuracy_eval.py`) against the curated dataset in `tests/data/accuracy_dataset.json`. Set `ACCURACY_API_KEY`/`ACCURACY_BEARER_TOKEN` as needed; results land in `tests/accuracy_logs/`.
+- `make eval-accuracy` – run the accuracy harness (`scripts/testing/accuracy_eval.py`) against the curated dataset in `tests/data/accuracy_dataset.json`. Set `ACCURACY_API_KEY`/`ACCURACY_BEARER_TOKEN` as needed; results land in `tests/accuracy_logs/`. Use `ACCURACY_VERIFY_TLS=false` if the target exposes a self-signed certificate.
 
 ### Repository Map
 - Documentation: `docs/` (see [docs/README.md](docs/README.md) for an index).

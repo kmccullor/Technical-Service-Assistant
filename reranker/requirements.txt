@@ -6,7 +6,8 @@ FlagEmbedding
 --extra-index-url https://download.pytorch.org/whl/cpu
 psycopg2-binary
 ollama
-httpx
+httpx==0.28.1
+pydantic-ai-slim[a2a]==0.8.1
 beautifulsoup4
 prometheus-client
 psutil

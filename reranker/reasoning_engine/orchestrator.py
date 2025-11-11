@@ -18,6 +18,7 @@ import json
 import time
 from typing import Any, Dict, List
 
+from config import get_model_num_ctx
 from chain_of_thought import ChainOfThoughtReasoner, is_complex_reasoning_query
 from context_management import AdvancedContextManager
 from knowledge_synthesis import KnowledgeSynthesizer
@@ -323,11 +324,13 @@ class ReasoningOrchestrator:
             Answer:
             """
 
-            response = self.ollama_client.generate(
-                model=kwargs.get("model", "mistral:7B"),
-                prompt=prompt,
-                options={"temperature": kwargs.get("temperature", 0.2), "num_predict": kwargs.get("max_tokens", 300)},
-            )
+            model_name = kwargs.get("model", "mistral:7B")
+            options = {"temperature": kwargs.get("temperature", 0.2), "num_predict": kwargs.get("max_tokens", 300)}
+            num_ctx = get_model_num_ctx(model_name)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
+            response = self.ollama_client.generate(model=model_name, prompt=prompt, options=options)
 
             return {
                 "success": True,
@@ -563,9 +566,13 @@ class ReasoningOrchestrator:
             5. Draws meaningful conclusions
             """
 
-            response = self.ollama_client.generate(
-                model="mistral:7B", prompt=combine_prompt, options={"temperature": 0.6, "num_predict": 800}
-            )
+            model_name = "mistral:7B"
+            options = {"temperature": 0.6, "num_predict": 800}
+            num_ctx = get_model_num_ctx(model_name)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
+            response = self.ollama_client.generate(model=model_name, prompt=combine_prompt, options=options)
 
             return response["response"].strip()
 

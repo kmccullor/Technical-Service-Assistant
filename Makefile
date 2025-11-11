@@ -5,6 +5,12 @@ SHELL := /usr/bin/env bash
 PYTHON ?= python
 PIP ?= pip
 
+ACCURACY_THRESHOLD ?= 90
+ACCURACY_BASE_URL ?= https://rni-llm-01.lab.sensus.net
+ACCURACY_API_KEY ?= $(API_KEY)
+ACCURACY_BEARER_TOKEN ?=
+ACCURACY_VERIFY_TLS ?= true
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS=":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
@@ -91,14 +97,11 @@ load-test: ## 🔥 Run K6 load test harness (requires k6 installed locally)
 	$(PYTHON) scripts/testing/load_test.py
 
 eval-accuracy: ## 🎯 Run accuracy harness against curated prompt set
-	ACCURACY_THRESHOLD?=90
-	ACCURACY_BASE_URL?=https://rni-llm-01.lab.sensus.net
-	ACCURACY_API_KEY?=$(API_KEY)
-	ACCURACY_BEARER_TOKEN?=
 	ACCURACY_THRESHOLD=$(ACCURACY_THRESHOLD) \
 	ACCURACY_BASE_URL=$(ACCURACY_BASE_URL) \
 	ACCURACY_API_KEY=$(ACCURACY_API_KEY) \
 	ACCURACY_BEARER_TOKEN=$(ACCURACY_BEARER_TOKEN) \
+	ACCURACY_VERIFY_TLS=$(ACCURACY_VERIFY_TLS) \
 	$(PYTHON) scripts/testing/accuracy_eval.py
 
 check-logs: ## 📋 Show recent error logs from all containers

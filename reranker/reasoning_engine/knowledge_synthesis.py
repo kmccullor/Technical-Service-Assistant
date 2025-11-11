@@ -18,6 +18,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set
 
+from config import get_model_num_ctx
 
 @dataclass
 class KnowledgeCluster:
@@ -234,7 +235,7 @@ class KnowledgeSynthesizer:
             Return as JSON with pattern_type, description, strength (0-1), and document_indices.
             """
 
-            response = await self._call_llm(pattern_prompt, temperature=0.3)
+            response = await self._call_llm(pattern_prompt, temperature=0.3, query=query)
 
             try:
                 pattern_data = json.loads(response)
@@ -317,7 +318,7 @@ class KnowledgeSynthesizer:
             Return as JSON array.
             """
 
-            response = await self._call_llm(perspective_prompt, temperature=0.4)
+            response = await self._call_llm(perspective_prompt, temperature=0.4, query=query)
 
             try:
                 perspectives = json.loads(response)
@@ -375,7 +376,7 @@ class KnowledgeSynthesizer:
             {"Be thorough and detailed." if depth == "deep" else "Be concise but comprehensive." if depth == "standard" else "Provide a brief summary."}
             """
 
-            return await self._call_llm(synthesis_prompt, temperature=0.6)
+            return await self._call_llm(synthesis_prompt, temperature=0.6, query=query)
 
         except Exception as e:
             logger.error(f"Synthesis generation failed: {e}")
@@ -392,7 +393,7 @@ class KnowledgeSynthesizer:
             Return only a comma-separated list of key concepts (max 10).
             """
 
-            response = await self._call_llm(concept_prompt, temperature=0.3)
+            response = await self._call_llm(concept_prompt, temperature=0.3, query=query)
             concepts = [c.strip() for c in response.split(",") if c.strip()]
             return concepts[:10]
 
@@ -412,7 +413,7 @@ class KnowledgeSynthesizer:
             Return only the theme name (2-5 words).
             """
 
-            return await self._call_llm(theme_prompt, temperature=0.3)
+            return await self._call_llm(theme_prompt, temperature=0.3, query=query)
 
         except Exception as e:
             logger.error(f"Theme generation failed: {e}")
@@ -430,7 +431,7 @@ class KnowledgeSynthesizer:
             Provide a concise synthesis (2-3 sentences) that captures the main insights.
             """
 
-            return await self._call_llm(cluster_prompt, temperature=0.5)
+            return await self._call_llm(cluster_prompt, temperature=0.5, query=query)
 
         except Exception as e:
             logger.error(f"Cluster synthesis failed: {e}")
@@ -451,7 +452,7 @@ class KnowledgeSynthesizer:
             If no contradictions, return: null
             """
 
-            response = await self._call_llm(comparison_prompt, temperature=0.2)
+            response = await self._call_llm(comparison_prompt, temperature=0.2, query=query)
 
             try:
                 result = json.loads(response.strip())
@@ -482,11 +483,36 @@ class KnowledgeSynthesizer:
         confidence = cluster_confidence + pattern_boost - conflict_penalty
         return max(0.0, min(1.0, confidence))
 
-    async def _call_llm(self, prompt: str, temperature: float = 0.7) -> str:
+    def _select_model_for_query(self, query: Optional[str]) -> str:
+        """Heuristically select the best model for the supplied query."""
+        default_model = getattr(self.settings, "reasoning_model", getattr(self.settings, "chat_model", "mistral:7b"))
+        if not query:
+            return default_model
+
+        q = query.lower()
+        coding_keywords = ["code", "debug", "function", "script", "program", "api"]
+        vision_keywords = ["image", "diagram", "visual", "picture", "chart", "graph"]
+        reasoning_keywords = ["reason", "analyze", "compare", "evaluate", "explain", "steps"]
+
+        if any(keyword in q for keyword in coding_keywords):
+            return getattr(self.settings, "coding_model", default_model)
+        if any(keyword in q for keyword in vision_keywords):
+            return getattr(self.settings, "vision_model", default_model)
+        if any(keyword in q for keyword in reasoning_keywords) or len(q) > 300:
+            return getattr(self.settings, "reasoning_model", default_model)
+        return getattr(self.settings, "chat_model", default_model)
+
+    async def _call_llm(self, prompt: str, temperature: float = 0.7, query: Optional[str] = None) -> str:
         """Make LLM call with error handling."""
         try:
+            model_name = self._select_model_for_query(query)
+            options = {"temperature": temperature}
+            num_ctx = get_model_num_ctx(model_name)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
             response = self.llm_client.chat(
-                model="llama2", messages=[{"role": "user", "content": prompt}], options={"temperature": temperature}
+                model=model_name, messages=[{"role": "user", "content": prompt}], options=options
             )
             return response["message"]["content"]
 

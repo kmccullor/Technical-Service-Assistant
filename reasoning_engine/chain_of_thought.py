@@ -10,6 +10,7 @@ import re
 import time
 from typing import Any, Dict, List
 
+from config import get_model_num_ctx
 from reasoning_types import (
     ChainOfThoughtRequest,
     ComplexityLevel,
@@ -118,10 +119,16 @@ class ChainOfThoughtReasoner:
         """
 
         try:
+            model_name = "mistral:7B"  # Good for analytical tasks
+            options = {"temperature": 0.3, "num_predict": 200}
+            num_ctx = get_model_num_ctx(model_name)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
             response = await self.ollama_client.generate(
-                model="mistral:7B",  # Good for analytical tasks
+                model=model_name,  # Good for analytical tasks
                 prompt=decomposition_prompt,
-                options={"temperature": 0.3, "num_predict": 200},
+                options=options,
             )
 
             # Parse numbered sub-questions
@@ -195,8 +202,13 @@ class ChainOfThoughtReasoner:
                 # Select appropriate model for reasoning type
                 model = self._select_reasoning_model(reasoning_type)
 
+                options = {"temperature": 0.2, "num_predict": 300}
+                num_ctx = get_model_num_ctx(model)
+                if num_ctx:
+                    options["num_ctx"] = num_ctx
+
                 response = await self.ollama_client.generate(
-                    model=model, prompt=reasoning_prompt, options={"temperature": 0.2, "num_predict": 300}
+                    model=model, prompt=reasoning_prompt, options=options
                 )
 
                 reasoning_text = response["response"].strip()
@@ -326,10 +338,16 @@ class ChainOfThoughtReasoner:
         """
 
         try:
+            model_name = "mistral:7B"  # Good for synthesis
+            options = {"temperature": 0.1, "num_predict": 400}
+            num_ctx = get_model_num_ctx(model_name)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
             response = await self.ollama_client.generate(
-                model="mistral:7B",  # Good for synthesis
+                model=model_name,
                 prompt=synthesis_prompt,
-                options={"temperature": 0.1, "num_predict": 400},
+                options=options,
             )
 
             return response["response"].strip()

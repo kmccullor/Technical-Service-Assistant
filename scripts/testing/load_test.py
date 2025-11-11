@@ -14,7 +14,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import requests
 from dotenv import load_dotenv
@@ -30,6 +30,113 @@ DEFAULT_PUBLIC_ENDPOINTS = [
 ]
 DEFAULT_CHAT_ENDPOINT = "/api/chat"
 DEFAULT_DOC_ENDPOINT = os.getenv("LOAD_TEST_DOC_ENDPOINT", "")
+PROFILE_CHOICES = ("steady", "stress", "spike", "soak")
+DEFAULT_CHAT_SCENARIOS = [
+    {
+        "key": "simple_chat",
+        "label": "Simple Chat",
+        "message": "Hi there! Can you summarize what the Technical Service Assistant helps engineers accomplish?",
+        "displayMessage": None,
+    },
+    {
+        "key": "deep_thinking",
+        "label": "Deep Thinking",
+        "message": (
+            "Think deeply about rolling out the Technical Service Assistant to multiple regions with limited bandwidth. "
+            "List the phases, risks, and mitigations in detail, and explain the reasoning for each recommendation."
+        ),
+        "displayMessage": None,
+    },
+    {
+        "key": "reasoning",
+        "label": "Reasoning",
+        "message": (
+            "Explain, step by step, how you would troubleshoot intermittent meter read failures where logs show checksum mismatches. "
+            "Describe the reasoning process and call out required diagnostics."
+        ),
+        "displayMessage": None,
+    },
+    {
+        "key": "code",
+        "label": "Coding",
+        "message": (
+            "Provide a Python function that validates incoming JSON payloads for meter provisioning. "
+            "The function should raise ValueError when required fields are missing and include inline comments."
+        ),
+        "displayMessage": None,
+    },
+    {
+        "key": "vision",
+        "label": "Vision",
+        "message": (
+            "Given this diagram description of a telemetry cabinet with a controller, power supply, and two radios, "
+            "explain how signals flow between components. Treat it as if you are interpreting a provided diagram or image."
+        ),
+        "displayMessage": None,
+    },
+]
+DEFAULT_CHAT_SCENARIO_KEYS = [scenario["key"] for scenario in DEFAULT_CHAT_SCENARIOS]
+CHAT_SCENARIO_LOOKUP = {scenario["key"]: scenario for scenario in DEFAULT_CHAT_SCENARIOS}
+
+
+def build_scenario_options(profile: str, vus: int, duration: str, graceful_stop: str) -> Dict[str, Any]:
+    """Return a scenario definition compatible with k6 options.scenarios."""
+
+    safe_vus = max(1, int(vus))
+    burst_vus = max(safe_vus, int(round(safe_vus * 1.5)))
+    spike_vus = max(safe_vus, int(round(safe_vus * 3)))
+
+    scenario: Dict[str, Any] = {
+        "public": {
+            "tags": {"profile": profile},
+            "gracefulStop": graceful_stop,
+        }
+    }
+
+    public = scenario["public"]
+
+    if profile == "steady":
+        public.update(
+            {
+                "executor": "constant-vus",
+                "vus": safe_vus,
+                "duration": duration,
+            }
+        )
+        return scenario
+
+    # Shared defaults for ramping executors
+    public.update(
+        {
+            "executor": "ramping-vus",
+            "startVUs": max(1, safe_vus // 3),
+        }
+    )
+
+    if profile == "stress":
+        public["stages"] = [
+            {"duration": "2m", "target": max(1, safe_vus // 2)},
+            {"duration": duration, "target": safe_vus},
+            {"duration": "2m", "target": burst_vus},
+            {"duration": "2m", "target": 0},
+        ]
+    elif profile == "spike":
+        public["stages"] = [
+            {"duration": "1m", "target": safe_vus},
+            {"duration": "1m", "target": spike_vus},
+            {"duration": "30s", "target": safe_vus},
+            {"duration": "2m", "target": 0},
+        ]
+    elif profile == "soak":
+        public["stages"] = [
+            {"duration": "5m", "target": safe_vus},
+            {"duration": duration, "target": safe_vus},
+            {"duration": "5m", "target": 0},
+        ]
+    else:
+        raise ValueError(f"Unsupported profile: {profile}")
+
+    return scenario
 
 
 def build_k6_script(
@@ -42,6 +149,9 @@ def build_k6_script(
     doc_endpoint: str,
     api_key: str,
     bearer_token: str,
+    chat_scenarios: Sequence[dict[str, Optional[str]]],
+    profile: str,
+    scenario_options: Dict[str, Any],
 ) -> str:
     headers = {}
     if api_key:
@@ -50,22 +160,30 @@ def build_k6_script(
         headers["Authorization"] = f"Bearer {bearer_token}"
 
     headers_js = json.dumps(headers)
+    scenarios_js = json.dumps(list(chat_scenarios))
+    scenario_options_js = json.dumps(scenario_options, indent=2)
 
     return f"""
 import http from 'k6/http';
 import {{ check, sleep }} from 'k6';
+import {{ Counter, Rate, Trend }} from 'k6/metrics';
+
+const SCENARIO_PROFILE = '{profile}';
+const SCENARIO_OPTIONS = {scenario_options_js};
+const chatLatency = new Trend('chat_latency_ms');
+const chatFailureRate = new Rate('chat_failure_rate');
+const chatRequests = new Counter('chat_requests_total');
+const docLatency = new Trend('doc_upload_latency_ms');
+const docFailureRate = new Rate('doc_upload_failure_rate');
+const docRequests = new Counter('doc_upload_requests_total');
 
 export const options = {{
-  scenarios: {{
-    public: {{
-      executor: 'constant-vus',
-      vus: {vus},
-      duration: '{duration}',
-    }},
-  }},
+  scenarios: SCENARIO_OPTIONS,
   thresholds: {{
     http_req_duration: ['p(95)<2000'],
     http_req_failed: ['rate<0.05'],
+    chat_latency_ms: ['p(95)<5000'],
+    chat_failure_rate: ['rate<0.10'],
   }},
 }};
 
@@ -75,12 +193,29 @@ const CHAT_ENDPOINT = '{chat_endpoint}';
 const DOC_ENDPOINT = '{doc_endpoint}';
 const ENABLE_DOC_UPLOAD = DOC_ENDPOINT && DOC_ENDPOINT.length > 0;
 const HEADERS = {headers_js};
+const CHAT_SCENARIOS = {scenarios_js};
 
-function chatPayload(vu) {{
+function scenarioForIteration(vu, iteration) {{
+  if (!CHAT_SCENARIOS.length) {{
+    return null;
+  }}
+  const index = (vu + iteration) % CHAT_SCENARIOS.length;
+  return CHAT_SCENARIOS[index];
+}}
+
+function chatPayload(vu, iteration) {{
+  const scenario = scenarioForIteration(vu, iteration);
+  const baseMessage = scenario ? scenario.message : `Provide a short summary of the Technical Service Assistant. Request #${{vu}}`;
+  const baseDisplay = scenario && scenario.displayMessage ? scenario.displayMessage : baseMessage;
   return JSON.stringify({{
     conversationId: null,
-    message: `Provide a short summary of the Technical Service Assistant. Request #${{vu}}`,
-    displayMessage: `Provide a short summary of the Technical Service Assistant. Request #${{vu}}`
+    message: baseMessage,
+    displayMessage: baseDisplay,
+    metadata: {{
+      scenarioKey: scenario ? scenario.key : 'default',
+      scenarioLabel: scenario ? scenario.label : 'Default',
+      scenarioProfile: SCENARIO_PROFILE,
+    }},
   }});
 }}
 
@@ -95,19 +230,28 @@ function docPayload() {{
 }}
 
 export default function () {{
+  const iteration = typeof __ITER !== 'undefined' ? __ITER : 0;
+  const vu = typeof __VU !== 'undefined' ? __VU : 0;
+
   for (const endpoint of PUBLIC_ENDPOINTS) {{
     const res = http.get(`${{BASE_URL}}${{endpoint}}`, {{ timeout: '{timeout}', headers: HEADERS }});
     check(res, {{ 'status is 200': (r) => r.status === 200 }});
   }}
 
-  const chatRes = http.post(`${{BASE_URL}}${{CHAT_ENDPOINT}}`, chatPayload(__VU), {{
+  const chatStarted = Date.now();
+  const chatRes = http.post(`${{BASE_URL}}${{CHAT_ENDPOINT}}`, chatPayload(vu, iteration), {{
     timeout: '{timeout}',
     headers: {{ ...HEADERS, 'Content-Type': 'application/json', Accept: 'text/event-stream' }},
   }});
   check(chatRes, {{ 'chat 200': (r) => r.status === 200 }});
+  const chatDuration = Date.now() - chatStarted;
+  chatLatency.add(chatDuration);
+  chatFailureRate.add(chatRes.status !== 200);
+  chatRequests.add(1);
 
   if (ENABLE_DOC_UPLOAD) {{
     const doc = docPayload();
+    const docStarted = Date.now();
     const docRes = http.post(`${{BASE_URL}}${{DOC_ENDPOINT}}`, doc.body, {{
       headers: {{
         ...HEADERS,
@@ -116,6 +260,11 @@ export default function () {{
       timeout: '{timeout}',
     }});
     check(docRes, {{ 'doc 200/202': (r) => r.status === 200 || r.status === 202 }});
+    const docDuration = Date.now() - docStarted;
+    docLatency.add(docDuration);
+    const docFailed = !(docRes.status === 200 || docRes.status === 202);
+    docFailureRate.add(docFailed);
+    docRequests.add(1);
   }}
 
   sleep(0.1);
@@ -123,11 +272,20 @@ export default function () {{
 """
 
 
-def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subprocess.CompletedProcess[str]:
+def run_k6(
+    script_path: Path,
+    summary_path: Path,
+    use_docker: bool,
+    extra_env: Optional[Dict[str, str]] = None,
+    enable_prometheus_rw: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    if extra_env:
+        env.update({k: v for k, v in extra_env.items() if v})
+
     if use_docker:
         script_dir = script_path.parent.resolve()
         summary_dir = summary_path.parent.resolve()
-        env = os.environ.copy()
         env.setdefault("K6_INSECURE_SKIP_TLS_VERIFY", "true")
         cmd = [
             "docker",
@@ -137,24 +295,32 @@ def run_k6(script_path: Path, summary_path: Path, use_docker: bool) -> subproces
             f"{script_dir}:/scripts",
             "-v",
             f"{summary_dir}:/results",
-            "-e",
-            f"K6_INSECURE_SKIP_TLS_VERIFY={env['K6_INSECURE_SKIP_TLS_VERIFY']}",
-            "grafana/k6",
-            "run",
-            "--summary-export",
-            f"/results/{summary_path.name}",
-            f"/scripts/{script_path.name}",
         ]
+        for key in ("K6_INSECURE_SKIP_TLS_VERIFY", "K6_PROMETHEUS_RW_SERVER_URL", "K6_PROMETHEUS_RW_TREND_STATS"):
+            if key in env:
+                cmd.extend(["-e", f"{key}={env[key]}"])
+        cmd.extend(
+            [
+                "grafana/k6",
+                "run",
+                "--summary-export",
+                f"/results/{summary_path.name}",
+            ]
+        )
+        if enable_prometheus_rw:
+            cmd.extend(["--out", "experimental-prometheus-rw"])
+        cmd.append(f"/scripts/{script_path.name}")
     else:
-        env = os.environ.copy()
         cmd = [
             "k6",
             "run",
             "--quiet",
             "--summary-export",
             str(summary_path),
-            str(script_path),
         ]
+        if enable_prometheus_rw:
+            cmd.extend(["--out", "experimental-prometheus-rw"])
+        cmd.append(str(script_path))
     return subprocess.run(cmd, capture_output=True, text=True, env=env)
 
 
@@ -243,11 +409,30 @@ def main() -> int:
     parser.add_argument('--public-endpoints', nargs='+', default=DEFAULT_PUBLIC_ENDPOINTS)
     parser.add_argument('--chat-endpoint', default=DEFAULT_CHAT_ENDPOINT)
     parser.add_argument('--doc-endpoint', default=DEFAULT_DOC_ENDPOINT)
+    parser.add_argument('--profile', choices=PROFILE_CHOICES, default='steady', help='Load profile for scenario executor')
+    parser.add_argument('--graceful-stop', default='30s', help='Graceful stop window applied to k6 scenarios')
+    parser.add_argument(
+        '--chat-scenarios',
+        nargs='+',
+        default=DEFAULT_CHAT_SCENARIO_KEYS,
+        choices=DEFAULT_CHAT_SCENARIO_KEYS,
+        help='Chat scenario keys to cycle through for each request',
+    )
     parser.add_argument('--api-key', default=os.getenv('LOAD_TEST_API_KEY', os.getenv('API_KEY', '')))
     parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
     parser.add_argument('--timeout-profile', default='', help='Path to model latency profile JSON')
     parser.add_argument('--report-dir', default='load_test_results')
     parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
+    parser.add_argument(
+        '--prometheus-rw-url',
+        default=os.getenv('K6_PROMETHEUS_RW_SERVER_URL', ''),
+        help='Enable Prometheus remote write output (sets K6_PROMETHEUS_RW_SERVER_URL and --out experimental-prometheus-rw)',
+    )
+    parser.add_argument(
+        '--prometheus-rw-trend-stats',
+        default=os.getenv('K6_PROMETHEUS_RW_TREND_STATS', 'p(95),p(99),min,max'),
+        help='Comma separated trend stats to export via Prometheus remote write',
+    )
     parser.add_argument('--use-docker', action='store_true', help='Run k6 via grafana/k6 Docker image')
     parser.add_argument('--insecure-login', action='store_true', help='Skip TLS verification when prompting for credentials')
     args = parser.parse_args()
@@ -280,6 +465,9 @@ def main() -> int:
         except Exception as exc:
             print(f"Warning: failed to load timeout profile {profile_path}: {exc}", file=sys.stderr)
 
+    selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
+    scenario_options = build_scenario_options(args.profile, args.vus, args.duration, args.graceful_stop)
+
     script = build_k6_script(
         args.target,
         args.vus,
@@ -290,6 +478,9 @@ def main() -> int:
         args.doc_endpoint,
         api_key,
         bearer_token or "",
+        selected_scenarios,
+        args.profile,
+        scenario_options,
     )
 
     report_dir = Path(args.report_dir)
@@ -304,8 +495,22 @@ def main() -> int:
         print('Docker is required to run k6 via container. Install docker or provide a native k6 binary.', file=sys.stderr)
         return 1
 
+    extra_env: Dict[str, str] = {}
+    if args.prometheus_rw_url:
+        extra_env['K6_PROMETHEUS_RW_SERVER_URL'] = args.prometheus_rw_url
+        if args.prometheus_rw_trend_stats:
+            extra_env['K6_PROMETHEUS_RW_TREND_STATS'] = args.prometheus_rw_trend_stats
+
+    enable_prom_rw = bool(args.prometheus_rw_url)
+
     try:
-        result = run_k6(script_path, summary_path, use_docker)
+        result = run_k6(
+            script_path,
+            summary_path,
+            use_docker,
+            extra_env=extra_env,
+            enable_prometheus_rw=enable_prom_rw,
+        )
     finally:
         script_path.unlink(missing_ok=True)
 

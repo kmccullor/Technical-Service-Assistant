@@ -61,7 +61,16 @@ class Settings:
     embedding_model: str
     rerank_model: str
     chat_model: str
+    coding_model: str
+    reasoning_model: str
+    vision_model: str
     ollama_url: str
+    default_model_num_ctx: int
+    embedding_model_num_ctx: int
+    chat_model_num_ctx: int
+    coding_model_num_ctx: int
+    reasoning_model_num_ctx: int
+    vision_model_num_ctx: int
 
     # Chunking
     chunk_strategy: str
@@ -173,6 +182,13 @@ def get_settings() -> Settings:
     s.reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
     s.vision_model = os.getenv("VISION_MODEL", "llava:7b")
     s.ollama_url = os.getenv("OLLAMA_URL", "http://ollama:11434/api/embeddings")
+    default_model_num_ctx = _get_int("DEFAULT_MODEL_NUM_CTX", 4096)
+    s.default_model_num_ctx = default_model_num_ctx
+    s.embedding_model_num_ctx = _get_int("EMBEDDING_MODEL_NUM_CTX", default_model_num_ctx)
+    s.chat_model_num_ctx = _get_int("CHAT_MODEL_NUM_CTX", default_model_num_ctx)
+    s.coding_model_num_ctx = _get_int("CODING_MODEL_NUM_CTX", default_model_num_ctx)
+    s.reasoning_model_num_ctx = _get_int("REASONING_MODEL_NUM_CTX", default_model_num_ctx)
+    s.vision_model_num_ctx = _get_int("VISION_MODEL_NUM_CTX", default_model_num_ctx)
 
     # Chunking
     s.chunk_strategy = os.getenv("CHUNK_STRATEGY", "sent_overlap")
@@ -298,6 +314,34 @@ def get_settings() -> Settings:
     s.skip_ocr_for_large_docs = _get_bool("SKIP_OCR_FOR_LARGE_DOCS", True)
 
     return s
+
+
+def get_model_num_ctx(model_name: str | None) -> int:
+    """Resolve the configured num_ctx for a given model, case-insensitive."""
+
+    settings = get_settings()
+    default = settings.default_model_num_ctx or 4096
+    if not model_name:
+        return default
+
+    key = model_name.lower()
+    mapping = {
+        settings.embedding_model.lower(): settings.embedding_model_num_ctx,
+        settings.chat_model.lower(): settings.chat_model_num_ctx,
+        settings.coding_model.lower(): settings.coding_model_num_ctx,
+        settings.reasoning_model.lower(): settings.reasoning_model_num_ctx,
+        settings.vision_model.lower(): settings.vision_model_num_ctx,
+    }
+
+    if key in mapping:
+        return mapping[key]
+
+    base_key = key.split(":")[0]
+    for name, value in mapping.items():
+        if name.split(":")[0] == base_key:
+            return value
+
+    return default
 
 
 if __name__ == "__main__":

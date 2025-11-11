@@ -25,7 +25,8 @@ import statistics
 import subprocess
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, List
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 
 class QualityMetricsCollector:
@@ -470,9 +471,40 @@ class QualityTrendAnalyzer:
 class QualityReportGenerator:
     """Generate comprehensive quality reports and dashboards."""
 
-    def __init__(self, db_path: str = "quality_metrics.db"):
+    def __init__(self, db_path: str = "quality_metrics.db", accuracy_logs_dir: Union[str, Path] = "tests/accuracy_logs"):
         """Initialize report generator."""
         self.db_path = db_path
+        self.accuracy_logs_dir = Path(accuracy_logs_dir)
+
+    def _latest_accuracy_summary(self) -> Optional[Dict[str, Union[str, float, int]]]:
+        """Load the most recent accuracy evaluation result."""
+        directory = self.accuracy_logs_dir
+        if not directory.exists():
+            return None
+
+        files = sorted(directory.glob("accuracy_results_*.json"), key=lambda p: p.stat().st_mtime)
+        if not files:
+            return None
+
+        latest = files[-1]
+        try:
+            data = json.loads(latest.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
+
+        results = data.get("results", [])
+        passed = sum(1 for result in results if result.get("passed"))
+        total = len(results)
+        accuracy = data.get("accuracy")
+        timestamp = datetime.fromtimestamp(latest.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+
+        return {
+            "file": latest.name,
+            "accuracy": accuracy,
+            "passed": passed,
+            "total": total,
+            "timestamp": timestamp,
+        }
 
     def generate_html_report(self, output_file: str, days: int = 30):
         """Generate comprehensive HTML quality report."""
@@ -482,6 +514,7 @@ class QualityReportGenerator:
         analyzer = QualityTrendAnalyzer(self.db_path)
         trends = analyzer.analyze_trends(days)
         regressions = analyzer.detect_regressions()
+        accuracy_summary = self._latest_accuracy_summary()
 
         # Generate HTML report
         html_content = f"""
@@ -559,6 +592,30 @@ class QualityReportGenerator:
     <div class="recommendation">
         {recommendation}
     </div>
+"""
+
+        # Add accuracy summary
+        html_content += """
+    <h2>🎯 Accuracy Evaluation</h2>
+"""
+        if accuracy_summary:
+            accuracy_value = accuracy_summary.get("accuracy")
+            accuracy_text = f"{accuracy_value:.1f}%" if isinstance(accuracy_value, (int, float)) else "n/a"
+            html_content += f"""
+    <div class="ring">
+        <h3>Latest Accuracy Run</h3>
+        <div class="metric">
+            <strong>Accuracy:</strong> {accuracy_text}
+        </div>
+        <div class="metric">
+            <strong>Pass/Total:</strong> {accuracy_summary['passed']}/{accuracy_summary['total']}
+        </div>
+        <p>Source: <code>{accuracy_summary['file']}</code> (updated {accuracy_summary['timestamp']})</p>
+    </div>
+"""
+        else:
+            html_content += """
+    <p>No accuracy evaluations found. Run `make eval-accuracy` to generate the dataset-backed report.</p>
 """
 
         html_content += """

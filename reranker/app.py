@@ -34,6 +34,31 @@ print("Starting app.py execution")
 from reranker.cache import get_db_connection
 from reranker.rag_chat import RAGChatResponse, RAGChatService, add_rag_endpoints
 
+try:
+    from pydantic_agent import (
+        ChatAgentDeps,
+        initialize_pydantic_agent,
+        is_pydantic_agent_enabled,
+        run_pydantic_agent_chat,
+    )
+
+    _HAS_PYDANTIC_AGENT = True
+except Exception:  # pragma: no cover - fallback when dependency missing
+    ChatAgentDeps = None
+
+    def initialize_pydantic_agent(*_: Any, **__: Any) -> None:
+        return None
+
+    def is_pydantic_agent_enabled() -> bool:
+        return False
+
+    async def run_pydantic_agent_chat(*_: Any, **__: Any) -> RAGChatResponse:
+        raise RuntimeError("Pydantic AI agent is not available")
+
+    _HAS_PYDANTIC_AGENT = False
+
+ENABLE_A2A_AGENT = os.getenv("ENABLE_A2A_AGENT", "false").lower() in {"1", "true", "yes"}
+
 from reranker.rbac_endpoints import rbac_router
 
 app = FastAPI(
@@ -52,11 +77,40 @@ def test_question_stats():
 # Initialize RAG service
 rag_service = RAGChatService()
 
+a2a_service = None
+if ENABLE_A2A_AGENT:
+    if not _HAS_PYDANTIC_AGENT:
+        logger.warning("ENABLE_A2A_AGENT is set but the Pydantic AI agent is disabled; skipping A2A server init")
+    else:
+        try:
+            from pydantic_agent_a2a import create_a2a_service
+
+            a2a_service = create_a2a_service(rag_service)
+            if a2a_service.app:
+                app.mount("/a2a", a2a_service.app)
+                logger.info("Mounted Agent2Agent endpoint at /a2a")
+        except Exception as exc:  # pragma: no cover
+            logger.exception("Failed to initialize Agent2Agent endpoint: %s", exc)
+            a2a_service = None
+
 # Include RAG endpoints
 add_rag_endpoints(app)
 
 # Include auth endpoints
 app.include_router(rbac_router)
+
+@app.on_event("startup")
+async def bootstrap_agents() -> None:
+    if _HAS_PYDANTIC_AGENT:
+        initialize_pydantic_agent(rag_service)
+    if a2a_service is not None:
+        await a2a_service.startup()
+
+
+@app.on_event("shutdown")
+async def shutdown_agents() -> None:
+    if a2a_service is not None:
+        await a2a_service.shutdown()
 
 # Add intelligent routing endpoints
 print("Importing intelligent_router...")
@@ -525,16 +579,32 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
 
             from rag_chat import RAGChatRequest
 
-            rag_request = RAGChatRequest(
-                query=request.message,
-                use_context=True,
-                max_context_chunks=5,
-                model="rni-mistral",
-                temperature=0.2,
-                max_tokens=500,
-            )
+            rag_response: RAGChatResponse
+            use_pydantic_agent = _HAS_PYDANTIC_AGENT and is_pydantic_agent_enabled() and ChatAgentDeps is not None
 
-            rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
+            if use_pydantic_agent:
+                try:
+                    agent_deps = ChatAgentDeps(
+                        user_email=user.email,
+                        conversation_id=conversation_id,
+                        rag_service=rag_service,
+                        context_messages=context_length,
+                    )
+                    rag_response = await run_pydantic_agent_chat(request.message, agent_deps)
+                except Exception as exc:  # pragma: no cover - defensive fallback
+                    logger.exception("Pydantic AI agent execution failed, falling back to legacy path: %s", exc)
+                    use_pydantic_agent = False
+
+            if not use_pydantic_agent:
+                rag_request = RAGChatRequest(
+                    query=request.message,
+                    use_context=True,
+                    max_context_chunks=5,
+                    model="rni-mistral",
+                    temperature=0.2,
+                    max_tokens=500,
+                )
+                rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
 
             # Calculate response time
             end_time = time.time()

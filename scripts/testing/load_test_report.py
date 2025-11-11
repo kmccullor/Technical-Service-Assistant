@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import sys
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -26,7 +27,11 @@ def parse_summary(path: Path) -> Metrics:
     fails = metrics.get("http_req_failed", {})
     reqs = metrics.get("http_reqs", {})
     p95 = duration.get("percentiles", {}).get("95.0")
+    if p95 is None:
+        p95 = duration.get("p(95)")
     fail_rate = fails.get("rate")
+    if fail_rate is None:
+        fail_rate = fails.get("value")
     req_count = reqs.get("count")
     return Metrics(p95, fail_rate, req_count)
 

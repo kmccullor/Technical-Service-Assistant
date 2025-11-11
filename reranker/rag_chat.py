@@ -18,6 +18,7 @@ from httpx import Response
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from config import get_model_num_ctx, get_settings
 from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
 
 # Optional intelligent router import (kept local to avoid circular issues at startup)
@@ -62,7 +63,7 @@ class RAGChatService:
 
     def __init__(self, ollama_urls: Optional[List[str]] = None, reranker_url: Optional[str] = None):
         """Initialize the RAG chat service."""
-        import os
+        settings = get_settings()
 
         if ollama_urls:
             self.ollama_urls = ollama_urls
@@ -88,11 +89,12 @@ class RAGChatService:
         )
 
         # Load model configurations
-        self.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
-        self.coding_model = os.getenv("CODING_MODEL", "codellama:7b")
-        self.reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
-        self.vision_model = os.getenv("VISION_MODEL", "llava:7b")
-        self.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:latest")
+        self.chat_model = settings.chat_model
+        self.coding_model = settings.coding_model
+        self.reasoning_model = settings.reasoning_model
+        self.vision_model = settings.vision_model
+        self.embedding_model = settings.embedding_model
+        self.default_num_ctx = settings.default_model_num_ctx
 
         logger.info(f"Initialized RAGChatService with {len(self.ollama_urls)} Ollama instances: {self.ollama_urls}")
         logger.info(
@@ -100,11 +102,11 @@ class RAGChatService:
         )
 
         # Database connection for vector search
-        self.db_host = os.getenv("DB_HOST", "pgvector")
-        self.db_name = os.getenv("DB_NAME", "vector_db")
-        self.db_user = os.getenv("DB_USER", "postgres")
-        self.db_password = os.getenv("DB_PASSWORD", "")
-        self.db_port = os.getenv("DB_PORT", "5432")
+        self.db_host = settings.db_host
+        self.db_name = settings.db_name
+        self.db_user = settings.db_user
+        self.db_password = settings.db_password
+        self.db_port = settings.db_port
 
     def select_model(self, query: str) -> str:
         """Select appropriate model based on query content."""
@@ -318,6 +320,11 @@ class RAGChatService:
 
         return results[:max_results]
 
+    async def web_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
+        """Public wrapper for web search to expose in tools."""
+
+        return await self._web_search(query, max_results)
+
     async def _search_sensus_training(self, query: str) -> List[Dict[str, Any]]:
         """Search sensus-training.com for relevant content using SearXNG."""
         try:
@@ -487,7 +494,7 @@ Sources: [list documentation sources]"""
                             {"role": "user", "content": user_prompt},
                         ],
                         "stream": stream,
-                        "options": {"temperature": temperature, "num_predict": max_tokens},
+                        "options": self._build_generation_options(model, temperature, max_tokens),
                     },
                     timeout=120.0,
                 )
@@ -506,6 +513,13 @@ Sources: [list documentation sources]"""
         except Exception as e:
             logger.error(f"Generation error: {e}")
             raise HTTPException(status_code=500, detail="Generation service error")
+
+    def _build_generation_options(self, model: str, temperature: float, max_tokens: int) -> Dict[str, Any]:
+        options: Dict[str, Any] = {"temperature": temperature, "num_predict": max_tokens}
+        num_ctx = get_model_num_ctx(model)
+        if num_ctx:
+            options["num_ctx"] = num_ctx
+        return options
 
     async def chat(self, request: RAGChatRequest) -> Union[RAGChatResponse, Response]:
         """Process RAG-enhanced chat request with hierarchical search."""

@@ -16,8 +16,13 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env", override=False)
 
-def stream_chat_response(url: str, headers: dict, payload: dict, timeout: int = 120) -> str:
-    response = requests.post(url, json=payload, headers=headers, stream=True, timeout=timeout)
+
+def str_to_bool(value: str) -> bool:
+    return value.lower() not in {"0", "false", "no", "off", ""}
+
+
+def stream_chat_response(url: str, headers: dict, payload: dict, timeout: int = 120, verify: bool = True) -> str:
+    response = requests.post(url, json=payload, headers=headers, stream=True, timeout=timeout, verify=verify)
     response.raise_for_status()
     text_parts: List[str] = []
     for line in response.iter_lines():
@@ -73,6 +78,15 @@ def main() -> int:
     api_key = os.getenv("ACCURACY_API_KEY", os.getenv("API_KEY", ""))
     bearer_token = os.getenv("ACCURACY_BEARER_TOKEN", "")
 
+    verify_tls = str_to_bool(os.getenv("ACCURACY_VERIFY_TLS", "true"))
+    if not verify_tls:
+        try:
+            import urllib3
+
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        except Exception:
+            pass
+
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/event-stream",
@@ -90,7 +104,7 @@ def main() -> int:
             "displayMessage": test_case["question"],
         }
         try:
-            answer = stream_chat_response(f"{base_url}/api/chat", headers, payload)
+            answer = stream_chat_response(f"{base_url}/api/chat", headers, payload, verify=verify_tls)
         except Exception as exc:
             results.append(
                 {

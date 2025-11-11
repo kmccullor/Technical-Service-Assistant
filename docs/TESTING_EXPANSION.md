@@ -20,8 +20,8 @@ This document tracks the initiatives required to deliver the broader test covera
   - ✅ Added `scripts/testing/load_test.py` (backed by `k6`) plus a `make load-test` target. Defaults: 100 VUs for 2 minutes, hitting `/health`, `/api/ollama-health`, `/api/auth/health`, `/api/chat`. Results and thresholds export to `load_test_results/`.
   - ✅ Added `scripts/testing/load_test_report.py` so nightly runs can enforce p95/failure thresholds and fail CI when SLOs regress.
   - ✅ Added `scripts/reporting/nightly_summary.py` to aggregate the latest load + accuracy results into Markdown in `reports/` for quick review.
-  - Capture Prometheus/Grafana metrics during the run (export as attachments) and fail the job when p95 latency or error-rate SLOs are exceeded.
-  - Schedule high-load runs (e.g., nightly) and store results for regression analysis.
+  - ✅ `scripts/testing/load_test.py` can export Prometheus snapshots via `--prometheus-url`/`LOAD_TEST_PROM_URL`, and `.github/workflows/load-test.yml` gates deployments by failing when the p95/failure thresholds are exceeded.
+  - ✅ Nightly load tests now run via `.github/workflows/load-test.yml` (03:00 UTC) and persist summaries to `load_test_results/` for regression analysis.
 
 ## 3. Performance UX Testing
 
@@ -35,6 +35,8 @@ This document tracks the initiatives required to deliver the broader test covera
 - Goal: enforce “100% correct” responses on a curated evaluation set.
 - Proposed workflow:
   - ✅ Added `tests/data/accuracy_dataset.json` along with `scripts/testing/accuracy_eval.py` and `make eval-accuracy`. The harness streams `/api/chat`, checks required keywords, and writes JSON summaries to `tests/accuracy_logs/`.
-  - Hook the evaluation into CI so regressions block releases; expose the latest accuracy score inside `quality_dashboard.html`.
+  - ✅ `.github/workflows/accuracy.yml` runs nightly, uploads evaluation logs, and fails when accuracy drops below the configured threshold.
+  - ✅ `scripts/testing/accuracy_eval.py` now honors `ACCURACY_VERIFY_TLS=false` for self-signed targets and `make eval-accuracy` exposes the knob directly.
+  - ✅ `quality_monitor.py` now embeds the latest `tests/accuracy_logs/accuracy_results_*.json` summary inside `quality_dashboard.html`, so the dashboard always highlights the current accuracy score.
 
 By iteratively tackling each section, the project will gain confidence across reliability, scalability, user experience, and answer correctness.

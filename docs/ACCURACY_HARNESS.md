@@ -12,6 +12,7 @@
   - `ACCURACY_BASE_URL` (default `https://rni-llm-01.lab.sensus.net`)
   - `ACCURACY_API_KEY`, `ACCURACY_BEARER_TOKEN`
   - `ACCURACY_THRESHOLD`
+  - `ACCURACY_VERIFY_TLS` (`true` by default; set to `false` when the target uses self-signed certificates)
 
 ## CI Integration
 - GitHub workflow `.github/workflows/accuracy.yml` runs nightly / on-demand, executes `make eval-accuracy`, and uploads logs as artifacts.

@@ -12,6 +12,8 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from config import get_model_num_ctx
+
 logger = logging.getLogger(__name__)
 
 
@@ -403,13 +405,18 @@ class EnhancedModelOrchestrator:
             prompt = self._prepare_reasoning_prompt(query, reasoning_type)
 
             # Execute model call
+            options = {
+                "temperature": 0.3 if reasoning_type in ["analytical", "factual"] else 0.7,
+                "num_predict": 500,
+            }
+            num_ctx = get_model_num_ctx(model)
+            if num_ctx:
+                options["num_ctx"] = num_ctx
+
             response = await self.ollama_client.generate(
                 model=model,
                 prompt=prompt,
-                options={
-                    "temperature": 0.3 if reasoning_type in ["analytical", "factual"] else 0.7,
-                    "num_predict": 500,
-                },
+                options=options,
             )
 
             answer = response.get("response", "").strip()
