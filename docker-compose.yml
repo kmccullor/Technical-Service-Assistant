@@ -39,6 +39,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_1:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -56,6 +57,7 @@ services:
     ports:
       - "11435:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_2:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -73,6 +75,7 @@ services:
     ports:
       - "11436:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_3:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -90,6 +93,7 @@ services:
     ports:
       - "11437:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_4:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -107,6 +111,7 @@ services:
     ports:
       - "11438:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_5:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -124,6 +129,7 @@ services:
     ports:
       - "11439:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_6:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -141,6 +147,7 @@ services:
     ports:
       - "11440:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_7:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -158,6 +165,7 @@ services:
     ports:
       - "11441:11434"
     volumes:
+      - ollama_models:/root/.ollama/models
       - ollama_data_8:/root/.ollama
       - ./ollama_config/startup.sh:/startup.sh:ro
     entrypoint: ["/bin/sh", "/startup.sh"]
@@ -513,6 +521,8 @@ services:
 volumes:
   pgvector_data:
   n8n_data:
+  ollama_models:
+    external: true
   ollama_data_1:
   ollama_data_2:
   ollama_data_3:
