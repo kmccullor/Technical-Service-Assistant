@@ -80,3 +80,204 @@ def track_question_type(question_type: str) -> bool:
 def track_instance_usage(instance_url: str) -> bool:
     instance = instance_url.replace("http://", "").replace("https://", "")
     return hincr_field("tsa:chat:instance_usage", instance)
+
+
+# Short-term memory (decomposed requests) caching functions
+
+
+def cache_decomposed_response(query_hash: str, user_id: int, response_data: dict, ttl: int = 3600) -> bool:
+    """Cache decomposed response in Redis short-term memory.
+
+    Args:
+        query_hash: Hash of normalized query (from QuestionDecomposer)
+        user_id: User ID for scoping
+        response_data: Response metadata and result
+        ttl: Time-to-live in seconds (default 1 hour)
+
+    Returns:
+        True if cached successfully, False otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return False
+
+    try:
+        key = f"tsa:chat:response:{query_hash}:{user_id}"
+        import json
+
+        client.setex(key, ttl, json.dumps(response_data))
+        logger.debug(f"Cached decomposed response: {key} (TTL: {ttl}s)")
+        return True
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to cache decomposed response: %s", exc)
+        return False
+
+
+def get_decomposed_response(query_hash: str, user_id: int) -> Optional[dict]:
+    """Retrieve cached decomposed response from Redis.
+
+    Args:
+        query_hash: Hash of normalized query
+        user_id: User ID for scoping
+
+    Returns:
+        Cached response dict if found, None otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return None
+
+    try:
+        import json
+
+        key = f"tsa:chat:response:{query_hash}:{user_id}"
+        value = client.get(key)
+        if value:
+            logger.debug(f"Cache hit for decomposed response: {key}")
+            increment_counter("tsa:chat:cache_hits_decomp")
+            return json.loads(value)
+        return None
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to retrieve decomposed response: %s", exc)
+        return None
+
+
+def cache_sub_request_result(
+    sub_request_id: str, result_data: dict, ttl: int = 3600
+) -> bool:
+    """Cache individual sub-request result in Redis.
+
+    Args:
+        sub_request_id: UUID of sub-request
+        result_data: Sub-request response (model, response, sources, etc.)
+        ttl: Time-to-live in seconds (default 1 hour)
+
+    Returns:
+        True if cached successfully, False otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return False
+
+    try:
+        key = f"tsa:chat:subresp:{sub_request_id}"
+        import json
+
+        client.setex(key, ttl, json.dumps(result_data))
+        logger.debug(f"Cached sub-request result: {key} (TTL: {ttl}s)")
+        increment_counter("tsa:chat:sub_requests_cached")
+        return True
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to cache sub-request result: %s", exc)
+        return False
+
+
+def get_sub_request_result(sub_request_id: str) -> Optional[dict]:
+    """Retrieve cached sub-request result from Redis.
+
+    Args:
+        sub_request_id: UUID of sub-request
+
+    Returns:
+        Cached result dict if found, None otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return None
+
+    try:
+        import json
+
+        key = f"tsa:chat:subresp:{sub_request_id}"
+        value = client.get(key)
+        if value:
+            logger.debug(f"Cache hit for sub-request result: {key}")
+            increment_counter("tsa:chat:cache_hits_subreq")
+            return json.loads(value)
+        return None
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to retrieve sub-request result: %s", exc)
+        return None
+
+
+def cache_complexity_classification(query_hash: str, complexity: str, ttl: int = 86400) -> bool:
+    """Cache complexity classification for query (long-lived cache).
+
+    Args:
+        query_hash: Hash of normalized query
+        complexity: ComplexityLevel string (simple/moderate/complex)
+        ttl: Time-to-live in seconds (default 24 hours)
+
+    Returns:
+        True if cached successfully, False otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return False
+
+    try:
+        key = f"tsa:chat:complexity:{query_hash}"
+        client.setex(key, ttl, complexity)
+        logger.debug(f"Cached complexity classification: {key} = {complexity} (TTL: {ttl}s)")
+        return True
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to cache complexity classification: %s", exc)
+        return False
+
+
+def get_complexity_classification(query_hash: str) -> Optional[str]:
+    """Retrieve cached complexity classification from Redis.
+
+    Args:
+        query_hash: Hash of normalized query
+
+    Returns:
+        Complexity string (simple/moderate/complex) if found, None otherwise
+    """
+    client = get_redis_client()
+    if not client:
+        return None
+
+    try:
+        key = f"tsa:chat:complexity:{query_hash}"
+        value = client.get(key)
+        if value:
+            logger.debug(f"Cache hit for complexity classification: {key}")
+            return value
+        return None
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to retrieve complexity classification: %s", exc)
+        return None
+
+
+def track_decomposition_metric(complexity_level: str, metric_name: str, value: int = 1) -> bool:
+    """Track decomposition metrics in Redis.
+
+    Args:
+        complexity_level: Complexity level (simple/moderate/complex)
+        metric_name: Metric name (e.g., 'decomposition_total', 'cache_hits')
+        value: Value to increment
+
+    Returns:
+        True if tracked successfully, False otherwise
+    """
+    return hincr_field(f"tsa:chat:decomposition_metrics", f"{complexity_level}:{metric_name}", value)
+
+
+def get_decomposition_stats() -> dict:
+    """Get decomposition statistics from Redis.
+
+    Returns:
+        Dict of decomposition metrics by complexity level
+    """
+    client = get_redis_client()
+    if not client:
+        return {}
+
+    try:
+        key = "tsa:chat:decomposition_metrics"
+        stats = client.hgetall(key)
+        return stats or {}
+    except RedisError as exc:  # pragma: no cover - network dependent
+        logger.warning("Failed to retrieve decomposition stats: %s", exc)
+        return {}

@@ -11,6 +11,8 @@ import random
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import httpx
+import itertools
+import threading
 import psycopg2
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -32,6 +34,9 @@ if not logger.handlers:
     handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     logger.addHandler(handler)
 
+
+settings = get_settings()
+CHAT_GENERATION_TIMEOUT = getattr(settings, "generation_timeout_seconds", 300)
 
 class RAGChatRequest(BaseModel):
     """Request model for RAG chat."""
@@ -87,6 +92,8 @@ class RAGChatService:
         self.reranker_url = (
             reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
         )
+        self._instance_cycle = itertools.cycle(self.ollama_urls)
+        self._instance_lock = threading.Lock()
 
         # Load model configurations
         self.chat_model = settings.chat_model
@@ -474,45 +481,71 @@ Sources: [list documentation sources]"""
     ) -> Union[str, Response]:
         """Generate response using Ollama chat API with system and user prompts."""
         # Select an Ollama instance (router hint wins, otherwise random)
-        selected_url = preferred_instance or random.choice(self.ollama_urls)
-        logger.debug(
-            f"Available instances: {self.ollama_urls}, Selected Ollama instance: {selected_url} for model {model}"
-        )
-        track_instance_usage(selected_url)
-
+        if preferred_instance:
+            selected_url = preferred_instance
+        else:
+            with self._instance_lock:
+                selected_url = next(self._instance_cycle)
         system_prompt = prompt_dict.get("system", "")
         user_prompt = prompt_dict.get("user", "")
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{selected_url}/api/chat",
-                    json={
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt},
-                        ],
-                        "stream": stream,
-                        "options": self._build_generation_options(model, temperature, max_tokens),
-                    },
-                    timeout=120.0,
-                )
-                if response.status_code == 200:
-                    if stream:
-                        # For streaming, return the response object for streaming
-                        return response
-                    else:
+        attempted_instances = set()
+        candidate_instances = self.ollama_urls.copy()
+        if preferred_instance and preferred_instance not in candidate_instances:
+            candidate_instances.append(preferred_instance)
+
+        for attempt in range(len(candidate_instances)):
+            if preferred_instance:
+                selected_url = preferred_instance
+            else:
+                with self._instance_lock:
+                    selected_url = next(self._instance_cycle)
+
+            if selected_url in attempted_instances:
+                continue
+            attempted_instances.add(selected_url)
+
+            logger.debug(
+                f"Attempting Ollama instance {selected_url} for model {model} (attempt {len(attempted_instances)})"
+            )
+            track_instance_usage(selected_url)
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{selected_url}/api/chat",
+                        json={
+                            "model": model,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt},
+                            ],
+                            "stream": stream,
+                            "options": self._build_generation_options(model, temperature, max_tokens),
+                        },
+                        timeout=float(CHAT_GENERATION_TIMEOUT),
+                    )
+                    if response.status_code == 200:
+                        if stream:
+                            return response
                         data = response.json()
                         message = data.get("message", {})
                         return message.get("content", "No response generated")
-                else:
-                    raise HTTPException(status_code=response.status_code, detail="Generation failed")
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=408, detail="Generation timeout")
-        except Exception as e:
-            logger.error(f"Generation error: {e}")
-            raise HTTPException(status_code=500, detail="Generation service error")
+                    logger.warning(
+                        "Generation failure status=%s on %s; trying next instance.",
+                        response.status_code,
+                        selected_url,
+                    )
+                    preferred_instance = None
+            except (httpx.ReadTimeout, httpx.TimeoutException):
+                logger.warning("Timeout on %s; retrying with next instance", selected_url)
+                preferred_instance = None
+            except Exception as exc:
+                logger.error("Generation error on %s: %s", selected_url, exc)
+                preferred_instance = None
+                continue
+
+        raise HTTPException(status_code=408, detail="Generation timeout")
 
     def _build_generation_options(self, model: str, temperature: float, max_tokens: int) -> Dict[str, Any]:
         options: Dict[str, Any] = {"temperature": temperature, "num_predict": max_tokens}

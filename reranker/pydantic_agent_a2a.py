@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -34,6 +35,7 @@ class TSAWorker(Worker[Dict[str, Any]]):
         self._rag_service = rag_service
 
     async def run_task(self, params: TaskSendParams) -> None:
+        start_time = time.monotonic()
         task_id = params['id']
         context_id = params['context_id']
         message = params['message']
@@ -57,7 +59,10 @@ class TSAWorker(Worker[Dict[str, Any]]):
         try:
             agent_response = await run_pydantic_agent_chat(prompt, deps)
         except Exception as exc:
-            logger.exception("Pydantic AI agent failed while handling A2A task %s: %s", task_id, exc)
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            logger.exception(
+                "Pydantic AI agent failed while handling A2A task %s after %sms: %s", task_id, duration_ms, exc
+            )
             await self.storage.update_task(task_id, state='failed')
             return
 
@@ -69,7 +74,8 @@ class TSAWorker(Worker[Dict[str, Any]]):
             new_artifacts=artifacts,
             new_messages=[agent_message],
         )
-        logger.info("TSAWorker marked task %s as completed", task_id)
+        duration_ms = int((time.monotonic() - start_time) * 1000)
+        logger.info("TSAWorker marked task %s as completed in %sms", task_id, duration_ms)
 
         context['message_count'] = context.get('message_count', 0) + 1
         await self.storage.update_context(context_id, context)

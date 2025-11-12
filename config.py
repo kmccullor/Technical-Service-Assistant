@@ -49,6 +49,16 @@ def _get_int(name: str, default: int) -> int:
         return default
 
 
+def _get_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
 class Settings:
     # Database
     db_host: str
@@ -130,6 +140,9 @@ class Settings:
 
     # Timeouts
     embedding_timeout_seconds: int
+    chat_stream_chunk_words: int
+    chat_stream_delay_seconds: float
+    generation_timeout_seconds: int
 
     # Phase 2B Query Expansion Controls
     enable_semantic_expansion_filter: bool
@@ -251,6 +264,9 @@ def get_settings() -> Settings:
 
     # Timeouts
     s.embedding_timeout_seconds = _get_int("EMBEDDING_TIMEOUT_SECONDS", 60)
+    s.chat_stream_chunk_words = max(1, _get_int("CHAT_STREAM_CHUNK_WORDS", 40))
+    s.chat_stream_delay_seconds = max(0.0, _get_float("CHAT_STREAM_DELAY_SECONDS", 0.0))
+    s.generation_timeout_seconds = _get_int("GENERATION_TIMEOUT_SECONDS", 300)
 
     # Web cache
     s.web_cache_ttl_seconds = _get_int("WEB_CACHE_TTL_SECONDS", 900)  # 15 minutes default

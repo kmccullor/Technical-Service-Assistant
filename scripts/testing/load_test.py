@@ -139,6 +139,36 @@ def build_scenario_options(profile: str, vus: int, duration: str, graceful_stop:
     return scenario
 
 
+def load_custom_scenarios(path: str) -> Sequence[dict[str, Optional[str]]]:
+    scenario_path = Path(path)
+    if not scenario_path.exists():
+        raise FileNotFoundError(f"Scenario file not found: {path}")
+    try:
+        data = json.loads(scenario_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Failed to parse scenario file {path}: {exc}") from exc
+    if not isinstance(data, list):
+        raise ValueError(f"Scenario file {path} must contain a JSON list")
+    validated: List[dict[str, Optional[str]]] = []
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        message = entry.get("message")
+        key = entry.get("key")
+        label = entry.get("label")
+        display = entry.get("displayMessage") or entry.get("display")
+        if message and key:
+            validated.append(
+                {
+                    "key": key,
+                    "label": label or key,
+                    "message": message,
+                    "displayMessage": display,
+                }
+            )
+    return validated
+
+
 def build_k6_script(
     target: str,
     vus: int,
@@ -296,6 +326,11 @@ def run_k6(
             "-v",
             f"{summary_dir}:/results",
         ]
+        docker_network = env.get("LOAD_TEST_DOCKER_NETWORK")
+        if docker_network:
+            cmd.extend(["--network", docker_network])
+        else:
+            cmd.extend(["--add-host", "host.docker.internal:host-gateway"])
         for key in ("K6_INSECURE_SKIP_TLS_VERIFY", "K6_PROMETHEUS_RW_SERVER_URL", "K6_PROMETHEUS_RW_TREND_STATS"):
             if key in env:
                 cmd.extend(["-e", f"{key}={env[key]}"])
@@ -420,6 +455,16 @@ def main() -> int:
     )
     parser.add_argument('--api-key', default=os.getenv('LOAD_TEST_API_KEY', os.getenv('API_KEY', '')))
     parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
+    parser.add_argument(
+        '--mock-auth-email',
+        default=os.getenv('LOAD_TEST_MOCK_EMAIL', ''),
+        help='Optional email used to generate mock_access_token_<email> bearer tokens (avoids JWT expiry during long tests).',
+    )
+    parser.add_argument(
+        '--scenario-file',
+        default=os.getenv('LOAD_TEST_SCENARIO_FILE', ''),
+        help='Optional path to a JSON file that defines chat scenarios to replace the defaults.',
+    )
     parser.add_argument('--timeout-profile', default='', help='Path to model latency profile JSON')
     parser.add_argument('--report-dir', default='load_test_results')
     parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
@@ -442,7 +487,11 @@ def main() -> int:
         prompted = prompt("API key (X-API-Key) [leave blank for none]: ")
         api_key = prompted or ""
 
+    mock_email = args.mock_auth_email
+
     bearer_token = args.bearer_token or os.getenv('LOAD_TEST_BEARER_TOKEN')
+    if not bearer_token and mock_email:
+        bearer_token = f"mock_access_token_{mock_email}"
     if not bearer_token:
         username = os.getenv('LOAD_TEST_USERNAME') or prompt("LOAD_TEST_USERNAME (email): ")
         password = os.getenv('LOAD_TEST_PASSWORD') or (prompt("LOAD_TEST_PASSWORD: ", secret=True) if username else None)
@@ -465,7 +514,15 @@ def main() -> int:
         except Exception as exc:
             print(f"Warning: failed to load timeout profile {profile_path}: {exc}", file=sys.stderr)
 
-    selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
+    scenario_file = args.scenario_file or os.getenv('LOAD_TEST_SCENARIO_FILE', '')
+    if scenario_file:
+        try:
+            selected_scenarios = list(load_custom_scenarios(scenario_file))
+        except Exception as exc:
+            print(f"Warning: failed to load custom scenarios from {scenario_file}: {exc}", file=sys.stderr)
+            selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
+    else:
+        selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
     scenario_options = build_scenario_options(args.profile, args.vus, args.duration, args.graceful_stop)
 
     script = build_k6_script(

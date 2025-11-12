@@ -9,7 +9,7 @@ import os
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
 import jwt
 import uvicorn
@@ -31,8 +31,17 @@ logger = logging.getLogger(__name__)
 print("Starting app.py execution")
 
 # Import auth endpoints
+from config import get_settings
 from reranker.cache import get_db_connection
 from reranker.rag_chat import RAGChatResponse, RAGChatService, add_rag_endpoints
+from reranker.question_decomposer import QuestionDecomposer
+from utils.redis_cache import (
+    get_decomposed_response,
+    cache_decomposed_response,
+    get_sub_request_result,
+    cache_sub_request_result,
+)
+from reranker.rethink_reranker import rethink_pipeline
 
 try:
     from pydantic_agent import (
@@ -68,6 +77,20 @@ app = FastAPI(
 )
 
 
+async def _token_stream_chunks(text: str) -> AsyncIterator[str]:
+    """Yield response text in configurable word chunks to avoid long-running SSE streams."""
+    words = text.split()
+    chunk_size = max(1, STREAM_CHUNK_WORDS)
+    delay = STREAM_DELAY_SECONDS
+    for start in range(0, len(words), chunk_size):
+        chunk = " ".join(words[start : start + chunk_size]) + " "
+        yield chunk
+        if delay > 0:
+            await asyncio.sleep(delay)
+        else:
+            await asyncio.sleep(0)
+
+
 # Test question endpoint
 @app.get("/api/admin/question-stats-test")
 def test_question_stats():
@@ -76,6 +99,9 @@ def test_question_stats():
 
 # Initialize RAG service
 rag_service = RAGChatService()
+app_settings = get_settings()
+STREAM_CHUNK_WORDS = max(1, getattr(app_settings, "chat_stream_chunk_words", 40))
+STREAM_DELAY_SECONDS = max(0.0, getattr(app_settings, "chat_stream_delay_seconds", 0.0))
 
 a2a_service = None
 if ENABLE_A2A_AGENT:
@@ -596,15 +622,113 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                     use_pydantic_agent = False
 
             if not use_pydantic_agent:
-                rag_request = RAGChatRequest(
-                    query=request.message,
-                    use_context=True,
-                    max_context_chunks=5,
-                    model="rni-mistral",
-                    temperature=0.2,
-                    max_tokens=500,
-                )
-                rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
+                # Feature-flagged decomposition + rerank pipeline
+                enable_decomp = os.getenv("ENABLE_QUESTION_DECOMPOSITION", "false").lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }
+
+                if enable_decomp:
+                    # Decompose and check short-term cache
+                    decomposer = QuestionDecomposer()
+                    decomposition = decomposer.decompose_question(request.message, user.id)
+
+                    # Cache decomposition metadata so rethink pipeline can read it
+                    try:
+                        cache_decomposed_response(decomposition.query_hash, user.id, decomposition.to_dict())
+                    except Exception:
+                        logger.debug("Failed to cache decomposition metadata (continuing)")
+
+                    # If a synthesized final response already exists in cache, return it
+                    cached_final = get_decomposed_response(decomposition.query_hash, user.id)
+                    if cached_final and isinstance(cached_final, dict) and cached_final.get("synthesized"):
+                        # Use cached synthesized text as the response
+                        resp_text = cached_final.get("synthesized", {}).get("synthesized_text") or cached_final.get(
+                            "response"
+                        )
+                        rag_response = RAGChatResponse(
+                            response=resp_text or "",
+                            context_used=[],
+                            context_metadata=[],
+                            web_sources=[],
+                            model="cached",
+                            context_retrieved=False,
+                        )
+                    else:
+                        # Process each sub-request (use cache when available)
+                        sub_results = []
+                        for sr in decomposition.sub_requests:
+                            # Try to reuse cached sub-response
+                            cached_sub = get_sub_request_result(sr.id)
+                            if cached_sub:
+                                sub_results.append(cached_sub)
+                                continue
+
+                            # Not cached: generate via rag_service using selected model
+                            model_to_use = decomposer.select_model_for_complexity(sr.complexity)
+                            rag_req = RAGChatRequest(
+                                query=sr.sub_query,
+                                use_context=True,
+                                max_context_chunks=5,
+                                model=model_to_use,
+                                temperature=0.2,
+                                max_tokens=300,
+                            )
+                            try:
+                                sub_resp = cast(RAGChatResponse, await rag_service.chat(rag_req))
+                                sub_data = {
+                                    "id": sr.id,
+                                    "sub_query": sr.sub_query,
+                                    "response": sub_resp.response,
+                                    "model": sub_resp.model,
+                                    "time_ms": 0,
+                                    "confidence": 1.0,
+                                }
+                                cache_sub_request_result(sr.id, sub_data)
+                                sub_results.append(sub_data)
+                            except Exception as exc:  # pragma: no cover - tolerate generation errors per-sub
+                                logger.exception("Sub-request generation failed: %s", exc)
+                                sub_results.append(
+                                    {
+                                        "id": sr.id,
+                                        "sub_query": sr.sub_query,
+                                        "response": "",
+                                        "model": model_to_use,
+                                        "time_ms": 0,
+                                        "confidence": 0.0,
+                                    }
+                                )
+
+                        # At this point, ensure sub-results are cached; aggregate and rerank
+                        final_result = rethink_pipeline(decomposition.query_hash, user.id, request.message)
+
+                        # Cache final synthesized result (ttl default)
+                        try:
+                            cache_decomposed_response(decomposition.query_hash, user.id, final_result)
+                        except Exception:
+                            logger.debug("Failed to cache final synthesized result (continuing)")
+
+                        synthesized = final_result.get("synthesized", {})
+                        resp_text = synthesized.get("synthesized_text") if isinstance(synthesized, dict) else ""
+                        rag_response = RAGChatResponse(
+                            response=resp_text or "",
+                            context_used=[],
+                            context_metadata=[],
+                            web_sources=[],
+                            model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])}),
+                            context_retrieved=True,
+                        )
+                else:
+                    rag_request = RAGChatRequest(
+                        query=request.message,
+                        use_context=True,
+                        max_context_chunks=5,
+                        model="rni-mistral",
+                        temperature=0.2,
+                        max_tokens=500,
+                    )
+                    rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
 
             # Calculate response time
             end_time = time.time()
@@ -678,9 +802,8 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 conn.close()
 
             response_text = rag_response.response
-            for word in response_text.split():
-                yield f"data: {json.dumps({'type': 'token', 'token': word + ' '})}\n\n"
-                await asyncio.sleep(0.05)
+            async for chunk in _token_stream_chunks(response_text):
+                yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
 
             search_method = "web" if rag_response.web_sources else "rag"
             yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data, 'method': search_method})}\n\n"
