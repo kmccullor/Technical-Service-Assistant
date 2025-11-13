@@ -212,9 +212,7 @@ class ChainOfThoughtReasoner:
                 if num_ctx:
                     options["num_ctx"] = num_ctx
 
-                response = await self.ollama_client.generate(
-                    model=model, prompt=reasoning_prompt, options=options
-                )
+                response = await self.ollama_client.generate(model=model, prompt=reasoning_prompt, options=options)
 
                 reasoning_text = response["response"].strip()
 

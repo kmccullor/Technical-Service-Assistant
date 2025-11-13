@@ -360,7 +360,11 @@ def main() -> int:
     finally:
         probe.close()
 
-    scenario_timeouts = [res.get("recommended_timeout_seconds") for res in scenario_results.values() if res.get("recommended_timeout_seconds")]
+    scenario_timeouts = [
+        res.get("recommended_timeout_seconds")
+        for res in scenario_results.values()
+        if res.get("recommended_timeout_seconds")
+    ]
     overall_timeout = max(scenario_timeouts) if scenario_timeouts else None
 
     output = {

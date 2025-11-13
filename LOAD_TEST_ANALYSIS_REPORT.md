@@ -1,7 +1,7 @@
 # 30-Minute Load Test: Analysis Report & Corrective Actions
 
-**Test Duration**: November 12, 2025, 10:52:38 - 11:22:20 (30 minutes)  
-**Test Configuration**: 5 RPS target, 8 concurrent workers, 1.6s per-worker interval  
+**Test Duration**: November 12, 2025, 10:52:38 - 11:22:20 (30 minutes)
+**Test Configuration**: 5 RPS target, 8 concurrent workers, 1.6s per-worker interval
 **AI Stack**: 8 Ollama instances + reranker service with question decomposition enabled
 
 ---
@@ -318,13 +318,13 @@ After implementing the above, re-run the 30-minute load test with these targets:
 
 ## Conclusion
 
-The 30-minute load test successfully validated the **reranker + decomposition + fallback architecture's resilience**. While underlying Ollama instances struggled to serve models, the application maintained **100% availability to clients**. 
+The 30-minute load test successfully validated the **reranker + decomposition + fallback architecture's resilience**. While underlying Ollama instances struggled to serve models, the application maintained **100% availability to clients**.
 
 **The primary fix is to pre-warm Ollama models at startup**—this single change will eliminate the majority of errors and improve latencies by 30-50%.
 
 ---
 
-**Report Generated**: November 12, 2025  
-**Test Duration**: 30 minutes (10:52:38 - 11:22:20)  
-**Total Requests Served**: 5,605  
+**Report Generated**: November 12, 2025
+**Test Duration**: 30 minutes (10:52:38 - 11:22:20)
+**Total Requests Served**: 5,605
 **Success Rate**: 100%

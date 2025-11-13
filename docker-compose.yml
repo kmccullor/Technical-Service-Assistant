@@ -209,9 +209,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8008/health || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 120s
       retries: 3
-      start_period: 30s
+      start_period: 30m
 
   frontend:
     build: ./next-rag-app

@@ -2,9 +2,9 @@
 set -euo pipefail
 
 TARGET_URL="${LOAD_TEST_TARGET_URL:-https://rni-llm-01.lab.sensus.net}"
-API_KEY="${LOAD_TEST_API_KEY:-}" 
+API_KEY="${LOAD_TEST_API_KEY:-}"
 BEARER_TOKEN="${LOAD_TEST_BEARER_TOKEN:-}"
-PROM_URL="${LOAD_TEST_PROM_URL:-}" 
+PROM_URL="${LOAD_TEST_PROM_URL:-}"
 
 REPORT_DIR=${LOAD_TEST_REPORT_DIR:-load_test_results}
 mkdir -p "$REPORT_DIR"

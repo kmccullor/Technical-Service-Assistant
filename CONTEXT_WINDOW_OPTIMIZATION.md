@@ -1,7 +1,7 @@
 # Context Window Optimization Report
 
-**Date:** November 12, 2025  
-**Issue:** Model context windows were underutilized (n_ctx_per_seq < n_ctx_train)  
+**Date:** November 12, 2025
+**Issue:** Model context windows were underutilized (n_ctx_per_seq < n_ctx_train)
 **Status:** ✅ RESOLVED
 
 ---
@@ -309,6 +309,6 @@ For issues or questions about context window optimization:
 
 ---
 
-**Status:** ✅ COMPLETE  
-**Risk Level:** LOW (backward compatible, configuration-only change)  
+**Status:** ✅ COMPLETE
+**Risk Level:** LOW (backward compatible, configuration-only change)
 **Rollback:** Simple (revert context values in 5 configuration files)

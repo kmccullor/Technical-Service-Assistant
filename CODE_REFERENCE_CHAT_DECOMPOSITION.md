@@ -37,7 +37,7 @@ Technical-Service-Assistant/
 ```python
 class QuestionDecomposer:
     """Main decomposition engine."""
-    
+
     def decompose_question(query: str, user_id: int = 0) -> DecompositionResult
     def classify_complexity(query: str) -> ComplexityLevel
     def select_model_for_complexity(complexity: ComplexityLevel) -> str
@@ -60,7 +60,7 @@ class SubRequest:
     required_context: list[str]
     topic: str
     confidence: float
-    
+
     def to_dict(self) -> dict
 
 class DecompositionResult(BaseModel):
@@ -71,7 +71,7 @@ class DecompositionResult(BaseModel):
     total_sub_requests: int
     needs_decomposition: bool
     decomposition_confidence: float
-    
+
     def to_dict(self) -> dict
 ```
 
@@ -89,33 +89,33 @@ def select_model_for_query(query: str) -> str
 **New Functions**:
 ```python
 def cache_decomposed_response(
-    query_hash: str, 
-    user_id: int, 
-    response_data: dict, 
+    query_hash: str,
+    user_id: int,
+    response_data: dict,
     ttl: int = 3600
 ) -> bool
 
 def get_decomposed_response(query_hash: str, user_id: int) -> Optional[dict]
 
 def cache_sub_request_result(
-    sub_request_id: str, 
-    result_data: dict, 
+    sub_request_id: str,
+    result_data: dict,
     ttl: int = 3600
 ) -> bool
 
 def get_sub_request_result(sub_request_id: str) -> Optional[dict]
 
 def cache_complexity_classification(
-    query_hash: str, 
-    complexity: str, 
+    query_hash: str,
+    complexity: str,
     ttl: int = 86400
 ) -> bool
 
 def get_complexity_classification(query_hash: str) -> Optional[str]
 
 def track_decomposition_metric(
-    complexity_level: str, 
-    metric_name: str, 
+    complexity_level: str,
+    metric_name: str,
     value: int = 1
 ) -> bool
 
@@ -244,21 +244,21 @@ from utils.redis_cache import (
 
 @app.post("/api/chat")
 async def chat_endpoint(
-    request: ChatRequest, 
+    request: ChatRequest,
     authorization: Optional[str] = Header(None)
 ):
     """Enhanced chat with question decomposition."""
-    
+
     # Get user
     user = _user_from_authorization(authorization)
-    
+
     # 1. Decompose question
     decomposer = QuestionDecomposer()
     decomposition = decomposer.decompose_question(
-        request.message, 
+        request.message,
         user_id=user.id
     )
-    
+
     # 2. Check cache
     cached = get_decomposed_response(
         decomposition.query_hash,
@@ -268,7 +268,7 @@ async def chat_endpoint(
         async for chunk in _stream_response(cached):
             yield chunk
         return
-    
+
     # 3. Process sub-requests in parallel
     async def process_sub_requests():
         tasks = []
@@ -280,16 +280,16 @@ async def chat_endpoint(
             )
             tasks.append(task)
         return await asyncio.gather(*tasks)
-    
+
     # 4. Execute
     sub_responses = await process_sub_requests()
-    
+
     # 5. Synthesize
     final_response = await synthesize_responses(
         original_query=request.message,
         sub_responses=sub_responses
     )
-    
+
     # 6. Cache result
     cache_decomposed_response(
         query_hash=decomposition.query_hash,
@@ -297,21 +297,21 @@ async def chat_endpoint(
         response_data=final_response,
         ttl=3600
     )
-    
+
     # 7. Stream response
     async for chunk in _stream_response(final_response):
         yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
-    
+
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 
 async def process_single_sub_request(sub_req, rag_service, decomposer):
     """Process a single sub-request."""
     model = decomposer.select_model_for_complexity(sub_req.complexity)
-    
+
     # Retrieve context for this specific sub-request
     context = await rag_service.search_documents(sub_req.sub_query)
-    
+
     # Generate response with selected model
     response = await rag_service.generate_response(
         query=sub_req.sub_query,
@@ -320,7 +320,7 @@ async def process_single_sub_request(sub_req, rag_service, decomposer):
         temperature=0.2 if sub_req.complexity == ComplexityLevel.SIMPLE else 0.5,
         max_tokens=500,
     )
-    
+
     # Cache individual response
     cache_sub_request_result(
         sub_request_id=sub_req.id,
@@ -333,7 +333,7 @@ async def process_single_sub_request(sub_req, rag_service, decomposer):
         },
         ttl=3600
     )
-    
+
     return {
         'id': sub_req.id,
         'response': response,

@@ -10,7 +10,6 @@ import re
 import time
 from typing import Any, Dict, List
 
-from config import get_model_num_ctx
 from reasoning_types import (
     ChainOfThoughtRequest,
     ComplexityLevel,
@@ -20,6 +19,8 @@ from reasoning_types import (
     classify_reasoning_type,
     estimate_complexity,
 )
+
+from config import get_model_num_ctx
 
 logger = logging.getLogger(__name__)
 
@@ -207,9 +208,7 @@ class ChainOfThoughtReasoner:
                 if num_ctx:
                     options["num_ctx"] = num_ctx
 
-                response = await self.ollama_client.generate(
-                    model=model, prompt=reasoning_prompt, options=options
-                )
+                response = await self.ollama_client.generate(model=model, prompt=reasoning_prompt, options=options)
 
                 reasoning_text = response["response"].strip()
 

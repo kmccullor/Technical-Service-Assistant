@@ -50,7 +50,7 @@ Question Decomposer
 - `decompose_question(query: str) -> List[SubRequest]`
   - Analyzes query for multiple questions/topics
   - Returns structured sub-requests
-  
+
 - `classify_complexity(query: str) -> ComplexityLevel` → `SIMPLE | MODERATE | COMPLEX`
   - Token count analysis
   - Keyword pattern matching ("compare", "analyze", "explain vs", etc.)
@@ -75,7 +75,7 @@ class SubRequest(BaseModel):
     sub_query: str              # Isolated sub-question
     complexity: ComplexityLevel  # Classification
     required_context: List[str]  # Context hints
-    
+
 class SubResponse(BaseModel):
     sub_request_id: str
     response: str
@@ -106,7 +106,7 @@ tsa:chat:cache_hits_decomp → Counter
 
 **TTL Strategy**:
 - Sub-request results: 3600 seconds (1 hour)
-- Decomposition metadata: 3600 seconds (1 hour) 
+- Decomposition metadata: 3600 seconds (1 hour)
 - Complexity classification: 86400 seconds (24 hours)
 - Reasoning: Short-term memory reflects current session/context, not long-term knowledge
 
@@ -156,11 +156,11 @@ tsa:chat:cache_hits_decomp → Counter
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Header(None)):
     """Streaming chat with question decomposition and model routing."""
-    
+
     # 1. Decompose question
     decomposer = QuestionDecomposer()
     decomposition = await decomposer.analyze(request.message, user.id)
-    
+
     # 2. Check Redis cache
     cached_response = await redis_cache.get_decomposed_response(
         decomposition.query_hash, user.id
@@ -168,15 +168,15 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
     if cached_response:
         yield cached_response  # Return from cache
         return
-    
+
     # 3. Process each sub-request
     sub_responses = []
     for sub_req in decomposition.sub_requests:
         model = decomposer.select_model_for_complexity(sub_req.complexity)
-        
+
         # Retrieve context for this sub-request
         context = await rag_service.retrieve(sub_req.sub_query)
-        
+
         # Generate response with selected model
         response = await rag_service.generate(
             sub_req.sub_query,
@@ -184,18 +184,18 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
             model=model,
             temperature=_temp_for_complexity(sub_req.complexity)
         )
-        
+
         # Cache sub-response
         sub_resp = SubResponse(...)
         await redis_cache.cache_sub_request(sub_resp, ttl=3600)
         sub_responses.append(sub_resp)
-    
+
     # 4. Synthesize final response
     final_response = await synthesize_responses(
         original_query=request.message,
         sub_responses=sub_responses
     )
-    
+
     # 5. Cache final response
     await redis_cache.cache_decomposed_response(
         decomposition.query_hash,
@@ -203,7 +203,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
         final_response,
         ttl=3600
     )
-    
+
     # 6. Stream response
     async for chunk in _token_stream_chunks(final_response):
         yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
@@ -236,15 +236,15 @@ User: "What is FlexNet technology?"
 Decomposition:
   - Complexity: SIMPLE
   - Sub-requests: 1 (no decomposition needed)
-  
+
 Model Routing:
   - Model: llama3.2:3b
   - Rationale: Factual, single-topic query
-  
+
 Cache:
   - Cache key: tsa:chat:decomposed:abc123:user_42
   - Result: Cached for 1 hour
-  
+
 Response Time: ~2-3 seconds
 ```
 
@@ -278,7 +278,7 @@ Cache:
 
 ### Example 3: Complex Query (Multi-Topic)
 ```
-User: "Design a monitoring strategy for AMI meter rollout across 50,000 endpoints, including 
+User: "Design a monitoring strategy for AMI meter rollout across 50,000 endpoints, including
        error detection, performance thresholds, and escalation procedures."
 
 Decomposition:
@@ -404,6 +404,6 @@ tsa_chat_synthesis_time_ms{}                      # Response synthesis time
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-11-11  
+**Document Version**: 1.0
+**Last Updated**: 2025-11-11
 **Owner**: AI Infrastructure Team

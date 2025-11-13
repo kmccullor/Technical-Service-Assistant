@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import time
@@ -15,13 +14,8 @@ from fasta2a.broker import InMemoryBroker
 from fasta2a.schema import Artifact, Message, TaskIdParams, TaskSendParams
 from fasta2a.storage import InMemoryStorage
 from fasta2a.worker import Worker
+from pydantic_agent import ChatAgentDeps, initialize_pydantic_agent, is_pydantic_agent_enabled, run_pydantic_agent_chat
 
-from pydantic_agent import (
-    ChatAgentDeps,
-    initialize_pydantic_agent,
-    is_pydantic_agent_enabled,
-    run_pydantic_agent_chat,
-)
 from reranker.rag_chat import RAGChatResponse, RAGChatService
 
 logger = logging.getLogger(__name__)
@@ -36,24 +30,24 @@ class TSAWorker(Worker[Dict[str, Any]]):
 
     async def run_task(self, params: TaskSendParams) -> None:
         start_time = time.monotonic()
-        task_id = params['id']
-        context_id = params['context_id']
-        message = params['message']
+        task_id = params["id"]
+        context_id = params["context_id"]
+        message = params["message"]
         logger.info("TSAWorker processing task %s", task_id)
 
-        await self.storage.update_task(task_id, state='working')
+        await self.storage.update_task(task_id, state="working")
         prompt = self._extract_prompt(message)
         if not prompt:
             logger.warning("A2A message missing text content; marking task as failed")
-            await self.storage.update_task(task_id, state='failed')
+            await self.storage.update_task(task_id, state="failed")
             return
 
-        context = await self.storage.load_context(context_id) or {'message_count': 0, 'conversation_id': None}
+        context = await self.storage.load_context(context_id) or {"message_count": 0, "conversation_id": None}
         deps = ChatAgentDeps(
-            user_email=message.get('metadata', {}).get('user_email', 'a2a-client'),
-            conversation_id=context.get('conversation_id'),
+            user_email=message.get("metadata", {}).get("user_email", "a2a-client"),
+            conversation_id=context.get("conversation_id"),
             rag_service=self._rag_service,
-            context_messages=context.get('message_count', 0),
+            context_messages=context.get("message_count", 0),
         )
 
         try:
@@ -63,25 +57,25 @@ class TSAWorker(Worker[Dict[str, Any]]):
             logger.exception(
                 "Pydantic AI agent failed while handling A2A task %s after %sms: %s", task_id, duration_ms, exc
             )
-            await self.storage.update_task(task_id, state='failed')
+            await self.storage.update_task(task_id, state="failed")
             return
 
         artifacts = self.build_artifacts(agent_response)
         agent_message = self._build_agent_message(agent_response)
         await self.storage.update_task(
             task_id,
-            state='completed',
+            state="completed",
             new_artifacts=artifacts,
             new_messages=[agent_message],
         )
         duration_ms = int((time.monotonic() - start_time) * 1000)
         logger.info("TSAWorker marked task %s as completed in %sms", task_id, duration_ms)
 
-        context['message_count'] = context.get('message_count', 0) + 1
+        context["message_count"] = context.get("message_count", 0) + 1
         await self.storage.update_context(context_id, context)
 
     async def cancel_task(self, params: TaskIdParams) -> None:
-        await self.storage.update_task(params['id'], state='canceled')
+        await self.storage.update_task(params["id"], state="canceled")
 
     def build_message_history(self, history: List[Message]) -> List[Any]:
         return history
@@ -108,8 +102,8 @@ class TSAWorker(Worker[Dict[str, Any]]):
     def _build_agent_message(self, response: RAGChatResponse) -> Message:
         message_id = str(uuid.uuid4())
         return Message(
-            role='agent',
-            kind='message',
+            role="agent",
+            kind="message",
             message_id=message_id,
             parts=[
                 {
@@ -125,10 +119,10 @@ class TSAWorker(Worker[Dict[str, Any]]):
 
     @staticmethod
     def _extract_prompt(message: Message) -> str:
-        for part in message.get('parts', []):
-            part_kind = part.get('kind') or part.get('type')
-            if part_kind in {'input_text', 'text'}:
-                return part.get('text', '')
+        for part in message.get("parts", []):
+            part_kind = part.get("kind") or part.get("type")
+            if part_kind in {"input_text", "text"}:
+                return part.get("text", "")
         return ""
 
 

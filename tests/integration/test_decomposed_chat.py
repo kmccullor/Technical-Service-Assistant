@@ -2,26 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Optional
-from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
 
 pytestmark = pytest.mark.integration
 
-from reranker.question_decomposer import (
-    ComplexityLevel,
-    DecompositionResult,
-    QuestionDecomposer,
-    SubRequest,
-)
+from reranker.question_decomposer import ComplexityLevel, QuestionDecomposer
 from utils.redis_cache import (
     cache_complexity_classification,
     cache_decomposed_response,
     cache_sub_request_result,
-    get_complexity_classification,
-    get_decomposed_response,
-    get_sub_request_result,
     track_decomposition_metric,
 )
 
@@ -276,7 +266,7 @@ class TestDecompositionPerformance:
         query = "What is FlexNet? How does it work? What are the benefits? When should I use it?"
 
         start = time.time()
-        result = decomposer.decompose_question(query)
+        decomposer.decompose_question(query)
         elapsed = (time.time() - start) * 1000  # ms
 
         assert elapsed < 100, f"Decomposition took {elapsed}ms, should be < 100ms"

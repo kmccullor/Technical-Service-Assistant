@@ -1,7 +1,7 @@
 # Quick Reference: Implementation Guide for Latency & Accuracy Improvements
 
-**Document:** Practical implementation steps for each recommendation  
-**Date:** November 12, 2025  
+**Document:** Practical implementation steps for each recommendation
+**Date:** November 12, 2025
 **Target:** Phase 1 (Quick Wins) - Complete in 1-2 weeks
 
 ---
@@ -211,7 +211,7 @@ async def chat_stream(request: RAGChatRequest):
     async def generate():
         # Get context
         context = await get_rag_context(request.query)
-        
+
         # Stream from Ollama
         async with httpx.AsyncClient() as client:
             async with client.stream(
@@ -228,7 +228,7 @@ async def chat_stream(request: RAGChatRequest):
                         chunk = json.loads(line)
                         if chunk.get("response"):
                             yield f"data: {chunk['response']}\n\n"
-    
+
     return StreamingResponse(generate(), media_type="text/event-stream")
 ```
 
@@ -246,20 +246,20 @@ def cache_response(ttl_seconds=3600):
             cache_key = hashlib.md5(
                 f"{request.query}:{request.model}".encode()
             ).hexdigest()
-            
+
             # Check cache
             cached = await self.cache.get(cache_key)
             if cached:
                 logger.info(f"Cache hit: {cache_key}")
                 return cached
-            
+
             # Generate response
             response = await func(self, request)
-            
+
             # Cache it
             await self.cache.set(cache_key, response, ex=ttl_seconds)
             return response
-        
+
         return wrapper
     return decorator
 ```
@@ -271,23 +271,23 @@ async def hybrid_search(query: str, k: int = 10):
     # Vector search
     embedding = await get_embedding(query)
     vector_results = await vector_search(embedding, k=50)
-    
+
     # BM25 keyword search
     bm25_results = await bm25_search(query, k=50)
-    
+
     # Merge results (prefer documents in both)
     combined = {}
     for doc in vector_results:
         combined[doc['id']] = doc.copy()
         combined[doc['id']]['score'] = doc.get('score', 0) * 0.6
-    
+
     for doc in bm25_results:
         if doc['id'] in combined:
             combined[doc['id']]['score'] += doc.get('score', 0) * 0.4
         else:
             combined[doc['id']] = doc.copy()
             combined[doc['id']]['score'] = doc.get('score', 0) * 0.4
-    
+
     # Sort and return top-k
     sorted_results = sorted(
         combined.values(),
@@ -449,5 +449,5 @@ EXPANSION_DEPTH: int = 1
 
 ---
 
-**Status:** ✅ IMPLEMENTATION GUIDE COMPLETE  
+**Status:** ✅ IMPLEMENTATION GUIDE COMPLETE
 **Next Step:** Start Week 1 tasks with streaming responses

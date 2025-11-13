@@ -168,7 +168,9 @@ class TestModelSelection:
         model = decomposer.select_model_for_complexity(ComplexityLevel.SIMPLE)
         # Should be a small model
         assert model is not None
-        assert "3b" in model or "small" in model.lower() or "lite" in model.lower() or decomposer.settings.reasoning_model
+        assert (
+            "3b" in model or "small" in model.lower() or "lite" in model.lower() or decomposer.settings.reasoning_model
+        )
 
     def test_moderate_uses_medium_model(self, decomposer):
         """MODERATE complexity should use chat_model (7b)."""

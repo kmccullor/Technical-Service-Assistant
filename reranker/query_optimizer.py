@@ -12,33 +12,140 @@ Expected improvements: 3-5% latency reduction, 5% accuracy improvement
 
 import logging
 import re
-from typing import Dict, List, Set, Tuple
 from functools import lru_cache
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
 # Common stop words for technical queries (broader than traditional NLP)
 # We keep technical terms even if they appear frequently
 TECHNICAL_STOP_WORDS = {
-    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-    "of", "is", "are", "was", "were", "be", "been", "have", "has", "had",
-    "do", "does", "did", "will", "would", "could", "should", "may", "might",
-    "can", "must", "shall", "what", "which", "who", "when", "where", "why",
-    "how", "all", "each", "every", "both", "neither", "either", "any",
-    "some", "no", "not", "more", "most", "very", "just", "only", "than",
-    "as", "if", "while", "until", "because", "that", "this", "these", "those",
-    "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "can",
+    "must",
+    "shall",
+    "what",
+    "which",
+    "who",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "each",
+    "every",
+    "both",
+    "neither",
+    "either",
+    "any",
+    "some",
+    "no",
+    "not",
+    "more",
+    "most",
+    "very",
+    "just",
+    "only",
+    "than",
+    "as",
+    "if",
+    "while",
+    "until",
+    "because",
+    "that",
+    "this",
+    "these",
+    "those",
+    "i",
+    "you",
+    "he",
+    "she",
+    "it",
+    "we",
+    "they",
+    "me",
+    "him",
+    "her",
+    "us",
+    "them",
 }
 
 # Technical terms to preserve (never remove)
 PRESERVE_TERMS = {
-    "rni", "ollama", "llm", "api", "rest", "json", "sql", "db", "cpu", "gpu",
-    "error", "warning", "debug", "info", "log", "cache", "memory", "network",
-    "configuration", "setup", "deploy", "production", "development", "test",
-    "performance", "latency", "throughput", "reliability", "availability",
-    "security", "encryption", "authentication", "authorization", "permission",
-    "model", "training", "inference", "vector", "embedding", "search",
-    "retrieval", "generation", "ranking", "scoring", "confidence",
+    "rni",
+    "ollama",
+    "llm",
+    "api",
+    "rest",
+    "json",
+    "sql",
+    "db",
+    "cpu",
+    "gpu",
+    "error",
+    "warning",
+    "debug",
+    "info",
+    "log",
+    "cache",
+    "memory",
+    "network",
+    "configuration",
+    "setup",
+    "deploy",
+    "production",
+    "development",
+    "test",
+    "performance",
+    "latency",
+    "throughput",
+    "reliability",
+    "availability",
+    "security",
+    "encryption",
+    "authentication",
+    "authorization",
+    "permission",
+    "model",
+    "training",
+    "inference",
+    "vector",
+    "embedding",
+    "search",
+    "retrieval",
+    "generation",
+    "ranking",
+    "scoring",
+    "confidence",
 }
 
 
@@ -132,6 +239,28 @@ def suggest_expansions(query: str) -> List[str]:
     if any(word in normalized for word in ["configure", "setup", "install"]):
         expansions.append("guide")
         expansions.append("tutorial")
+
+    # Domain-specific expansions for RNI-related queries
+    if "rni" in normalized or "regional network" in normalized:
+        expansions.extend(
+            [
+                "regional network interface",
+                "rni configuration",
+                "rni installation",
+                "rni security",
+                "rni deployment",
+            ]
+        )
+
+    # Deduplicate and keep order
+    seen = set()
+    deduped = []
+    for term in expansions:
+        if term not in seen:
+            deduped.append(term)
+            seen.add(term)
+
+    return deduped
 
     return expansions
 

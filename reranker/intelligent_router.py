@@ -85,6 +85,7 @@ class ModelSelectionResponse(BaseModel):
     selected_instance: str
     instance_url: str
     question_type: QuestionType
+    complexity: str
     reasoning: str
     fallback_options: List[Dict[str, str]] = Field(default_factory=list)
 
@@ -225,7 +226,9 @@ class IntelligentRouter:
         general_models = _unique_models([chat_model, "mistral:7b", "mistral:latest", "llama3.1:8b"])
         code_models = _unique_models([coding_model, "mistral:7b", "gemma2:2b", "phi3:mini"])
         reasoning_models = _unique_models([reasoning_model, "llama3.1:8b", "llama3.2:3b", "mistral:latest"])
-        embedding_models = _unique_models([os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5"), "nomic-embed-text:v1.5", "nomic-embed-text:latest"])
+        embedding_models = _unique_models(
+            [os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5"), "nomic-embed-text:v1.5", "nomic-embed-text:latest"]
+        )
 
         # Instance specialization mapping
         self.instance_specializations = {
@@ -252,6 +255,95 @@ class IntelligentRouter:
         }
 
         self.health_check_interval = 30  # seconds
+
+    def assess_complexity(self, query: str) -> str:
+        """Assess question complexity for response style guidance."""
+        query_lower = query.lower()
+
+        # Simple questions - direct answers
+        simple_indicators = [
+            "what is",
+            "define",
+            "explain",
+            "what does",
+            "what are",
+            "who is",
+            "when",
+            "where",
+            "which",
+            "how many",
+            "how much",
+            "solve",
+            "calculate",
+        ]
+
+        # Complex questions - detailed reasoning
+        complex_indicators = [
+            "how to",
+            "why does",
+            "why is",
+            "design",
+            "architecture",
+            "troubleshoot",
+            "debug",
+            "optimize",
+            "compare",
+            "analyze",
+            "implement",
+            "create",
+            "build",
+            "develop",
+        ]
+
+        if any(indicator in query_lower for indicator in simple_indicators):
+            return "simple"
+        elif any(indicator in query_lower for indicator in complex_indicators):
+            return "complex"
+        else:
+            return "moderate"
+
+    def estimate_user_patience(self, query: str, context: Dict = None) -> str:
+        """Estimate user patience level based on query characteristics."""
+        query_lower = query.lower()
+
+        # Short queries suggest quick answers expected
+        if len(query.split()) <= 5:
+            return "short"
+
+        # Urgent or immediate terms suggest impatience
+        urgent_terms = ["urgent", "quick", "fast", "immediately", "asap", "now"]
+        if any(term in query_lower for term in urgent_terms):
+            return "short"
+
+        # Technical troubleshooting often needs quick answers
+        if any(term in query_lower for term in ["error", "fail", "broken", "not working", "crash"]):
+            return "short"
+
+        # Complex queries suggest user is willing to wait for quality
+        complexity = self.assess_complexity(query)
+        if complexity == "complex":
+            return "long"
+
+        # Default to medium patience
+        return "medium"
+
+    def determine_prefer_speed(self, query: str, complexity: str, user_patience: str) -> bool:
+        """Determine if speed should be preferred over quality."""
+        # For simple queries with short patience, prefer speed
+        if complexity == "simple" and user_patience == "short":
+            return True
+
+        # For complex queries, always prefer quality over speed
+        if complexity == "complex":
+            return False
+
+        # For moderate complexity, base on patience
+        if user_patience == "short":
+            return True
+        elif user_patience == "long":
+            return False
+        else:  # medium
+            return False  # Default to quality for moderate queries
 
     def classify_question(self, query: str) -> QuestionType:
         """Analyze question to determine type."""
@@ -307,6 +399,7 @@ class IntelligentRouter:
             term in query_lower
             for term in [
                 "calculate",
+                "solve",
                 "formula",
                 "equation",
                 "math",
@@ -514,6 +607,16 @@ class IntelligentRouter:
         """Main routing logic with specialized instance selection."""
         # Classify the question
         question_type = self.classify_question(request.query)
+        complexity = self.assess_complexity(request.query)
+        user_patience = self.estimate_user_patience(request.query)
+
+        # Auto-determine speed preference based on complexity and patience
+        auto_prefer_speed = self.determine_prefer_speed(request.query, complexity, user_patience)
+        prefer_speed = request.prefer_speed or auto_prefer_speed
+
+        logger.info(
+            f"Query analysis: type={question_type.value}, complexity={complexity}, patience={user_patience}, prefer_speed={prefer_speed}"
+        )
 
         # Refresh health if needed
         current_time = time.time()
@@ -528,7 +631,7 @@ class IntelligentRouter:
 
         # Select best model for the specialized instance
         selected_model, reasoning = self.select_best_model_for_instance(
-            question_type, instance_num, request.prefer_speed, request.require_context, request.exclude_models
+            question_type, instance_num, prefer_speed, request.require_context, request.exclude_models
         )
 
         # Build fallback options
@@ -539,14 +642,17 @@ class IntelligentRouter:
                     {"instance": instance.name, "url": instance.url, "load_score": f"{instance.load_score:.2f}s"}
                 )
 
-        return ModelSelectionResponse(
+        response = ModelSelectionResponse(
             selected_model=selected_model,
+            complexity=complexity,
             selected_instance=selected_instance.name,
             instance_url=selected_instance.url,
             question_type=question_type,
             reasoning=reasoning,
             fallback_options=fallback_options[:2],  # Limit to top 2 fallbacks
         )
+        print(f"DEBUG: Routing response - complexity: {response.complexity}")
+        return response
 
 
 # Global router instance

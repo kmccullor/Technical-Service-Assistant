@@ -27,16 +27,16 @@ echo ""
 # Step 3: If running, we'll migrate models data
 if [ "$RUNNING" = true ]; then
     echo "Step 3: Migrating existing models to shared volume..."
-    
+
     # Create temp container to copy models
     for i in {1..8}; do
         CONTAINER_ID="ollama-server-$i"
         VOL_NAME="technical-service-assistant_ollama_data_$i"
-        
+
         # Check if the individual volume has models
         if docker volume inspect "$VOL_NAME" &>/dev/null; then
             echo "  Copying models from $CONTAINER_ID..."
-            
+
             # Use temp container to copy models from individual volume to shared volume
             docker run --rm \
                 -v "$VOL_NAME":/source \
@@ -46,7 +46,7 @@ if [ "$RUNNING" = true ]; then
     done
     echo "✓ Models migrated to shared volume"
     echo ""
-    
+
     echo "Step 4: Restarting Ollama containers with new volume configuration..."
     docker compose up -d ollama-server-1 ollama-server-2 ollama-server-3 ollama-server-4 \
                        ollama-server-5 ollama-server-6 ollama-server-7 ollama-server-8

@@ -6,8 +6,8 @@ import pytest
 
 from reranker.rethink_reranker import (
     _normalize_text,
-    score_subresponse_relevance,
     rerank_subresponses,
+    score_subresponse_relevance,
     synthesize_reranked_response,
 )
 
@@ -27,9 +27,9 @@ def test_token_overlap_and_similarity():
 def test_rerank_subresponses_basic():
     orig = "Compare FlexNet and LTE"
     subs = [
-        {"id": "1", "response": "FlexNet is a mesh network for AMI." , "confidence": 0.9},
-        {"id": "2", "response": "LTE is cellular-based." , "confidence": 0.9},
-        {"id": "3", "response": "Unrelated text about cooking." , "confidence": 0.5},
+        {"id": "1", "response": "FlexNet is a mesh network for AMI.", "confidence": 0.9},
+        {"id": "2", "response": "LTE is cellular-based.", "confidence": 0.9},
+        {"id": "3", "response": "Unrelated text about cooking.", "confidence": 0.5},
     ]
     reranked = rerank_subresponses(orig, subs)
     # Top result should not be the unrelated one
@@ -44,8 +44,8 @@ def test_synthesize_reranked_response_empty():
 
 def test_synthesize_reranked_response_basic():
     subs = [
-        {"id": "1", "response": "A","relevance": 0.9},
-        {"id": "2", "response": "B","relevance": 0.8},
+        {"id": "1", "response": "A", "relevance": 0.9},
+        {"id": "2", "response": "B", "relevance": 0.8},
     ]
     synthesized = synthesize_reranked_response("Q", subs)
     assert synthesized["synthesized_text"] in {"A", "A\n\nB"}

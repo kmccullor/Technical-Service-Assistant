@@ -1,0 +1,154 @@
+{
+  "dashboard": {
+    "title": "Phase 3 Tier 1 - Service Health",
+    "description": "Real-time health monitoring of Ollama instances, load balancer, and services",
+    "timezone": "browser",
+    "uid": "phase3-health",
+    "tags": ["phase3", "tier1", "health"],
+    "refresh": "30s",
+    "panels": [
+      {
+        "title": "Healthy Ollama Instances",
+        "targets": [
+          {
+            "expr": "count(up{job='ollama'} == 1)",
+            "legendFormat": "Healthy"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 5},
+                {"color": "green", "value": 8}
+              ]
+            },
+            "max": 8
+          }
+        }
+      },
+      {
+        "title": "Ollama Instance Status",
+        "targets": [
+          {
+            "expr": "up{job='ollama'}",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "type": "table",
+        "gridPos": {"h": 8, "w": 18, "x": 6, "y": 0},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Value": "Status"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "title": "Reranker Service Health",
+        "targets": [
+          {
+            "expr": "up{job='reranker'}",
+            "legendFormat": "Reranker"
+          }
+        ],
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "type": "value",
+                "options": {
+                  "1": {"text": "UP", "color": "green"},
+                  "0": {"text": "DOWN", "color": "red"}
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "title": "Request Error Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m]))",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Model Load Balance Distribution",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job='reranker', instance=~'ollama.*'}[5m])",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "title": "HTTP Response Status Distribution",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job='reranker'}[5m])",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "yaxes": [
+          {"label": "Requests/sec", "format": "ops"}
+        ]
+      },
+      {
+        "title": "Load Balancer Instance Response Times",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(load_balancer_response_time_bucket[5m]))",
+            "legendFormat": "{{instance}} P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(load_balancer_response_time_bucket[5m]))",
+            "legendFormat": "{{instance}} P95"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "yaxes": [
+          {"label": "Response Time (ms)"}
+        ]
+      }
+    ]
+  }
+}

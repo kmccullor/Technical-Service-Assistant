@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Iterator, List
+from typing import List
 
 import requests
 from dotenv import load_dotenv

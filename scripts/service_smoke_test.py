@@ -12,7 +12,6 @@ from typing import Iterable, List, Sequence, Union
 
 import httpx
 import psycopg2
-
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]

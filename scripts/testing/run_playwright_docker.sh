@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_URL="${PLAYWRIGHT_BASE_URL:-https://rni-llm-01.lab.sensus.net}"
-API_KEY="${PLAYWRIGHT_API_KEY:-}" 
+API_KEY="${PLAYWRIGHT_API_KEY:-}"
 BEARER_TOKEN="${PLAYWRIGHT_BEARER_TOKEN:-}"
 
 cat <<'DOCKERFILE' > next-rag-app/playwright.dockerfile

@@ -29,7 +29,6 @@ from typing import Optional
 
 import httpx
 
-
 # ============================================================================
 # Knowledge Base Q&A Dataset (Complexity-Tiered)
 # ============================================================================
@@ -78,6 +77,7 @@ VERY_COMPLEX_QUERIES = [
 @dataclass
 class QueryMetrics:
     """Metrics for a single query."""
+
     query: str
     complexity: str
     status_code: int
@@ -102,16 +102,15 @@ class QueryMetrics:
 @dataclass
 class LoadTestMetrics:
     """Aggregated metrics for the entire load test."""
+
     total: int = 0
     success: int = 0
     errors: int = 0
     latencies: list = field(default_factory=list)
-    by_complexity: dict = field(default_factory=lambda: defaultdict(lambda: {
-        "count": 0, "success": 0, "errors": 0, "latencies": []
-    }))
-    by_model: dict = field(default_factory=lambda: defaultdict(lambda: {
-        "count": 0, "success": 0, "latencies": []
-    }))
+    by_complexity: dict = field(
+        default_factory=lambda: defaultdict(lambda: {"count": 0, "success": 0, "errors": 0, "latencies": []})
+    )
+    by_model: dict = field(default_factory=lambda: defaultdict(lambda: {"count": 0, "success": 0, "latencies": []}))
     decompositions: int = 0
     query_details: list = field(default_factory=list)
 
@@ -154,11 +153,7 @@ async def worker(
     """Worker that issues queries with specified complexity distribution."""
     while time.time() < stop_at:
         # Select complexity based on weights
-        complexity = random.choices(
-            list(complexity_weights.keys()),
-            weights=list(complexity_weights.values()),
-            k=1
-        )[0]
+        complexity = random.choices(list(complexity_weights.keys()), weights=list(complexity_weights.values()), k=1)[0]
 
         query = random.choice(queries_by_complexity[complexity])
         payload = {"message": query}
@@ -334,10 +329,12 @@ async def run(duration: int, rps: float, concurrency: int, complexity_mix: str):
     print(f"  Target RPS: {rps}")
     print(f"  Concurrency: {concurrency}")
     print(f"  Per-worker interval: {interval:.2f}s")
-    print(f"  Complexity mix: SIMPLE={complexity_weights.get('SIMPLE', 0)*100:.0f}%, "
-          f"MODERATE={complexity_weights.get('MODERATE', 0)*100:.0f}%, "
-          f"COMPLEX={complexity_weights.get('COMPLEX', 0)*100:.0f}%, "
-          f"VERY_COMPLEX={complexity_weights.get('VERY_COMPLEX', 0)*100:.0f}%")
+    print(
+        f"  Complexity mix: SIMPLE={complexity_weights.get('SIMPLE', 0)*100:.0f}%, "
+        f"MODERATE={complexity_weights.get('MODERATE', 0)*100:.0f}%, "
+        f"COMPLEX={complexity_weights.get('COMPLEX', 0)*100:.0f}%, "
+        f"VERY_COMPLEX={complexity_weights.get('VERY_COMPLEX', 0)*100:.0f}%"
+    )
     print()
 
     async with httpx.AsyncClient(timeout=300.0) as client:
@@ -347,19 +344,21 @@ async def run(duration: int, rps: float, concurrency: int, complexity_mix: str):
         # Start workers
         tasks = []
         for i in range(concurrency):
-            tasks.append(asyncio.create_task(
-                worker(
-                    f"w{i+1}",
-                    client,
-                    url,
-                    headers,
-                    queries_by_complexity,
-                    complexity_weights,
-                    interval,
-                    stop_at,
-                    metrics,
+            tasks.append(
+                asyncio.create_task(
+                    worker(
+                        f"w{i+1}",
+                        client,
+                        url,
+                        headers,
+                        queries_by_complexity,
+                        complexity_weights,
+                        interval,
+                        stop_at,
+                        metrics,
+                    )
                 )
-            ))
+            )
 
         # Wait until done
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -389,9 +388,7 @@ async def run(duration: int, rps: float, concurrency: int, complexity_mix: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Comprehensive Q&A load test with complexity levels"
-    )
+    parser = argparse.ArgumentParser(description="Comprehensive Q&A load test with complexity levels")
     parser.add_argument(
         "--duration",
         type=int,

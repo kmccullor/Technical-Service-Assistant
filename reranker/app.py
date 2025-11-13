@@ -4,11 +4,11 @@ Just the basic chat endpoints to get the frontend working.
 """
 
 import hashlib
-from datetime import datetime
 import os
 import re
 import sys
 import time
+from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
 import jwt
@@ -33,15 +33,21 @@ print("Starting app.py execution")
 # Import auth endpoints
 from config import get_settings
 from reranker.cache import get_db_connection
-from reranker.rag_chat import RAGChatResponse, RAGChatService, add_rag_endpoints
 from reranker.question_decomposer import QuestionDecomposer
-from utils.redis_cache import (
-    get_decomposed_response,
-    cache_decomposed_response,
-    get_sub_request_result,
-    cache_sub_request_result,
+from reranker.rag_chat import (
+    BatchRAGChatRequest,
+    BatchRAGChatResponse,
+    RAGChatResponse,
+    RAGChatService,
+    add_rag_endpoints,
 )
 from reranker.rethink_reranker import rethink_pipeline
+from utils.redis_cache import (
+    cache_decomposed_response,
+    cache_sub_request_result,
+    get_decomposed_response,
+    get_sub_request_result,
+)
 
 try:
     from pydantic_agent import (
@@ -69,6 +75,16 @@ except Exception:  # pragma: no cover - fallback when dependency missing
 ENABLE_A2A_AGENT = os.getenv("ENABLE_A2A_AGENT", "false").lower() in {"1", "true", "yes"}
 
 from reranker.rbac_endpoints import rbac_router
+
+# TIER 2: Authentication & Security imports
+try:
+    from reranker.auth_endpoints import router as auth_router
+
+    # from reranker.auth_middleware import JWTAuthMiddleware, verify_jwt_token  # Temporarily disabled
+    _HAS_TIER2_AUTH = True
+except ImportError as e:
+    logger.warning(f"Tier 2 authentication modules not available: {e}")
+    _HAS_TIER2_AUTH = False
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -125,6 +141,15 @@ add_rag_endpoints(app)
 # Include auth endpoints
 app.include_router(rbac_router)
 
+# Include Tier 2 authentication endpoints if available
+if _HAS_TIER2_AUTH:
+    app.include_router(auth_router)
+    # app.add_middleware(JWTAuthMiddleware)  # Temporarily disabled for testing
+    logger.info("Tier 2 authentication enabled (middleware disabled)")
+else:
+    logger.warning("Tier 2 authentication disabled - modules not available")
+
+
 @app.on_event("startup")
 async def bootstrap_agents() -> None:
     if _HAS_PYDANTIC_AGENT:
@@ -137,6 +162,7 @@ async def bootstrap_agents() -> None:
 async def shutdown_agents() -> None:
     if a2a_service is not None:
         await a2a_service.shutdown()
+
 
 # Add intelligent routing endpoints
 print("Importing intelligent_router...")
@@ -436,10 +462,15 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         if not user_row:
             # User doesn't exist, create them
             user_id = _deterministic_user_id(email)
-            role_id = 1 if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower() else 2
+            role_id = (
+                1 if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower() else 2
+            )
 
-            logger.info(f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}")
-            cursor.execute("""
+            logger.info(
+                f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}"
+            )
+            cursor.execute(
+                """
                 INSERT INTO users (id, email, name, first_name, last_name, role_id, status, verified, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, 'active', true, NOW(), NOW())
                 ON CONFLICT (id) DO UPDATE SET
@@ -450,7 +481,9 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                     role_id = EXCLUDED.role_id,
                     updated_at = NOW()
                 RETURNING *
-            """, [user_id, email, f"{first_name} {last_name}", first_name, last_name, role_id])
+            """,
+                [user_id, email, f"{first_name} {last_name}", first_name, last_name, role_id],
+            )
             user_row = cursor.fetchone()
             conn.commit()
             logger.info(f"User creation result: {user_row}")
@@ -718,9 +751,9 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                             try:
                                 # Prefer cached/reranked ordering if available in final_result
                                 if final_result.get("reranked_components"):
-                                    models = [r.get("model") or "" for r in final_result.get("reranked_components", [])]
+                                    [r.get("model") or "" for r in final_result.get("reranked_components", [])]
                                 else:
-                                    models = [r.get("model") or "" for r in sub_results]
+                                    [r.get("model") or "" for r in sub_results]
                                 joined = "\n\n".join([r.get("response") for r in sub_results if r.get("response")])
                                 resp_text = joined
                                 # create a minimal final_result-like structure for caching
@@ -742,7 +775,9 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                             context_used=[],
                             context_metadata=[],
                             web_sources=[],
-                            model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])}) if final_result.get("reranked_components") else "",
+                            model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])})
+                            if final_result.get("reranked_components")
+                            else "",
                             context_retrieved=True,
                         )
                 else:
@@ -845,13 +880,35 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
     return StreamingResponse(generate(), media_type="text/plain")
 
 
+@app.post("/api/batch-chat", response_model=BatchRAGChatResponse)
+async def batch_chat(request: BatchRAGChatRequest, authorization: Optional[str] = Header(None)):
+    """Process multiple queries concurrently for batch processing."""
+    user = _user_from_authorization(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    logger.info(f"Batch chat request: {len(request.queries)} queries, max_concurrent={request.max_concurrent}")
+
+    try:
+        result = await rag_service.batch_chat(request)
+        logger.info(
+            f"Batch chat completed: {result.successful_responses}/{result.total_queries} successful in {result.processing_time_seconds:.2f}s"
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Batch chat failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
+
+
 # Conversation management endpoints
 MAX_CONVERSATIONS_PER_USER = 30
 RECENT_CONVERSATION_INTERVAL = "30 days"
 
 
 @app.get("/api/conversations", response_model=ConversationListResponse)
-def list_conversations(limit: int = MAX_CONVERSATIONS_PER_USER, offset: int = 0, authorization: Optional[str] = Header(None)):
+def list_conversations(
+    limit: int = MAX_CONVERSATIONS_PER_USER, offset: int = 0, authorization: Optional[str] = Header(None)
+):
     """List conversations for the authenticated user."""
     # Basic auth check
     if not authorization or not authorization.startswith("Bearer "):
@@ -1122,7 +1179,7 @@ async def auth_health():
     """Auth health check endpoint with database connectivity check."""
     try:
         # Check database connectivity
-        from config import get_db_connection
+        from reranker.cache import get_db_connection
 
         conn = get_db_connection()
         conn.close()
@@ -1224,7 +1281,65 @@ async def cache_stats(authorization: Optional[str] = Header(None)):
         }
 
 
-@app.get("/api/optimization-stats")
+@app.get("/api/load-balancer-stats")
+async def load_balancer_stats(authorization: Optional[str] = Header(None)):
+    """Get Ollama load balancer metrics for each instance."""
+    from reranker.load_balancer import get_load_balancer
+
+    try:
+        lb = get_load_balancer()
+        metrics = lb.get_metrics_summary()
+
+        # Calculate overall statistics
+        total_requests = sum(int(v["total_requests"]) for v in metrics.values())
+        total_successful = sum(int(v["successful_requests"]) for v in metrics.values())
+        total_failed = sum(int(v["failed_requests"]) for v in metrics.values())
+
+        healthy_count = sum(1 for v in metrics.values() if v["healthy"])
+
+        return {
+            "success": True,
+            "instances": metrics,
+            "overall": {
+                "total_requests": total_requests,
+                "successful_requests": total_successful,
+                "failed_requests": total_failed,
+                "overall_success_rate": f"{(total_successful / max(total_requests, 1)) * 100:.1f}%",
+                "healthy_instances": healthy_count,
+                "total_instances": len(metrics),
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+@app.get("/api/advanced-cache-stats")
+async def advanced_cache_stats(authorization: Optional[str] = Header(None)):
+    """Get advanced multi-layer cache statistics (embeddings, inference, chunks)."""
+    from reranker.advanced_cache import get_advanced_cache
+
+    try:
+        cache = get_advanced_cache()
+        stats = cache.get_stats()
+
+        return {
+            "success": True,
+            "cache": stats,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
 async def optimization_stats(authorization: Optional[str] = Header(None)):
     """Get query optimization cache statistics for monitoring."""
     from reranker.query_optimizer import get_optimization_stats

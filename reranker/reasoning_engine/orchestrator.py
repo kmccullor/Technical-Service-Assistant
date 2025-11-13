@@ -18,12 +18,13 @@ import json
 import time
 from typing import Any, Dict, List
 
-from config import get_model_num_ctx
 from chain_of_thought import ChainOfThoughtReasoner, is_complex_reasoning_query
 from context_management import AdvancedContextManager
 from knowledge_synthesis import KnowledgeSynthesizer
 from model_orchestration import EnhancedModelOrchestrator
 from reasoning_types import ChainOfThoughtRequest
+
+from config import get_model_num_ctx
 
 
 class ReasoningOrchestrator:

@@ -317,4 +317,3 @@ data: {"type": "token", "token": "documentation "}
 data: {"type": "sources", "sources": [{"title": "RNI 4.16 Multispeakv3_0_Integration_Guide_Section2_MeterReading.pdf", "content": "Billing Ping", "source": "integration_guide", "score": 0.8654489971879944}, {"title": "RNI 4.16 Multispeakv4_1_Integration_Guide_Section3_OutageDetection.pdf", "content": "Ping Response", "source": "integration_guide", "score": 0.8485258440705213}, {"title": "RNI 4.16 Multispeakv3_0_Integration_Guide_Section3_OutageDetection.pdf", "content": "Ping Response", "source": "integration_guide", "score": 0.8485258440705213}], "method": "rag"}
 
 data: {"type": "done"}
-

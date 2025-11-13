@@ -11,7 +11,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -372,21 +371,21 @@ def fetch_prometheus_snapshot(url: str, out_dir: Path) -> Path | None:
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
         out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / f'prometheus_snapshot_{timestamp}.json'
+        out_path = out_dir / f"prometheus_snapshot_{timestamp}.json"
         out_path.write_text(response.text)
         return out_path
     except Exception as exc:
-        print(f'Warning: failed to fetch Prometheus snapshot: {exc}')
+        print(f"Warning: failed to fetch Prometheus snapshot: {exc}")
         return None
 
 
 def write_report(report_dir: Path, summary: dict) -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = time.strftime('%Y%m%d_%H%M%S')
-    out_path = report_dir / f'load_test_summary_{timestamp}.json'
-    with out_path.open('w') as f:
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    out_path = report_dir / f"load_test_summary_{timestamp}.json"
+    with out_path.open("w") as f:
         json.dump(summary, f, indent=2)
     return out_path
 
@@ -415,7 +414,10 @@ def obtain_bearer_token(
         response.raise_for_status()
     except requests.exceptions.SSLError as exc:
         if verify_tls and not attempted_insecure:
-            print("Login TLS verification failed; retrying without certificate check (use --insecure-login to skip warning).", file=sys.stderr)
+            print(
+                "Login TLS verification failed; retrying without certificate check (use --insecure-login to skip warning).",
+                file=sys.stderr,
+            )
             return obtain_bearer_token(
                 base_url,
                 username,
@@ -436,65 +438,71 @@ def obtain_bearer_token(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Run K6 load test against TSA stack')
-    parser.add_argument('--target', default=DEFAULT_TARGET)
-    parser.add_argument('--vus', type=int, default=100)
-    parser.add_argument('--duration', default='2m')
-    parser.add_argument('--timeout', default='30s')
-    parser.add_argument('--public-endpoints', nargs='+', default=DEFAULT_PUBLIC_ENDPOINTS)
-    parser.add_argument('--chat-endpoint', default=DEFAULT_CHAT_ENDPOINT)
-    parser.add_argument('--doc-endpoint', default=DEFAULT_DOC_ENDPOINT)
-    parser.add_argument('--profile', choices=PROFILE_CHOICES, default='steady', help='Load profile for scenario executor')
-    parser.add_argument('--graceful-stop', default='30s', help='Graceful stop window applied to k6 scenarios')
+    parser = argparse.ArgumentParser(description="Run K6 load test against TSA stack")
+    parser.add_argument("--target", default=DEFAULT_TARGET)
+    parser.add_argument("--vus", type=int, default=100)
+    parser.add_argument("--duration", default="2m")
+    parser.add_argument("--timeout", default="30s")
+    parser.add_argument("--public-endpoints", nargs="+", default=DEFAULT_PUBLIC_ENDPOINTS)
+    parser.add_argument("--chat-endpoint", default=DEFAULT_CHAT_ENDPOINT)
+    parser.add_argument("--doc-endpoint", default=DEFAULT_DOC_ENDPOINT)
     parser.add_argument(
-        '--chat-scenarios',
-        nargs='+',
+        "--profile", choices=PROFILE_CHOICES, default="steady", help="Load profile for scenario executor"
+    )
+    parser.add_argument("--graceful-stop", default="30s", help="Graceful stop window applied to k6 scenarios")
+    parser.add_argument(
+        "--chat-scenarios",
+        nargs="+",
         default=DEFAULT_CHAT_SCENARIO_KEYS,
         choices=DEFAULT_CHAT_SCENARIO_KEYS,
-        help='Chat scenario keys to cycle through for each request',
+        help="Chat scenario keys to cycle through for each request",
     )
-    parser.add_argument('--api-key', default=os.getenv('LOAD_TEST_API_KEY', os.getenv('API_KEY', '')))
-    parser.add_argument('--bearer-token', default=os.getenv('LOAD_TEST_BEARER_TOKEN', ''))
+    parser.add_argument("--api-key", default=os.getenv("LOAD_TEST_API_KEY", os.getenv("API_KEY", "")))
+    parser.add_argument("--bearer-token", default=os.getenv("LOAD_TEST_BEARER_TOKEN", ""))
     parser.add_argument(
-        '--mock-auth-email',
-        default=os.getenv('LOAD_TEST_MOCK_EMAIL', ''),
-        help='Optional email used to generate mock_access_token_<email> bearer tokens (avoids JWT expiry during long tests).',
-    )
-    parser.add_argument(
-        '--scenario-file',
-        default=os.getenv('LOAD_TEST_SCENARIO_FILE', ''),
-        help='Optional path to a JSON file that defines chat scenarios to replace the defaults.',
-    )
-    parser.add_argument('--timeout-profile', default='', help='Path to model latency profile JSON')
-    parser.add_argument('--report-dir', default='load_test_results')
-    parser.add_argument('--prometheus-url', default=os.getenv('LOAD_TEST_PROM_URL', ''))
-    parser.add_argument(
-        '--prometheus-rw-url',
-        default=os.getenv('K6_PROMETHEUS_RW_SERVER_URL', ''),
-        help='Enable Prometheus remote write output (sets K6_PROMETHEUS_RW_SERVER_URL and --out experimental-prometheus-rw)',
+        "--mock-auth-email",
+        default=os.getenv("LOAD_TEST_MOCK_EMAIL", ""),
+        help="Optional email used to generate mock_access_token_<email> bearer tokens (avoids JWT expiry during long tests).",
     )
     parser.add_argument(
-        '--prometheus-rw-trend-stats',
-        default=os.getenv('K6_PROMETHEUS_RW_TREND_STATS', 'p(95),p(99),min,max'),
-        help='Comma separated trend stats to export via Prometheus remote write',
+        "--scenario-file",
+        default=os.getenv("LOAD_TEST_SCENARIO_FILE", ""),
+        help="Optional path to a JSON file that defines chat scenarios to replace the defaults.",
     )
-    parser.add_argument('--use-docker', action='store_true', help='Run k6 via grafana/k6 Docker image')
-    parser.add_argument('--insecure-login', action='store_true', help='Skip TLS verification when prompting for credentials')
+    parser.add_argument("--timeout-profile", default="", help="Path to model latency profile JSON")
+    parser.add_argument("--report-dir", default="load_test_results")
+    parser.add_argument("--prometheus-url", default=os.getenv("LOAD_TEST_PROM_URL", ""))
+    parser.add_argument(
+        "--prometheus-rw-url",
+        default=os.getenv("K6_PROMETHEUS_RW_SERVER_URL", ""),
+        help="Enable Prometheus remote write output (sets K6_PROMETHEUS_RW_SERVER_URL and --out experimental-prometheus-rw)",
+    )
+    parser.add_argument(
+        "--prometheus-rw-trend-stats",
+        default=os.getenv("K6_PROMETHEUS_RW_TREND_STATS", "p(95),p(99),min,max"),
+        help="Comma separated trend stats to export via Prometheus remote write",
+    )
+    parser.add_argument("--use-docker", action="store_true", help="Run k6 via grafana/k6 Docker image")
+    parser.add_argument(
+        "--insecure-login", action="store_true", help="Skip TLS verification when prompting for credentials"
+    )
     args = parser.parse_args()
 
-    api_key = args.api_key or os.getenv('LOAD_TEST_API_KEY')
+    api_key = args.api_key or os.getenv("LOAD_TEST_API_KEY")
     if not api_key:
         prompted = prompt("API key (X-API-Key) [leave blank for none]: ")
         api_key = prompted or ""
 
     mock_email = args.mock_auth_email
 
-    bearer_token = args.bearer_token or os.getenv('LOAD_TEST_BEARER_TOKEN')
+    bearer_token = args.bearer_token or os.getenv("LOAD_TEST_BEARER_TOKEN")
     if not bearer_token and mock_email:
         bearer_token = f"mock_access_token_{mock_email}"
     if not bearer_token:
-        username = os.getenv('LOAD_TEST_USERNAME') or prompt("LOAD_TEST_USERNAME (email): ")
-        password = os.getenv('LOAD_TEST_PASSWORD') or (prompt("LOAD_TEST_PASSWORD: ", secret=True) if username else None)
+        username = os.getenv("LOAD_TEST_USERNAME") or prompt("LOAD_TEST_USERNAME (email): ")
+        password = os.getenv("LOAD_TEST_PASSWORD") or (
+            prompt("LOAD_TEST_PASSWORD: ", secret=True) if username else None
+        )
         if username and password:
             bearer_token = obtain_bearer_token(args.target, username, password, verify_tls=not args.insecure_login)
         else:
@@ -505,22 +513,22 @@ def main() -> int:
         profile_path = Path(args.timeout_profile)
         try:
             profile_data = json.loads(profile_path.read_text())
-            recommended = profile_data.get('recommended_load_test_timeout_seconds')
+            recommended = profile_data.get("recommended_load_test_timeout_seconds")
             if recommended:
                 timeout_value = f"{math.ceil(float(recommended))}s"
-                print(
-                    f"Using timeout {timeout_value} derived from {profile_path.name}"
-                )
+                print(f"Using timeout {timeout_value} derived from {profile_path.name}")
         except Exception as exc:
             print(f"Warning: failed to load timeout profile {profile_path}: {exc}", file=sys.stderr)
 
-    scenario_file = args.scenario_file or os.getenv('LOAD_TEST_SCENARIO_FILE', '')
+    scenario_file = args.scenario_file or os.getenv("LOAD_TEST_SCENARIO_FILE", "")
     if scenario_file:
         try:
             selected_scenarios = list(load_custom_scenarios(scenario_file))
         except Exception as exc:
             print(f"Warning: failed to load custom scenarios from {scenario_file}: {exc}", file=sys.stderr)
-            selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
+            selected_scenarios = [
+                CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)
+            ]
     else:
         selected_scenarios = [CHAT_SCENARIO_LOOKUP[key] for key in (args.chat_scenarios or DEFAULT_CHAT_SCENARIO_KEYS)]
     scenario_options = build_scenario_options(args.profile, args.vus, args.duration, args.graceful_stop)
@@ -542,21 +550,23 @@ def main() -> int:
 
     report_dir = Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = time.strftime('%Y%m%d_%H%M%S')
-    script_path = report_dir / f'k6_script_{timestamp}.js'
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    script_path = report_dir / f"k6_script_{timestamp}.js"
     script_path.write_text(script)
-    summary_path = report_dir / f'k6_raw_summary_{timestamp}.json'
+    summary_path = report_dir / f"k6_raw_summary_{timestamp}.json"
 
-    use_docker = args.use_docker or shutil.which('k6') is None
-    if use_docker and shutil.which('docker') is None:
-        print('Docker is required to run k6 via container. Install docker or provide a native k6 binary.', file=sys.stderr)
+    use_docker = args.use_docker or shutil.which("k6") is None
+    if use_docker and shutil.which("docker") is None:
+        print(
+            "Docker is required to run k6 via container. Install docker or provide a native k6 binary.", file=sys.stderr
+        )
         return 1
 
     extra_env: Dict[str, str] = {}
     if args.prometheus_rw_url:
-        extra_env['K6_PROMETHEUS_RW_SERVER_URL'] = args.prometheus_rw_url
+        extra_env["K6_PROMETHEUS_RW_SERVER_URL"] = args.prometheus_rw_url
         if args.prometheus_rw_trend_stats:
-            extra_env['K6_PROMETHEUS_RW_TREND_STATS'] = args.prometheus_rw_trend_stats
+            extra_env["K6_PROMETHEUS_RW_TREND_STATS"] = args.prometheus_rw_trend_stats
 
     enable_prom_rw = bool(args.prometheus_rw_url)
 
@@ -575,24 +585,24 @@ def main() -> int:
 
     if summary:
         saved = write_report(Path(args.report_dir), summary)
-        print(f'📁 Summary saved to {saved}')
+        print(f"📁 Summary saved to {saved}")
         try:
-            metrics = summary.get('metrics', {})
-            http_req_duration = metrics.get('http_req_duration', {})
-            http_req_failed = metrics.get('http_req_failed', {})
-            p95 = http_req_duration.get('percentiles', {}).get('95.0')
-            fail_rate = http_req_failed.get('rate')
+            metrics = summary.get("metrics", {})
+            http_req_duration = metrics.get("http_req_duration", {})
+            http_req_failed = metrics.get("http_req_failed", {})
+            p95 = http_req_duration.get("percentiles", {}).get("95.0")
+            fail_rate = http_req_failed.get("rate")
             if p95 is not None:
-                print(f'  P95 latency: {p95:.0f} ms')
+                print(f"  P95 latency: {p95:.0f} ms")
             if fail_rate is not None:
-                print(f'  Failure rate: {fail_rate * 100:.2f}%')
+                print(f"  Failure rate: {fail_rate * 100:.2f}%")
         except Exception:
             pass
 
     if args.prometheus_url:
         snapshot = fetch_prometheus_snapshot(args.prometheus_url, Path(args.report_dir))
         if snapshot:
-            print(f'Prometheus snapshot saved to {snapshot}')
+            print(f"Prometheus snapshot saved to {snapshot}")
 
     if result.stdout:
         print(result.stdout)
@@ -601,5 +611,5 @@ def main() -> int:
     return result.returncode
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

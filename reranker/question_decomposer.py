@@ -12,13 +12,11 @@ Used by chat endpoints to optimize response quality and performance.
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import re
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -144,7 +142,7 @@ class QuestionDecomposer:
         "then ",
         "next ",
         "additionally",
-        "?", # Multiple question marks
+        "?",  # Multiple question marks
         "both",
     }
 
@@ -228,11 +226,11 @@ class QuestionDecomposer:
         # Token count analysis
         token_count = len(normalized.split())
         if token_count < 10:
-            base_complexity = ComplexityLevel.SIMPLE
+            ComplexityLevel.SIMPLE
         elif token_count < 30:
-            base_complexity = ComplexityLevel.MODERATE
+            ComplexityLevel.MODERATE
         else:
-            base_complexity = ComplexityLevel.COMPLEX
+            ComplexityLevel.COMPLEX
 
         # Keyword pattern matching (increases complexity)
         complexity_score = 0

@@ -12,20 +12,18 @@ Run without external dependencies (no redis-cli required).
 """
 
 import sys
-import os
-import json
 
 # Ensure repo is in path
 sys.path.insert(0, "/home/kmccullor/Projects/Technical-Service-Assistant")
 
-from reranker.question_decomposer import QuestionDecomposer, ComplexityLevel
+from reranker.question_decomposer import ComplexityLevel, QuestionDecomposer
+from reranker.rethink_reranker import rethink_pipeline
 from utils.redis_cache import (
     cache_decomposed_response,
-    get_decomposed_response,
     cache_sub_request_result,
+    get_decomposed_response,
     get_sub_request_result,
 )
-from reranker.rethink_reranker import rethink_pipeline
 
 
 def test_decomposition_smoke():
@@ -170,7 +168,10 @@ def test_model_routing():
     test_cases = [
         ("What is X?", ComplexityLevel.SIMPLE),
         ("Compare X and Y", ComplexityLevel.MODERATE),
-        ("Design a comprehensive monitoring and alerting strategy for 50,000 AMI meter endpoints spread across multiple geographic regions. Include error detection mechanisms, performance threshold definitions for different meter types, automated escalation procedures based on severity, integration with existing SCADA systems, redundancy planning, and cost-benefit analysis of different approaches.", ComplexityLevel.MODERATE),
+        (
+            "Design a comprehensive monitoring and alerting strategy for 50,000 AMI meter endpoints spread across multiple geographic regions. Include error detection mechanisms, performance threshold definitions for different meter types, automated escalation procedures based on severity, integration with existing SCADA systems, redundancy planning, and cost-benefit analysis of different approaches.",
+            ComplexityLevel.MODERATE,
+        ),
     ]
 
     for query, expected_complexity in test_cases:
@@ -225,11 +226,13 @@ def main():
     except AssertionError as e:
         print(f"\n✗ FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return 2
 

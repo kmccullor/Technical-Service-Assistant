@@ -133,9 +133,8 @@ class HybridSearch:
 
     def _get_db_connection(self):
         """Get database connection."""
-        db_host = "localhost" if settings.db_host == "pgvector" else settings.db_host
         return psycopg2.connect(
-            host=db_host,
+            host=settings.db_host,
             database=settings.db_name,
             user=settings.db_user,
             password=settings.db_password,
@@ -150,33 +149,29 @@ class HybridSearch:
         conn = self._get_db_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                # Get model ID
-                cursor.execute("SELECT id FROM models WHERE name = %s;", (self.embedding_model,))
-                model_result = cursor.fetchone()
-                if not model_result:
-                    raise ValueError(f"Model {self.embedding_model} not found in database")
-
-                model_id = model_result["id"]
-
-                # Get all documents with embeddings
+                # Get all documents with embeddings from document_chunks table
+                # (embeddings are stored directly in the document_chunks table, not in a separate table)
                 cursor.execute(
                     """
                     SELECT
                         c.id,
-                        c.text,
+                        c.content as text,
                         c.metadata,
-                        d.name as document_name,
-                        e.embedding
-                    from document_chunks c
-                    JOIN embeddings e ON c.id = e.chunk_id
+                        d.file_name as document_name,
+                        c.embedding
+                    FROM document_chunks c
                     JOIN documents d ON c.document_id = d.id
-                    WHERE e.model_id = %s
+                    WHERE c.embedding IS NOT NULL
                     ORDER BY c.id
-                """,
-                    (model_id,),
+                """
                 )
 
                 rows = cursor.fetchall()
+
+                if not rows:
+                    logger.warning("No documents with embeddings found in database")
+                    self.corpus_indexed = False
+                    return
 
                 # Extract texts and metadata
                 self.document_texts = [row["text"] for row in rows]
@@ -266,17 +261,23 @@ class HybridSearch:
         try:
             import ollama
 
-            # Initialize Ollama client
-            base_url = (
-                settings.ollama_url.rsplit("/api", 1)[0] if "/api" in settings.ollama_url else settings.ollama_url
-            )
-            ollama_url = base_url.replace("ollama:", "localhost:").replace("ollama-server-1:", "localhost:")
-            ollama_client = ollama.Client(host=ollama_url)
+            # Try primary Ollama instance first
+            # Inside Docker, use ollama-server-1:11434 directly
+            # On host, fallback to config value
+            try:
+                ollama_client = ollama.Client(host="http://ollama-server-1:11434")
+                logger.debug("Connected to ollama-server-1 (Docker container)")
+            except Exception:
+                # Fallback to config URL
+                base_url = settings.ollama_url
+                if "/api" in base_url:
+                    base_url = base_url.rsplit("/api", 1)[0]
+                ollama_client = ollama.Client(host=base_url)
+                logger.debug(f"Connected to {base_url} (config fallback)")
 
             # Generate query embedding
-            query_embedding = ollama_client.embeddings(model=self.embedding_model.split(":")[0], prompt=query)[
-                "embedding"
-            ]
+            # Use the full model name (e.g., "nomic-embed-text:v1.5")
+            query_embedding = ollama_client.embeddings(model=self.embedding_model, prompt=query)["embedding"]
 
             # Calculate cosine similarity with all document embeddings
             scores = []

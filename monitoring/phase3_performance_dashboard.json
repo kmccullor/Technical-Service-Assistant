@@ -1,0 +1,186 @@
+{
+  "dashboard": {
+    "title": "Phase 3 Tier 1 - Performance Monitoring",
+    "description": "Real-time monitoring of latency, throughput, cache hit rates, and model load balancing",
+    "timezone": "browser",
+    "uid": "phase3-performance",
+    "tags": ["phase3", "tier1", "performance"],
+    "refresh": "10s",
+    "panels": [
+      {
+        "title": "P50 Latency (ms)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(http_request_duration_seconds_bucket{job='reranker'}[5m])) * 1000",
+            "legendFormat": "P50"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 150}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "P95 Latency (ms)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job='reranker'}[5m])) * 1000",
+            "legendFormat": "P95"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 150},
+                {"color": "red", "value": 250}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Requests Per Second",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job='reranker'}[1m])",
+            "legendFormat": "RPS"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "yaxes": [
+          {
+            "label": "Requests/sec",
+            "format": "ops"
+          }
+        ]
+      },
+      {
+        "title": "Cache Hit Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])))",
+            "legendFormat": "Cache Hit Rate"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Embedding Cache Hit Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(embedding_cache_hits_total[5m]) / (rate(embedding_cache_hits_total[5m]) + rate(embedding_cache_misses_total[5m])))",
+            "legendFormat": "Embedding Hit Rate"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Inference Cache Hit Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(inference_cache_hits_total[5m]) / (rate(inference_cache_hits_total[5m]) + rate(inference_cache_misses_total[5m])))",
+            "legendFormat": "Inference Hit Rate"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 60},
+                {"color": "green", "value": 85}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Latency Trend (5m Window)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(http_request_duration_seconds_bucket{job='reranker'}[5m])) * 1000",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job='reranker'}[5m])) * 1000",
+            "legendFormat": "P95"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "yaxes": [
+          {"label": "Latency (ms)", "format": "ms"}
+        ]
+      },
+      {
+        "title": "Cache Hit Rate Trend",
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))",
+            "legendFormat": "Hit Rate"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      }
+    ]
+  }
+}

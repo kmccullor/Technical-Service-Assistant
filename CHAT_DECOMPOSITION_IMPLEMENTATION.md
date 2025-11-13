@@ -16,7 +16,7 @@ Comprehensive module implementing intelligent question analysis and decompositio
 ```python
 class ComplexityLevel(str, Enum):
     SIMPLE = "simple"      # Factual, <10 tokens
-    MODERATE = "moderate"  # Analytical, 10-30 tokens  
+    MODERATE = "moderate"  # Analytical, 10-30 tokens
     COMPLEX = "complex"    # Design/reasoning, >30 tokens
 ```
 
@@ -136,31 +136,31 @@ Comprehensive unit test suite with 31 test cases covering:
   - Simple/moderate/complex classification
   - Token count effects
   - Multiple question marks impact
-  
+
 - `TestQuestionDecomposition`: 7 tests
   - Single vs. multi-question handling
   - Decomposition limits
   - Sub-request uniqueness
   - Original query preservation
-  
+
 - `TestModelSelection`: 4 tests
   - Model size routing by complexity
   - Deterministic selection
-  
+
 - `TestCacheKeyGeneration`: 5 tests
   - Same query → same key
   - Different queries → different keys
   - Query normalization
   - User ID scoping
   - Key prefix validation
-  
+
 - `TestDecompositionResult`: 2 tests
   - Serialization to dict
   - JSON representation
-  
+
 - `TestConvenienceFunctions`: 3 tests
   - High-level API functions
-  
+
 - `TestEdgeCases`: 5 tests
   - Empty queries
   - Very long queries (300+ tokens)
@@ -319,42 +319,42 @@ The decomposition system is designed to integrate seamlessly with the existing `
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Header(None)):
     """Enhanced chat with question decomposition."""
-    
+
     # 1. Decompose question
     decomposer = QuestionDecomposer()
     decomposition = await decomposer.analyze(request.message, user.id)
-    
+
     # 2. Check Redis cache for full response
     cached = get_decomposed_response(decomposition.query_hash, user.id)
     if cached:
         yield cached  # Stream cached response
         return
-    
+
     # 3. Process each sub-request in parallel
     async def process_sub_requests():
         responses = []
         for sub_req in decomposition.sub_requests:
             model = decomposer.select_model_for_complexity(sub_req.complexity)
-            
+
             # Retrieve context
             context = await rag_service.retrieve(sub_req.sub_query)
-            
+
             # Generate with selected model
             response = await rag_service.generate(
                 sub_req.sub_query,
                 context,
                 model=model,
             )
-            
+
             # Cache sub-response
             cache_sub_request_result(sub_req.id, response)
             responses.append(response)
         return responses
-    
+
     # 4. Synthesize final response
     sub_responses = await process_sub_requests()
     final_response = await synthesize(decomposition.original_query, sub_responses)
-    
+
     # 5. Cache and stream
     cache_decomposed_response(decomposition.query_hash, user.id, final_response)
     async for chunk in stream_response(final_response):

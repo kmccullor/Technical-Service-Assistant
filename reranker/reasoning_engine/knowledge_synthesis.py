@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from config import get_model_num_ctx
 
+
 @dataclass
 class KnowledgeCluster:
     """Represents a cluster of related knowledge pieces."""

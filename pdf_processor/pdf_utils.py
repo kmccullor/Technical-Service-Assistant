@@ -641,6 +641,30 @@ def chunk_text(text: str, document_name: str = "", start_index: int = 0) -> Tupl
     except Exception:
         nltk.download("punkt", quiet=True)
 
+    # Optional: use SemanticChunker for advanced chunking when enabled
+    try:
+        enable_semantic = os.getenv("ENABLE_SEMANTIC_CHUNKING", "false").lower() in {"1", "true", "yes"}
+    except Exception:
+        enable_semantic = False
+
+    if enable_semantic:
+        try:
+            from scripts.analysis.semantic_chunking import SemanticChunker
+
+            logger.info("Semantic chunking enabled for document: %s", document_name)
+            chunker = SemanticChunker()
+            sc_chunks = chunker.chunk_document(text, document_name=document_name)
+            chunks = []
+            page_number = start_index
+            for sc in sc_chunks:
+                chunk_text_content = sc.get("text")
+                metadata = sc.get("metadata", {})
+                chunks.append({"text": chunk_text_content, "metadata": metadata, "page_number": page_number})
+                page_number += 1
+            return chunks, page_number
+        except Exception as e:
+            logger.warning(f"Semantic chunking failed or unavailable, falling back: {e}")
+
     paragraphs = text.split("\n\n")
     chunks = []
     page_number = start_index

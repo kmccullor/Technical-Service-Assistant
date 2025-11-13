@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Safe Shared Model Migration for Ollama
 # This script performs a safe, single-threaded migration of Ollama models to a shared volume.
-# 
+#
 # Steps:
 # 1. Stop all Ollama containers to avoid concurrent downloads and corruption
 # 2. Clean partial/corrupt files from shared volume
@@ -163,9 +163,9 @@ VERIFY_FAILURES=0
 for i in {1..8}; do
   INSTANCE="${INSTANCE_NAMES[$i]}"
   PORT="${INSTANCE_PORTS[$INSTANCE]}"
-  
+
   echo "  Checking $INSTANCE (port $PORT)..."
-  
+
   # Wait for container to be healthy
   ATTEMPTS=0
   while [ $ATTEMPTS -lt 15 ]; do
@@ -176,16 +176,16 @@ for i in {1..8}; do
     ATTEMPTS=$((ATTEMPTS + 1))
     sleep 1
   done
-  
+
   if [ $ATTEMPTS -ge 15 ]; then
     echo -e "    ${RED}✗ Container $INSTANCE not responding after 15 seconds${NC}"
     VERIFY_FAILURES=$((VERIFY_FAILURES + 1))
     continue
   fi
-  
+
   # Get model list from this instance
   MODEL_LIST=$(docker exec "$INSTANCE" ollama list 2>/dev/null | tail -n +2 | cut -d' ' -f1 | sort | xargs || echo "")
-  
+
   if [ -z "$MODEL_LIST" ]; then
     echo -e "    ${RED}✗ No models found on $INSTANCE${NC}"
     VERIFY_FAILURES=$((VERIFY_FAILURES + 1))
@@ -213,7 +213,7 @@ CONNECTIVITY_FAILURES=0
 for i in {1..8}; do
   INSTANCE="${INSTANCE_NAMES[$i]}"
   PORT="${INSTANCE_PORTS[$INSTANCE]}"
-  
+
   if curl -s -f "http://localhost:$PORT/api/tags" > /dev/null 2>&1; then
     echo -e "    ${GREEN}✓ $INSTANCE (port $PORT) responding to /api/tags${NC}"
   else

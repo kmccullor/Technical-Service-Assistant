@@ -16,7 +16,6 @@ from statistics import mean
 
 import httpx
 
-
 QUERIES = [
     "What is FlexNet?",
     "Compare FlexNet and LTE in terms of latency, range, and cost.",
@@ -76,7 +75,9 @@ async def monitor_ollama_health(interval, stop_at):
                 if r.status_code == 200:
                     data = r.json()
                     healthy = data.get("healthy_instances")
-                    print(f"[health] {time.strftime('%H:%M:%S')} Ollama healthy instances: {healthy}/{data.get('total_instances')}")
+                    print(
+                        f"[health] {time.strftime('%H:%M:%S')} Ollama healthy instances: {healthy}/{data.get('total_instances')}"
+                    )
                 else:
                     print(f"[health] {time.strftime('%H:%M:%S')} health check returned {r.status_code}")
             except Exception as e:
@@ -96,7 +97,9 @@ async def run(duration, rps, concurrency):
         raise SystemExit("rps must be > 0")
     interval = concurrency / rps  # seconds between requests per worker
 
-    print(f"Starting load test: duration={duration}s, target_rps={rps}, concurrency={concurrency}, interval_per_worker={interval:.2f}s")
+    print(
+        f"Starting load test: duration={duration}s, target_rps={rps}, concurrency={concurrency}, interval_per_worker={interval:.2f}s"
+    )
 
     async with httpx.AsyncClient(timeout=300.0) as client:
         # start health monitor
@@ -105,7 +108,9 @@ async def run(duration, rps, concurrency):
         # start workers
         tasks = []
         for i in range(concurrency):
-            tasks.append(asyncio.create_task(worker(f"w{i+1}", client, url, headers, QUERIES, interval, stop_at, metrics)))
+            tasks.append(
+                asyncio.create_task(worker(f"w{i+1}", client, url, headers, QUERIES, interval, stop_at, metrics))
+            )
 
         # wait until done
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -134,7 +139,9 @@ async def run(duration, rps, concurrency):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--duration", type=int, default=1800, help="Duration in seconds (default 1800 = 30m)")
-    parser.add_argument("--rps", type=float, default=2.0, help="Total target requests per second across all workers (default 2)")
+    parser.add_argument(
+        "--rps", type=float, default=2.0, help="Total target requests per second across all workers (default 2)"
+    )
     parser.add_argument("--concurrency", type=int, default=8, help="Number of concurrent workers (default 8)")
     args = parser.parse_args()
 

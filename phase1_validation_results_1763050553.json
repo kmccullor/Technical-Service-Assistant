@@ -1,0 +1,201 @@
+{
+  "report": {
+    "summary": {
+      "total_queries": 20,
+      "successful": 20,
+      "failed": 0,
+      "success_rate_percent": 100.0
+    },
+    "latency": {
+      "min_ms": 110,
+      "max_ms": 150,
+      "median_ms": 117.5,
+      "mean_ms": 121.6,
+      "stdev_ms": 10.179442648376135,
+      "p95_ms": 150,
+      "p99_ms": 150
+    },
+    "caching": {
+      "new_cache_hits": 60,
+      "new_cache_misses": 0,
+      "new_cache_hit_rate_percent": 100.0,
+      "cache_enabled": true,
+      "redis_connected": true,
+      "total_keys": 58
+    },
+    "optimization": {
+      "cache_hits": 0,
+      "cache_misses": 0,
+      "cache_size": 0
+    },
+    "validation": {
+      "streaming_working": true,
+      "first_token_target_met": true,
+      "cache_hit_rate_acceptable": true,
+      "no_errors": true
+    },
+    "timestamp": "2025-11-13T16:15:53.937139"
+  },
+  "query_results": [
+    {
+      "success": true,
+      "query": "What is RNI?",
+      "latency_ms": 115,
+      "first_token_time_ms": 115,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How does RNI work?",
+      "latency_ms": 115,
+      "first_token_time_ms": 115,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What is RNI?",
+      "latency_ms": 123,
+      "first_token_time_ms": 123,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Configure RNI for production",
+      "latency_ms": 115,
+      "first_token_time_ms": 115,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How does RNI work?",
+      "latency_ms": 116,
+      "first_token_time_ms": 116,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Explain RNI architecture and its components",
+      "latency_ms": 127,
+      "first_token_time_ms": 127,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What are the performance requirements for RNI?",
+      "latency_ms": 118,
+      "first_token_time_ms": 118,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How to troubleshoot RNI connectivity issues",
+      "latency_ms": 118,
+      "first_token_time_ms": 118,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What is the recommended configuration for RNI?",
+      "latency_ms": 123,
+      "first_token_time_ms": 123,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Configure RNI for production",
+      "latency_ms": 116,
+      "first_token_time_ms": 116,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How does RNI handle meter data collection?",
+      "latency_ms": 117,
+      "first_token_time_ms": 117,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What authentication methods does RNI support?",
+      "latency_ms": 116,
+      "first_token_time_ms": 116,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Explain the RNI data model",
+      "latency_ms": 150,
+      "first_token_time_ms": 150,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How to optimize RNI for high-volume deployments?",
+      "latency_ms": 114,
+      "first_token_time_ms": 114,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What security features are available in RNI?",
+      "latency_ms": 110,
+      "first_token_time_ms": 110,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Explain RNI architecture and its components",
+      "latency_ms": 118,
+      "first_token_time_ms": 118,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "What are API limits in RNI?",
+      "latency_ms": 138,
+      "first_token_time_ms": 138,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "How to deploy RNI in a distributed environment?",
+      "latency_ms": 138,
+      "first_token_time_ms": 138,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Troubleshoot RNI performance issues",
+      "latency_ms": 115,
+      "first_token_time_ms": 115,
+      "tokens_received": 0,
+      "status_code": 200
+    },
+    {
+      "success": true,
+      "query": "Best practices for RNI configuration",
+      "latency_ms": 130,
+      "first_token_time_ms": 130,
+      "tokens_received": 0,
+      "status_code": 200
+    }
+  ]
+}

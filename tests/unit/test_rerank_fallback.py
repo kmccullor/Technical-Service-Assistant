@@ -6,12 +6,8 @@ final response without a real Redis server.
 """
 
 from reranker.question_decomposer import QuestionDecomposer
-from utils.redis_cache import (
-    cache_decomposed_response,
-    cache_sub_request_result,
-    get_decomposed_response,
-)
 from reranker.rethink_reranker import rethink_pipeline
+from utils.redis_cache import cache_decomposed_response, cache_sub_request_result
 
 
 def test_rethink_pipeline_with_inmemory_cache():

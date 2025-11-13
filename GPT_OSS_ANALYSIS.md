@@ -1,6 +1,6 @@
 # Analysis: Adding GPT-OSS to the AI Stack
 
-**Date**: November 12, 2025  
+**Date**: November 12, 2025
 **Status**: Analysis Complete - Recommendation Provided
 
 ---
@@ -149,7 +149,7 @@
 
 ### Option 2: **Add GPT-OSS:20b (Moderate Risk - Conditional)**
 
-**When**: 
+**When**:
 - You identify specific reasoning-heavy queries where mistral/llama3.2 underperform
 - You have spare GPU capacity (or budget for GPU nodes)
 - Accuracy improvements are worth 5-10x latency increase
@@ -197,7 +197,7 @@ docker exec ollama-server-1 ollama pull gpt-oss-safeguard:20b
 
 # Use in reranker for guardrail checking
 def check_safety(query, response):
-    result = ollama.run("gpt-oss-safeguard:20b", 
+    result = ollama.run("gpt-oss-safeguard:20b",
                        f"Is this response safe? {response}")
     return "safe" in result.lower()
 ```
@@ -293,7 +293,7 @@ If you want better reasoning without deploying a 20B model:
 
 **GPT-OSS is a capable reasoning model, but not essential for your current AI stack.** Your existing models (mistral:7b, llama3.2:3b, codellama:7b, llava:7b, nomic-embed) provide good coverage and are performing well.
 
-**Recommendation**: 
+**Recommendation**:
 1. Complete the 30-minute load test and baseline performance
 2. Monitor accuracy metrics on domain-specific queries
 3. If accuracy issues emerge on complex reasoning, revisit GPT-OSS:20b deployment
@@ -304,6 +304,6 @@ If you want better reasoning without deploying a 20B model:
 
 ---
 
-**Prepared by**: AI Agent  
-**Date**: November 12, 2025  
+**Prepared by**: AI Agent
+**Date**: November 12, 2025
 **Status**: Awaiting user decision

@@ -12,11 +12,10 @@ processed (and/or retrieved from Redis).
 """
 from __future__ import annotations
 
-import json
 import logging
 import re
 from difflib import SequenceMatcher
-from typing import List, Dict, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from utils.redis_cache import get_decomposed_response, get_sub_request_result
 

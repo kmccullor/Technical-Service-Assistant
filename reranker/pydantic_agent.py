@@ -8,7 +8,8 @@ import os
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional, Sequence
 
-from pydantic_ai import Agent, RunContext, exceptions as pydantic_ai_exceptions
+from pydantic_ai import Agent, RunContext
+from pydantic_ai import exceptions as pydantic_ai_exceptions
 from pydantic_ai.messages import (
     FinalResultEvent,
     ModelMessage,
@@ -21,7 +22,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models import Model, ModelRequestParameters, ModelResponse, ModelSettings
 from pydantic_ai.usage import RequestUsage
-
 from rag_chat import RAGChatRequest, RAGChatResponse, RAGChatService
 
 logger = logging.getLogger(__name__)

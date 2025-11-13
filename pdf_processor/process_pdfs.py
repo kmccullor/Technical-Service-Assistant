@@ -8,10 +8,10 @@ import psutil  # For memory monitoring
 
 sys.path.append("/app")
 from config import get_settings
-from pdf_processor.pdf_utils import (
+from pdf_processor.pdf_utils_enhanced import (
     chunk_images,
     chunk_tables,
-    chunk_text,
+    chunk_text_semantic,
     classify_document_with_ai,
     detect_confidentiality,
     extract_images,
@@ -188,10 +188,13 @@ def process_pending_files():
         try:
             # Chunk the text with timing
             logger.debug(f"Starting text chunking for: {pdf_filename}")
-            text_chunks, next_index = chunk_text(text, document_name=pdf_filename)
+            text_chunks = chunk_text_semantic(text, document_name=pdf_filename)
             logger.info(f"Generated {len(text_chunks)} text chunks from {pdf_filename}")
 
-            # Heuristic page estimation: sentences/paragraph based chunking increments a pseudo page number; use next_index
+            # Set next_index for compatibility with table/image chunking
+            next_index = len(text_chunks)
+
+            # Heuristic page estimation: use number of chunks as proxy for pages
             estimated_pages = max(next_index, 0)
             large_doc = False
             if estimated_pages >= settings.large_doc_page_threshold:

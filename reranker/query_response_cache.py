@@ -12,8 +12,8 @@ import json
 import logging
 import os
 import re
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import redis
 from pydantic import BaseModel
@@ -225,11 +225,9 @@ class QueryResponseCache:
             total_misses = int(stats.get("total_misses", 0))
             total_requests = total_hits + total_misses
 
-            hit_rate = (
-                (total_hits / total_requests) if total_requests > 0 else 0
-            )
+            hit_rate = (total_hits / total_requests) if total_requests > 0 else 0
 
-            info = self.redis_client.info("stats")
+            self.redis_client.info("stats")
             memory_info = self.redis_client.info("memory")
 
             return {
@@ -240,9 +238,7 @@ class QueryResponseCache:
                 "hit_rate": round(hit_rate, 4),
                 "hit_rate_percent": round(hit_rate * 100, 2),
                 "redis_connected": True,
-                "redis_memory_mb": round(
-                    memory_info.get("used_memory", 0) / (1024 * 1024), 2
-                ),
+                "redis_memory_mb": round(memory_info.get("used_memory", 0) / (1024 * 1024), 2),
                 "redis_keys": self.redis_client.dbsize(),
             }
 

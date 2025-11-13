@@ -57,7 +57,7 @@ ollama_data_1..8/ (per-container volumes)
 
 ## Current Models
 - **codellama:7b** - 3.7GB
-- **mistral:7b** - 4.1GB  
+- **mistral:7b** - 4.1GB
 - **llama3.2:3b** - 2.0GB
 - **llama2:7b** - 3.9GB
 - **neural-chat** - 4.0GB

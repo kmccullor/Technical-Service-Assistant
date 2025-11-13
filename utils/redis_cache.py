@@ -173,9 +173,7 @@ def get_decomposed_response(query_hash: str, user_id: int) -> Optional[dict]:
         return None
 
 
-def cache_sub_request_result(
-    sub_request_id: str, result_data: dict, ttl: int = 3600
-) -> bool:
+def cache_sub_request_result(sub_request_id: str, result_data: dict, ttl: int = 3600) -> bool:
     """Cache individual sub-request result in Redis.
 
     Args:

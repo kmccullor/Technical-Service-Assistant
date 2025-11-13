@@ -1,0 +1,190 @@
+{
+  "dashboard": {
+    "title": "Phase 3 Tier 1 - Business Metrics",
+    "description": "Query types, accuracy metrics, user engagement, and knowledge gaps",
+    "timezone": "browser",
+    "uid": "phase3-business",
+    "tags": ["phase3", "tier1", "business"],
+    "refresh": "60s",
+    "panels": [
+      {
+        "title": "Query Types Distribution",
+        "targets": [
+          {
+            "expr": "sum(rate(question_type_total[5m])) by (type)",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "title": "Queries Per Hour",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job='reranker', path=~'/api/chat.*'}[1h]) * 3600",
+            "legendFormat": "Queries/hour"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {}
+          }
+        }
+      },
+      {
+        "title": "Active Users (5m window)",
+        "targets": [
+          {
+            "expr": "count(increase(user_requests_total[5m]) > 0)",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {}
+          }
+        }
+      },
+      {
+        "title": "Context Retrieval Success Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(context_retrieved_total[5m]) / rate(http_requests_total{path=~'/api/chat.*'}[5m]))",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 60},
+                {"color": "green", "value": 85}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Response Quality Score (1-5)",
+        "targets": [
+          {
+            "expr": "avg(response_quality_score)",
+            "legendFormat": "Average Quality"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 3},
+                {"color": "green", "value": 4}
+              ]
+            },
+            "max": 5,
+            "min": 1
+          }
+        }
+      },
+      {
+        "title": "Web Search Fallback Rate (%)",
+        "targets": [
+          {
+            "expr": "100 * (rate(web_search_fallback_total[5m]) / rate(http_requests_total{path=~'/api/chat.*'}[5m]))",
+            "legendFormat": "Web Search %"
+          }
+        ],
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 15},
+                {"color": "red", "value": 30}
+              ]
+            },
+            "max": 100
+          }
+        }
+      },
+      {
+        "title": "Query Types Over Time",
+        "targets": [
+          {
+            "expr": "sum(rate(question_type_total[5m])) by (type)",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "yaxes": [
+          {"label": "Queries/sec", "format": "ops"}
+        ]
+      },
+      {
+        "title": "Most Common Query Topics",
+        "targets": [
+          {
+            "expr": "topk(10, sum(rate(query_topic_total[5m])) by (topic))",
+            "legendFormat": "{{topic}}"
+          }
+        ],
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "title": "Cache Impact on Response Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(http_request_duration_seconds_bucket{cache_hit='true'}[5m])) * 1000",
+            "legendFormat": "Cached Queries P50"
+          },
+          {
+            "expr": "histogram_quantile(0.5, rate(http_request_duration_seconds_bucket{cache_hit='false'}[5m])) * 1000",
+            "legendFormat": "Cache Miss P50"
+          }
+        ],
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "yaxes": [
+          {"label": "Latency (ms)"}
+        ]
+      },
+      {
+        "title": "Model Usage Distribution",
+        "targets": [
+          {
+            "expr": "sum(rate(model_usage_total[5m])) by (model)",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ]
+  }
+}

@@ -5,14 +5,13 @@ Combines vector retrieval with LLM generation for document-aware responses.
 Follows Pydantic AI best practices from https://ai.pydantic.dev/
 """
 
+import asyncio
 import logging
 import os
-import random
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import httpx
-import itertools
-import threading
 import psycopg2
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -21,16 +20,23 @@ from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
 from config import get_model_num_ctx, get_settings
-from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
+
+# Advanced multi-layer caching for embeddings and inference
+from reranker.advanced_cache import get_advanced_cache
 
 # Optional intelligent router import (kept local to avoid circular issues at startup)
 from reranker.intelligent_router import ModelSelectionRequest, QuestionType, intelligent_router
 
-# Query-Response caching for 15-20% latency reduction
-from reranker.query_response_cache import get_query_response_cache, cache_rag_response
+# Advanced load balancing for Ollama instances
+from reranker.load_balancer import RequestType, get_load_balancer
 
 # Query optimization for improved retrieval
 from reranker.query_optimizer import optimize_query
+
+# Query-Response caching for 15-20% latency reduction
+from reranker.query_response_cache import cache_rag_response, get_query_response_cache
+from scripts.analysis.hybrid_search import HybridSearch
+from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
 
 # Setup basic logging
 logger = logging.getLogger(__name__)
@@ -44,6 +50,7 @@ if not logger.handlers:
 settings = get_settings()
 CHAT_GENERATION_TIMEOUT = getattr(settings, "generation_timeout_seconds", 300)
 
+
 class RAGChatRequest(BaseModel):
     """Request model for RAG chat."""
 
@@ -53,7 +60,7 @@ class RAGChatRequest(BaseModel):
     model: str = Field("rni-mistral", description="LLM model to use; set to 'rni-mistral' or 'auto' for smart routing")
     temperature: float = Field(0.2, description="Generation temperature")
     max_tokens: int = Field(500, description="Maximum tokens to generate")
-    stream: bool = Field(False, description="Whether to stream the response")
+    stream: bool = Field(True, description="Whether to stream the response")
 
 
 class RAGChatResponse(BaseModel):
@@ -67,6 +74,28 @@ class RAGChatResponse(BaseModel):
     web_sources: List[Dict[str, Any]] = Field(default_factory=list, description="Web sources used for citations")
     model: str = Field(..., description="Model used for generation")
     context_retrieved: bool = Field(..., description="Whether context was retrieved")
+    confidence: float = Field(0.5, description="Confidence score in the response (0.0-1.0)")
+    fallback_used: bool = Field(False, description="Whether fallback strategy was used")
+
+
+class BatchRAGChatRequest(BaseModel):
+    """Request model for batch RAG chat."""
+
+    queries: List[str] = Field(..., description="List of user queries to process")
+    max_concurrent: int = Field(4, description="Maximum concurrent requests", ge=1, le=8)
+    max_context_chunks: int = Field(5, description="Maximum number of context chunks per query")
+    model: str = Field("rni-mistral", description="LLM model to use")
+    temperature: float = Field(0.2, description="Generation temperature")
+    max_tokens: int = Field(500, description="Maximum tokens per response")
+
+
+class BatchRAGChatResponse(BaseModel):
+    """Response model for batch RAG chat."""
+
+    responses: List[RAGChatResponse] = Field(..., description="List of responses, one per query")
+    total_queries: int = Field(..., description="Total number of queries processed")
+    successful_responses: int = Field(..., description="Number of successful responses")
+    processing_time_seconds: float = Field(..., description="Total processing time")
 
 
 class RAGChatService:
@@ -95,11 +124,18 @@ class RAGChatService:
                     "http://ollama-server-8:11434",
                 ]
         logger.info(f"Using all {len(self.ollama_urls)} Ollama instances for load balancing")
+
+        # Initialize load balancer for intelligent instance routing
+        self.load_balancer = get_load_balancer(self.ollama_urls)
+
+        # Initialize advanced caching (embeddings, inference, chunks)
+        self.advanced_cache = get_advanced_cache()
+
         self.reranker_url = (
             reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
         )
-        self._instance_cycle = itertools.cycle(self.ollama_urls)
-        self._instance_lock = threading.Lock()
+        # Hybrid search instance (lazy)
+        self._hybrid_search_instance: Optional[HybridSearch] = None
 
         # Load model configurations
         self.chat_model = settings.chat_model
@@ -155,7 +191,7 @@ class RAGChatService:
         # Default to chat model
         return self.chat_model
 
-    async def _determine_model_and_instance(self, query: str) -> Tuple[str, Optional[str], QuestionType]:
+    async def _determine_model_and_instance(self, query: str) -> Tuple[str, Optional[str], QuestionType, str]:
         """Use the intelligent router when available; fallback to local heuristics."""
         try:
             router_request = ModelSelectionRequest(query=query)
@@ -170,11 +206,13 @@ class RAGChatService:
                 router_response.selected_model,
                 router_response.instance_url,
                 router_response.question_type,
+                router_response.complexity,
             )
         except Exception as exc:
             logger.warning(f"Router selection failed; falling back to heuristics: {exc}")
             question_type = intelligent_router.classify_question(query)
-            return self.select_model(query), None, question_type
+            complexity = intelligent_router.assess_complexity(query)
+            return self.select_model(query), None, question_type, complexity
 
     async def retrieve_context(self, query: str, max_chunks: int = 5) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
@@ -184,15 +222,60 @@ class RAGChatService:
             optimization = optimize_query(query)
             optimized_query = optimization.get("reduced", query)
             keywords = optimization.get("keywords", [])
+            expansions = optimization.get("expansions", [])
 
-            logger.debug(f"Query optimization: original='{query[:40]}' optimized='{optimized_query[:40]}' keywords={keywords}")
+            logger.debug(
+                f"Query optimization: original='{query[:40]}' optimized='{optimized_query[:40]}' keywords={keywords} expansions={expansions}"
+            )
 
-            # Step 1: Try RAG knowledge base first (use optimized query for better matching)
+            # Step 1: Try hybrid search with query expansion for improved accuracy
+            all_chunks = []
+            all_metadata = []
+
+            # Search with original optimized query
+            try:
+                rag_chunks, rag_metadata = await self._hybrid_search(optimized_query, max_chunks)
+                all_chunks.extend(rag_chunks)
+                all_metadata.extend(rag_metadata)
+            except Exception as e:
+                logger.warning(f"Hybrid search failed for optimized query: {e}")
+
+            # Search with expansions if available
+            if expansions:
+                for expansion in expansions[:3]:  # Limit to 3 expansions to avoid too many searches
+                    try:
+                        exp_chunks, exp_metadata = await self._hybrid_search(expansion, max_chunks // 2)
+                        all_chunks.extend(exp_chunks)
+                        all_metadata.extend(exp_metadata)
+                    except Exception as e:
+                        logger.warning(f"Hybrid search failed for expansion '{expansion}': {e}")
+
+            # Deduplicate and limit results
+            if all_chunks:
+                # Simple deduplication by content hash
+                seen = set()
+                unique_chunks = []
+                unique_metadata = []
+                for chunk, meta in zip(all_chunks, all_metadata):
+                    chunk_hash = hash(chunk[:200])  # Hash first 200 chars
+                    if chunk_hash not in seen:
+                        seen.add(chunk_hash)
+                        unique_chunks.append(chunk)
+                        unique_metadata.append(meta)
+
+                rag_chunks = unique_chunks[:max_chunks]
+                rag_metadata = unique_metadata[:max_chunks]
+
+            if rag_chunks:
+                logger.info(f"Hybrid retrieved {len(rag_chunks)} context chunks for query: {query[:50]}...")
+                return rag_chunks, rag_metadata
+
+            # Fallback: vector DB search using embeddings
             query_embedding = await self._get_query_embedding(optimized_query)
             rag_chunks, rag_metadata = await self._vector_search(query_embedding, max_chunks)
 
             if rag_chunks:
-                logger.info(f"Retrieved {len(rag_chunks)} RAG context chunks for query: {query[:50]}...")
+                logger.info(f"Vector DB retrieved {len(rag_chunks)} RAG context chunks for query: {query[:50]}...")
                 return rag_chunks, rag_metadata
 
             # Step 2: If no RAG results, try web search
@@ -227,11 +310,18 @@ class RAGChatService:
             return [], []
 
     async def _get_query_embedding(self, query: str) -> List[float]:
-        """Generate embedding for the query using Ollama."""
-        # Use the first available Ollama instance for embeddings
-        selected_url = self.ollama_urls[0]
+        """Generate embedding for the query using Ollama with load balancing and caching."""
+        # Check advanced embedding cache first
+        cached_embedding = self.advanced_cache.get_embedding(query)
+        if cached_embedding:
+            logger.info(f"Embedding cache HIT for query: {query[:50]}...")
+            return cached_embedding
+
+        # Get next healthy embedding instance
+        selected_url = await self.load_balancer.get_next_instance(RequestType.EMBEDDING)
         logger.info(f"Getting embedding for query: {query[:50]}... from Ollama instance: {selected_url}")
 
+        start_time = time.time()
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -242,14 +332,77 @@ class RAGChatService:
                     },
                     timeout=30.0,
                 )
+                response_time = (time.time() - start_time) * 1000  # Convert to ms
+
                 if response.status_code == 200:
                     data = response.json()
-                    return data.get("embedding", [])
+                    embedding = data.get("embedding", [])
+                    # Cache the embedding for future use
+                    self.advanced_cache.cache_embedding(query, embedding)
+                    # Record successful embedding request
+                    self.load_balancer.record_request(selected_url, response_time, success=True)
+                    return embedding
                 else:
+                    self.load_balancer.record_request(
+                        selected_url, response_time, success=False, error=f"HTTP {response.status_code}"
+                    )
                     raise HTTPException(status_code=response.status_code, detail="Embedding generation failed")
         except Exception as e:
+            response_time = (time.time() - start_time) * 1000
+            self.load_balancer.record_request(selected_url, response_time, success=False, error=str(e))
             logger.error(f"Embedding generation failed: {e}")
             raise
+
+    def _calculate_response_confidence(self, response: str, context_chunks: List[str], query: str, model: str) -> float:
+        """Calculate confidence score for the response."""
+        confidence = 0.5  # Base confidence
+
+        # Context quality boost
+        if context_chunks:
+            # More context chunks = higher confidence
+            context_boost = min(0.2, len(context_chunks) * 0.05)
+            confidence += context_boost
+
+            # Check if response contains context terms
+            context_text = " ".join(context_chunks).lower()
+            response_lower = response.lower()
+            query_lower = query.lower()
+
+            # Count matching terms between query/response and context
+            query_terms = set(query_lower.split())
+            response_terms = set(response_lower.split())
+            context_terms = set(context_text.split())
+
+            query_context_overlap = len(query_terms & context_terms)
+            response_context_overlap = len(response_terms & context_terms)
+
+            if query_context_overlap > 0:
+                confidence += 0.1
+            if response_context_overlap > 0:
+                confidence += 0.1
+        else:
+            # No context = lower confidence
+            confidence -= 0.2
+
+        # Model quality adjustment
+        model_lower = model.lower()
+        if "llama3.2:3b" in model_lower:
+            confidence -= 0.1  # Smaller model
+        elif "mistral:7b" in model_lower or "codellama:7b" in model_lower:
+            confidence += 0.05  # Good balance
+
+        # Response length heuristic (too short = low confidence)
+        if len(response.split()) < 10:
+            confidence -= 0.1
+        elif len(response.split()) > 50:
+            confidence += 0.05  # Detailed responses
+
+        # Check for uncertainty indicators
+        uncertainty_terms = ["i'm not sure", "uncertain", "maybe", "possibly", "i think", "perhaps"]
+        if any(term in response.lower() for term in uncertainty_terms):
+            confidence -= 0.15
+
+        return max(0.0, min(1.0, confidence))
 
     async def _vector_search(
         self, query_embedding: List[float], max_chunks: int
@@ -305,6 +458,39 @@ class RAGChatService:
 
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
+            return [], []
+
+    async def _hybrid_search(self, query: str, max_chunks: int) -> Tuple[List[str], List[Dict[str, Any]]]:
+        """Perform hybrid search (vector + BM25) using the HybridSearch module.
+
+        This method uses a threadpool to avoid blocking the event loop because the
+        HybridSearch implementation is synchronous and interacts with the DB.
+        """
+        try:
+            # Initialize lazy hybrid search instance
+            if not self._hybrid_search_instance:
+                # Use default vector weight; can be overridden via env var
+                alpha = float(os.getenv("HYBRID_VECTOR_WEIGHT", "0.7"))
+                self._hybrid_search_instance = HybridSearch(embedding_model=self.embedding_model, alpha=alpha)
+
+            # Run search in threadpool to avoid blocking
+            results = await asyncio.to_thread(self._hybrid_search_instance.search, query, max_chunks)
+
+            # Map results to context_chunks and metadata
+            context_chunks = [r.get("text") for r in results]
+            context_metadata = [
+                {
+                    "content": r.get("text"),
+                    "file_name": r.get("document_name"),
+                    "document_type": r.get("metadata", {}).get("type", "document"),
+                    "distance": 1.0 - float(r.get("combined_score", 0.0)),
+                }
+                for r in results
+            ]
+            return context_chunks, context_metadata
+
+        except Exception as e:
+            logger.error(f"Hybrid search failed: {e}")
             return [], []
 
     async def _web_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
@@ -431,25 +617,33 @@ class RAGChatService:
             logger.warning(f"Broad web search failed: {e}")
             return []
 
-    def build_rag_prompt(self, query: str, context_chunks: List[str]) -> Dict[str, str]:
+    def build_rag_prompt(self, query: str, context_chunks: List[str], complexity: str = "moderate") -> Dict[str, str]:
         """Build prompt with retrieved context, returning system and user prompts separately."""
         rni_definition = "The RNI is a Sensus Regional Network Interface - a comprehensive platform for utility AMI (Advanced Metering Infrastructure) systems."
 
+        # Adjust prompt based on question complexity
+        if complexity == "simple":
+            response_guidelines = """RESPONSE GUIDELINES:
+- Provide direct, concise answers without verbose analysis
+- Answer immediately without "Thinking:" prefix
+- Be clear and to the point
+- Cite sources only if using external information"""
+        elif complexity == "complex":
+            response_guidelines = """RESPONSE GUIDELINES:
+- Use step-by-step reasoning for complex questions
+- Show analysis process briefly, then provide clear answer
+- Break down technical concepts when needed
+- Always cite sources used"""
+        else:  # moderate
+            response_guidelines = """RESPONSE GUIDELINES:
+- Provide clear, accurate answers
+- Use brief reasoning for technical questions
+- Prioritize clarity over verbosity
+- Cite sources when using external information"""
+
         system_prompt = f"""You are a helpful AI assistant specialized in RNI systems and Sensus products. {rni_definition}
 
-REASONING PROCESS:
-1. Analyze the question and identify key requirements
-2. Consider available context and knowledge
-3. Think step-by-step through the solution
-4. Provide clear, actionable answers
-5. Cite sources when using external information
-
-Always structure your response with:
-- Thinking: Show your step-by-step reasoning process
-- Answer: Provide the clear answer
-- Sources: List all sources used (if any)
-
-Always show your reasoning process and explain your conclusions."""
+{response_guidelines}"""
 
         if not context_chunks:
             user_prompt = f"Question: {query}\n\nProvide your response in the following format:\nThinking: [step-by-step reasoning]\nAnswer: [clear answer]\nSources: [list sources or 'None']"
@@ -492,37 +686,35 @@ Sources: [list documentation sources]"""
         stream: bool = False,
         preferred_instance: Optional[str] = None,
     ) -> Union[str, Response]:
-        """Generate response using Ollama chat API with system and user prompts."""
-        # Select an Ollama instance (router hint wins, otherwise random)
-        if preferred_instance:
-            selected_url = preferred_instance
-        else:
-            with self._instance_lock:
-                selected_url = next(self._instance_cycle)
+        """Generate response using Ollama chat API with system and user prompts and load balancing."""
         system_prompt = prompt_dict.get("system", "")
         user_prompt = prompt_dict.get("user", "")
 
-        attempted_instances = set()
-        candidate_instances = self.ollama_urls.copy()
-        if preferred_instance and preferred_instance not in candidate_instances:
-            candidate_instances.append(preferred_instance)
+        # Get healthy instances for fallback chain
+        healthy_instances = await self.load_balancer.get_healthy_instances(RequestType.INFERENCE)
 
-        for attempt in range(len(candidate_instances)):
-            if preferred_instance:
-                selected_url = preferred_instance
-            else:
-                with self._instance_lock:
-                    selected_url = next(self._instance_cycle)
+        # Try instances in order: preferred > load-balanced > fallback chain
+        instances_to_try = []
+        if preferred_instance:
+            instances_to_try.append(preferred_instance)
 
-            if selected_url in attempted_instances:
-                continue
-            attempted_instances.add(selected_url)
+        # Get load-balanced instance
+        lb_instance = await self.load_balancer.get_next_instance(RequestType.INFERENCE)
+        if lb_instance not in instances_to_try:
+            instances_to_try.append(lb_instance)
 
+        # Add remaining healthy instances
+        for inst in healthy_instances:
+            if inst not in instances_to_try:
+                instances_to_try.append(inst)
+
+        for attempt, selected_url in enumerate(instances_to_try):
             logger.debug(
-                f"Attempting Ollama instance {selected_url} for model {model} (attempt {len(attempted_instances)})"
+                f"Attempting Ollama instance {selected_url} for model {model} (attempt {attempt + 1}/{len(instances_to_try)})"
             )
             track_instance_usage(selected_url)
 
+            start_time = time.time()
             try:
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
@@ -538,23 +730,33 @@ Sources: [list documentation sources]"""
                         },
                         timeout=float(CHAT_GENERATION_TIMEOUT),
                     )
+                    response_time = (time.time() - start_time) * 1000  # Convert to ms
+
                     if response.status_code == 200:
+                        self.load_balancer.record_request(selected_url, response_time, success=True)
                         if stream:
                             return response
                         data = response.json()
                         message = data.get("message", {})
                         return message.get("content", "No response generated")
+
                     logger.warning(
                         "Generation failure status=%s on %s; trying next instance.",
                         response.status_code,
                         selected_url,
                     )
-                    preferred_instance = None
-            except (httpx.ReadTimeout, httpx.TimeoutException):
+                    self.load_balancer.record_request(
+                        selected_url, response_time, success=False, error=f"HTTP {response.status_code}"
+                    )
+
+            except (httpx.ReadTimeout, httpx.TimeoutException) as e:
+                response_time = (time.time() - start_time) * 1000
                 logger.warning("Timeout on %s; retrying with next instance", selected_url)
-                preferred_instance = None
+                self.load_balancer.record_request(selected_url, response_time, success=False, error=str(e))
             except Exception as exc:
+                response_time = (time.time() - start_time) * 1000
                 logger.error("Generation error on %s: %s", selected_url, exc)
+                self.load_balancer.record_request(selected_url, response_time, success=False, error=str(exc))
                 preferred_instance = None
                 continue
 
@@ -591,6 +793,8 @@ Sources: [list documentation sources]"""
                     web_sources=cached_response.get("web_sources", []),
                     model=cached_response.get("model", "cached"),
                     context_retrieved=cached_response.get("context_retrieved", False),
+                    confidence=cached_response.get("confidence", 0.8),
+                    fallback_used=False,
                 )
 
         if request.use_context:
@@ -611,17 +815,21 @@ Sources: [list documentation sources]"""
 
             logger.info(f"Retrieved {len(context_chunks)} context chunks ({len(web_sources)} from web) for query")
 
-        prompt_dict = self.build_rag_prompt(request.query, context_chunks)
-
         model_value = (request.model or "").lower()
         preferred_instance: Optional[str] = None
         question_type: Optional[QuestionType] = None
+        complexity: str = "moderate"
 
         if model_value in {"", "rni-mistral", "auto"}:
-            selected_model, preferred_instance, question_type = await self._determine_model_and_instance(request.query)
+            selected_model, preferred_instance, question_type, complexity = await self._determine_model_and_instance(
+                request.query
+            )
         else:
             selected_model = request.model
             question_type = intelligent_router.classify_question(request.query)
+            complexity = intelligent_router.assess_complexity(request.query)
+
+        prompt_dict = self.build_rag_prompt(request.query, context_chunks, complexity)
 
         logger.info(
             "Selected model %s for query: %s (question_type=%s, preferred_instance=%s)",
@@ -662,6 +870,60 @@ Sources: [list documentation sources]"""
                 ),
             )  # type: ignore
 
+            # Calculate confidence score
+            confidence = self._calculate_response_confidence(
+                response_text, context_chunks, request.query, selected_model
+            )
+            fallback_used = False
+
+            # Fallback strategy for low confidence
+            if confidence < 0.4:
+                logger.info(f"Low confidence ({confidence:.2f}) detected, attempting fallback strategy")
+                fallback_used = True
+
+                # Try different model from fallback options
+                if fallback_options:
+                    fallback_model = fallback_options[0].get("model", "mistral:7b")
+                    fallback_url = fallback_options[0].get("url", preferred_instance)
+
+                    try:
+                        logger.info(f"Trying fallback model: {fallback_model} on {fallback_url}")
+                        async with httpx.AsyncClient(timeout=60.0) as client:
+                            fallback_response = await client.post(
+                                f"{fallback_url}/api/generate",
+                                json={
+                                    "model": fallback_model,
+                                    "prompt": prompt,
+                                    "stream": False,
+                                    "options": {"temperature": request.temperature, "num_predict": request.max_tokens},
+                                },
+                            )
+
+                            if fallback_response.status_code == 200:
+                                fallback_data = fallback_response.json()
+                                fallback_response_text = fallback_data.get("response", "").strip()
+
+                                if fallback_response_text:
+                                    # Recalculate confidence for fallback response
+                                    fallback_confidence = self._calculate_response_confidence(
+                                        fallback_response_text, context_chunks, request.query, fallback_model
+                                    )
+
+                                    # Use fallback if it's better
+                                    if fallback_confidence > confidence:
+                                        logger.info(
+                                            f"Fallback improved confidence: {confidence:.2f} → {fallback_confidence:.2f}"
+                                        )
+                                        response_text = fallback_response_text
+                                        selected_model = fallback_model
+                                        confidence = fallback_confidence
+                                    else:
+                                        logger.info(
+                                            f"Fallback did not improve confidence: {confidence:.2f} → {fallback_confidence:.2f}"
+                                        )
+                    except Exception as e:
+                        logger.warning(f"Fallback attempt failed: {e}")
+
             rag_response = RAGChatResponse(
                 response=response_text,
                 context_used=context_chunks,
@@ -669,6 +931,8 @@ Sources: [list documentation sources]"""
                 web_sources=web_sources,
                 model=selected_model,
                 context_retrieved=len(context_chunks) > 0,
+                confidence=confidence,
+                fallback_used=fallback_used,
             )
 
             # Cache response for future queries (unless from cache already)
@@ -689,6 +953,60 @@ Sources: [list documentation sources]"""
                     logger.warning(f"Failed to cache response: {e}")
 
             return rag_response
+
+    async def batch_chat(self, request: BatchRAGChatRequest) -> BatchRAGChatResponse:
+        """Process multiple queries concurrently."""
+        import asyncio
+
+        start_time = time.time()
+        semaphore = asyncio.Semaphore(request.max_concurrent)
+
+        async def process_single_query(query: str) -> RAGChatResponse:
+            async with semaphore:
+                single_request = RAGChatRequest(
+                    query=query,
+                    use_context=True,
+                    max_context_chunks=request.max_context_chunks,
+                    model=request.model,
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens,
+                    stream=False,  # Batch doesn't support streaming
+                )
+                return await self.chat(single_request)
+
+        # Process all queries concurrently with semaphore limiting
+        tasks = [process_single_query(query) for query in request.queries]
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Handle any exceptions
+        processed_responses = []
+        successful_count = 0
+
+        for i, result in enumerate(responses):
+            if isinstance(result, Exception):
+                logger.error(f"Batch query {i} failed: {result}")
+                # Return error response
+                processed_responses.append(
+                    RAGChatResponse(
+                        response=f"Error processing query: {str(result)}",
+                        model="error",
+                        confidence=0.0,
+                        fallback_used=False,
+                    )
+                )
+            else:
+                processed_responses.append(result)
+                if result.confidence > 0.0:  # Consider non-error responses as successful
+                    successful_count += 1
+
+        processing_time = time.time() - start_time
+
+        return BatchRAGChatResponse(
+            responses=processed_responses,
+            total_queries=len(request.queries),
+            successful_responses=successful_count,
+            processing_time_seconds=processing_time,
+        )
 
 
 # Global service instance

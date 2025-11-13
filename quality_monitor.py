@@ -471,7 +471,9 @@ class QualityTrendAnalyzer:
 class QualityReportGenerator:
     """Generate comprehensive quality reports and dashboards."""
 
-    def __init__(self, db_path: str = "quality_metrics.db", accuracy_logs_dir: Union[str, Path] = "tests/accuracy_logs"):
+    def __init__(
+        self, db_path: str = "quality_metrics.db", accuracy_logs_dir: Union[str, Path] = "tests/accuracy_logs"
+    ):
         """Initialize report generator."""
         self.db_path = db_path
         self.accuracy_logs_dir = Path(accuracy_logs_dir)
