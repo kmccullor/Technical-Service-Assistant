@@ -71,7 +71,7 @@ Always base your responses on technical documentation and established procedures
 PARAMETER temperature 0.2
 PARAMETER top_p 0.9
 PARAMETER top_k 40
-PARAMETER num_ctx 4096
+PARAMETER num_ctx 32768
 
 SYSTEM \"\"\"{system_prompt}\"\"\"
 

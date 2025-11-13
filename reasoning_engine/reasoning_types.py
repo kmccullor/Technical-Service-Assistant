@@ -53,7 +53,7 @@ class ReasoningQuery(BaseModel):
     complexity: Optional[ComplexityLevel] = Field(None, description="Expected complexity level")
     max_steps: int = Field(5, description="Maximum reasoning steps")
     require_sources: bool = Field(True, description="Require source attribution")
-    context_window: int = Field(4000, description="Maximum context tokens")
+    context_window: int = Field(32768, description="Maximum context tokens")
 
 
 class ReasoningResponse(BaseModel):

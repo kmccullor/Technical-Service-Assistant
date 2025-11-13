@@ -20,3 +20,6 @@ pyjwt
 bcrypt
 passlib[bcrypt]
 email-validator
+
+# Caching & Performance (Phase 1)
+redis==5.0.4

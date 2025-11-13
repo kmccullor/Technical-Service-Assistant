@@ -711,12 +711,38 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
 
                         synthesized = final_result.get("synthesized", {})
                         resp_text = synthesized.get("synthesized_text") if isinstance(synthesized, dict) else ""
+
+                        # Fallback: if rethink_pipeline returned an error or no synthesized text,
+                        # synthesize directly from sub_results we just computed.
+                        if (not resp_text) and sub_results:
+                            try:
+                                # Prefer cached/reranked ordering if available in final_result
+                                if final_result.get("reranked_components"):
+                                    models = [r.get("model") or "" for r in final_result.get("reranked_components", [])]
+                                else:
+                                    models = [r.get("model") or "" for r in sub_results]
+                                joined = "\n\n".join([r.get("response") for r in sub_results if r.get("response")])
+                                resp_text = joined
+                                # create a minimal final_result-like structure for caching
+                                final_result = {
+                                    "decomposition": decomposition.to_dict(),
+                                    "reranked_components": sub_results,
+                                    "synthesized": {"synthesized_text": resp_text, "components": sub_results},
+                                    "final_relevance": 0.0,
+                                }
+                                try:
+                                    cache_decomposed_response(decomposition.query_hash, user.id, final_result)
+                                except Exception:
+                                    pass
+                            except Exception:
+                                resp_text = resp_text or ""
+
                         rag_response = RAGChatResponse(
                             response=resp_text or "",
                             context_used=[],
                             context_metadata=[],
                             web_sources=[],
-                            model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])}),
+                            model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])}) if final_result.get("reranked_components") else "",
                             context_retrieved=True,
                         )
                 else:
@@ -1171,6 +1197,50 @@ async def ollama_health():
             "healthy_instances": 0,
             "total_instances": 0,
             "instances": [],
+        }
+
+
+@app.get("/api/cache-stats")
+async def cache_stats(authorization: Optional[str] = Header(None)):
+    """Get query-response cache statistics for monitoring."""
+    # Optional: require auth for monitoring endpoint
+    # if not authorization or not authorization.startswith("Bearer "):
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+
+    from reranker.query_response_cache import get_cache_stats
+
+    try:
+        stats = get_cache_stats()
+        return {
+            "success": True,
+            "cache": stats,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+
+@app.get("/api/optimization-stats")
+async def optimization_stats(authorization: Optional[str] = Header(None)):
+    """Get query optimization cache statistics for monitoring."""
+    from reranker.query_optimizer import get_optimization_stats
+
+    try:
+        stats = get_optimization_stats()
+        return {
+            "success": True,
+            "optimization": stats,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
 

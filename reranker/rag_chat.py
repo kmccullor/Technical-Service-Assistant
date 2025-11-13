@@ -26,6 +26,12 @@ from utils.redis_cache import track_instance_usage, track_model_usage, track_que
 # Optional intelligent router import (kept local to avoid circular issues at startup)
 from reranker.intelligent_router import ModelSelectionRequest, QuestionType, intelligent_router
 
+# Query-Response caching for 15-20% latency reduction
+from reranker.query_response_cache import get_query_response_cache, cache_rag_response
+
+# Query optimization for improved retrieval
+from reranker.query_optimizer import optimize_query
+
 # Setup basic logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -174,8 +180,15 @@ class RAGChatService:
         """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
         logger.info(f"Starting context retrieval for query: {query[:50]}...")
         try:
-            # Step 1: Try RAG knowledge base first
-            query_embedding = await self._get_query_embedding(query)
+            # Optimize query for better retrieval (removes stop words, etc.)
+            optimization = optimize_query(query)
+            optimized_query = optimization.get("reduced", query)
+            keywords = optimization.get("keywords", [])
+
+            logger.debug(f"Query optimization: original='{query[:40]}' optimized='{optimized_query[:40]}' keywords={keywords}")
+
+            # Step 1: Try RAG knowledge base first (use optimized query for better matching)
+            query_embedding = await self._get_query_embedding(optimized_query)
             rag_chunks, rag_metadata = await self._vector_search(query_embedding, max_chunks)
 
             if rag_chunks:
@@ -184,7 +197,7 @@ class RAGChatService:
 
             # Step 2: If no RAG results, try web search
             logger.info(f"No RAG results found, trying web search for query: {query[:50]}...")
-            web_results = await self._web_search(query, max_chunks)
+            web_results = await self._web_search(optimized_query, max_chunks)
 
             if web_results:
                 # Convert web results to context chunks
@@ -562,6 +575,23 @@ Sources: [list documentation sources]"""
         context_chunks = []
         context_metadata = []
         web_sources = []
+        cache_hit = False
+
+        # Check cache first for non-streaming requests (streaming uses cache for context only)
+        if request.use_context and not request.stream:
+            cache = get_query_response_cache()
+            cached_response = cache.get(request.query)
+            if cached_response:
+                logger.info(f"Cache HIT for query: {request.query[:50]}...")
+                cache_hit = True
+                return RAGChatResponse(
+                    response=cached_response.get("response", ""),
+                    context_used=cached_response.get("context_used", []),
+                    context_metadata=cached_response.get("context_metadata", []),
+                    web_sources=cached_response.get("web_sources", []),
+                    model=cached_response.get("model", "cached"),
+                    context_retrieved=cached_response.get("context_retrieved", False),
+                )
 
         if request.use_context:
             context_chunks, context_metadata = await self.retrieve_context(request.query, request.max_context_chunks)
@@ -631,7 +661,8 @@ Sources: [list documentation sources]"""
                     preferred_instance,
                 ),
             )  # type: ignore
-            return RAGChatResponse(
+
+            rag_response = RAGChatResponse(
                 response=response_text,
                 context_used=context_chunks,
                 context_metadata=context_metadata,
@@ -639,6 +670,25 @@ Sources: [list documentation sources]"""
                 model=selected_model,
                 context_retrieved=len(context_chunks) > 0,
             )
+
+            # Cache response for future queries (unless from cache already)
+            if not cache_hit and request.use_context:
+                try:
+                    cache_rag_response(
+                        request.query,
+                        {
+                            "response": response_text,
+                            "context_used": context_chunks,
+                            "context_metadata": context_metadata,
+                            "web_sources": web_sources,
+                            "model": selected_model,
+                            "context_retrieved": len(context_chunks) > 0,
+                        },
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to cache response: {e}")
+
+            return rag_response
 
 
 # Global service instance

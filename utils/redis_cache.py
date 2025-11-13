@@ -18,6 +18,31 @@ logger = logging.getLogger(__name__)
 
 _redis_client: Optional["redis.Redis"] = None
 
+# In-memory fallback for development when Redis is not available.
+import threading
+import time
+
+_mem_store: dict = {}
+_mem_ttl: dict = {}
+_mem_lock = threading.Lock()
+
+
+def _mem_set(key: str, value: str, ttl: int = 0) -> None:
+    with _mem_lock:
+        _mem_store[key] = value
+        _mem_ttl[key] = time.time() + ttl if ttl and ttl > 0 else None
+
+
+def _mem_get(key: str) -> Optional[str]:
+    with _mem_lock:
+        exp = _mem_ttl.get(key)
+        if exp is not None and exp < time.time():
+            # expired
+            _mem_store.pop(key, None)
+            _mem_ttl.pop(key, None)
+            return None
+        return _mem_store.get(key)
+
 
 def get_redis_client() -> Optional["redis.Redis"]:
     """Return a cached Redis client if configuration is present."""
@@ -98,14 +123,16 @@ def cache_decomposed_response(query_hash: str, user_id: int, response_data: dict
         True if cached successfully, False otherwise
     """
     client = get_redis_client()
-    if not client:
-        return False
-
+    key = f"tsa:chat:response:{query_hash}:{user_id}"
     try:
-        key = f"tsa:chat:response:{query_hash}:{user_id}"
         import json
 
-        client.setex(key, ttl, json.dumps(response_data))
+        payload = json.dumps(response_data)
+        if client:
+            client.setex(key, ttl, payload)
+        else:
+            _mem_set(key, payload, ttl)
+
         logger.debug(f"Cached decomposed response: {key} (TTL: {ttl}s)")
         return True
     except RedisError as exc:  # pragma: no cover - network dependent
@@ -124,17 +151,21 @@ def get_decomposed_response(query_hash: str, user_id: int) -> Optional[dict]:
         Cached response dict if found, None otherwise
     """
     client = get_redis_client()
-    if not client:
-        return None
-
     try:
         import json
 
         key = f"tsa:chat:response:{query_hash}:{user_id}"
-        value = client.get(key)
+        if client:
+            value = client.get(key)
+        else:
+            value = _mem_get(key)
+
         if value:
             logger.debug(f"Cache hit for decomposed response: {key}")
-            increment_counter("tsa:chat:cache_hits_decomp")
+            try:
+                increment_counter("tsa:chat:cache_hits_decomp")
+            except Exception:
+                pass
             return json.loads(value)
         return None
     except RedisError as exc:  # pragma: no cover - network dependent
@@ -156,16 +187,21 @@ def cache_sub_request_result(
         True if cached successfully, False otherwise
     """
     client = get_redis_client()
-    if not client:
-        return False
-
+    key = f"tsa:chat:subresp:{sub_request_id}"
     try:
-        key = f"tsa:chat:subresp:{sub_request_id}"
         import json
 
-        client.setex(key, ttl, json.dumps(result_data))
+        payload = json.dumps(result_data)
+        if client:
+            client.setex(key, ttl, payload)
+        else:
+            _mem_set(key, payload, ttl)
+
         logger.debug(f"Cached sub-request result: {key} (TTL: {ttl}s)")
-        increment_counter("tsa:chat:sub_requests_cached")
+        try:
+            increment_counter("tsa:chat:sub_requests_cached")
+        except Exception:
+            pass
         return True
     except RedisError as exc:  # pragma: no cover - network dependent
         logger.warning("Failed to cache sub-request result: %s", exc)
@@ -182,17 +218,21 @@ def get_sub_request_result(sub_request_id: str) -> Optional[dict]:
         Cached result dict if found, None otherwise
     """
     client = get_redis_client()
-    if not client:
-        return None
-
     try:
         import json
 
         key = f"tsa:chat:subresp:{sub_request_id}"
-        value = client.get(key)
+        if client:
+            value = client.get(key)
+        else:
+            value = _mem_get(key)
+
         if value:
             logger.debug(f"Cache hit for sub-request result: {key}")
-            increment_counter("tsa:chat:cache_hits_subreq")
+            try:
+                increment_counter("tsa:chat:cache_hits_subreq")
+            except Exception:
+                pass
             return json.loads(value)
         return None
     except RedisError as exc:  # pragma: no cover - network dependent
@@ -212,12 +252,12 @@ def cache_complexity_classification(query_hash: str, complexity: str, ttl: int =
         True if cached successfully, False otherwise
     """
     client = get_redis_client()
-    if not client:
-        return False
-
+    key = f"tsa:chat:complexity:{query_hash}"
     try:
-        key = f"tsa:chat:complexity:{query_hash}"
-        client.setex(key, ttl, complexity)
+        if client:
+            client.setex(key, ttl, complexity)
+        else:
+            _mem_set(key, complexity, ttl)
         logger.debug(f"Cached complexity classification: {key} = {complexity} (TTL: {ttl}s)")
         return True
     except RedisError as exc:  # pragma: no cover - network dependent
@@ -235,12 +275,12 @@ def get_complexity_classification(query_hash: str) -> Optional[str]:
         Complexity string (simple/moderate/complex) if found, None otherwise
     """
     client = get_redis_client()
-    if not client:
-        return None
-
     try:
         key = f"tsa:chat:complexity:{query_hash}"
-        value = client.get(key)
+        if client:
+            value = client.get(key)
+        else:
+            value = _mem_get(key)
         if value:
             logger.debug(f"Cache hit for complexity classification: {key}")
             return value

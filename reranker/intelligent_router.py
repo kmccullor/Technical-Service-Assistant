@@ -47,7 +47,7 @@ class ModelCapability(BaseModel):
 
     name: str
     strengths: List[QuestionType]
-    context_length: int = 4096
+    context_length: int = 32768
     speed_tier: int = Field(1, ge=1, le=3, description="1=fast, 2=medium, 3=slow")
     quality_tier: int = Field(1, ge=1, le=3, description="1=basic, 2=good, 3=excellent")
 

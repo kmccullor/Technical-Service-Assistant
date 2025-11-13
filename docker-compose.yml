@@ -193,9 +193,12 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - REDIS_URL=redis://redis-cache:6379/0
+      - ENABLE_QUERY_RESPONSE_CACHE=true
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
       - EMBEDDING_MODEL=nomic-embed-text:v1.5
       - LOG_LEVEL=info
+      - ENABLE_QUESTION_DECOMPOSITION=true
       - ENABLE_PYDANTIC_AGENT=${ENABLE_PYDANTIC_AGENT}
       - PYDANTIC_AGENT_MODEL=${PYDANTIC_AGENT_MODEL}
       - ENABLE_A2A_AGENT=${ENABLE_A2A_AGENT}
