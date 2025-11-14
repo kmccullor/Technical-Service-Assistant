@@ -140,7 +140,7 @@ System automatically falls back to Phase 1 behavior.
 ## Key Files
 
 - **Implementation**: `PHASE2_IMPLEMENTATION_COMPLETE.md`
-- **Architecture**: `ARCHITECTURE.md` 
+- **Architecture**: `ARCHITECTURE.md`
 - **Hybrid Search Code**: `scripts/analysis/hybrid_search.py`
 - **A/B Test Harness**: `scripts/analysis/run_hybrid_ab_test.py`
 - **Configuration**: `config.py`, `docker-compose.yml`

@@ -17,17 +17,12 @@ from pathlib import Path
 sys.path.append("/app")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Setup basic logging without the containerized logging system
+# Setup logging
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f'archive_reprocessor_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'),
-    ],
-)
+from utils.logging_config import configure_root_logging
+
+configure_root_logging(log_file=f'archive_reprocessor_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 logger = logging.getLogger("archive_reprocessor")
 
 # Try to import settings, fall back to manual config if needed

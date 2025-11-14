@@ -12,8 +12,9 @@ from pathlib import Path
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import get_settings
 import psycopg2
+
+from config import get_settings
 
 
 def get_curated_acronyms():
@@ -33,7 +34,6 @@ def get_curated_acronyms():
         "GAN": "Generative Adversarial Network",
         "RL": "Reinforcement Learning",
         "DL": "Deep Learning",
-
         # Software Development
         "API": "Application Programming Interface",
         "REST": "Representational State Transfer",
@@ -49,7 +49,6 @@ def get_curated_acronyms():
         "DevOps": "Development Operations",
         "TDD": "Test-Driven Development",
         "BDD": "Behavior-Driven Development",
-
         # Web Technologies
         "HTTP": "Hypertext Transfer Protocol",
         "HTTPS": "Hypertext Transfer Protocol Secure",
@@ -60,7 +59,6 @@ def get_curated_acronyms():
         "AJAX": "Asynchronous JavaScript and XML",
         "SPA": "Single Page Application",
         "PWA": "Progressive Web Application",
-
         # Databases
         "DB": "Database",
         "RDBMS": "Relational Database Management System",
@@ -70,7 +68,6 @@ def get_curated_acronyms():
         "OLTP": "Online Transaction Processing",
         "OLAP": "Online Analytical Processing",
         "ETL": "Extract, Transform, Load",
-
         # Cloud Computing
         "IaaS": "Infrastructure as a Service",
         "PaaS": "Platform as a Service",
@@ -80,7 +77,6 @@ def get_curated_acronyms():
         "Azure": "Microsoft Azure",
         "Docker": "Container Platform",
         "Kubernetes": "Container Orchestration System",
-
         # Networking
         "TCP": "Transmission Control Protocol",
         "UDP": "User Datagram Protocol",
@@ -91,7 +87,6 @@ def get_curated_acronyms():
         "WAN": "Wide Area Network",
         "NAT": "Network Address Translation",
         "DHCP": "Dynamic Host Configuration Protocol",
-
         # Security
         "SSL": "Secure Sockets Layer",
         "TLS": "Transport Layer Security",
@@ -101,14 +96,12 @@ def get_curated_acronyms():
         "ACL": "Access Control List",
         "PKI": "Public Key Infrastructure",
         "AES": "Advanced Encryption Standard",
-
         # Data Formats
         "CSV": "Comma-Separated Values",
         "YAML": "YAML Ain't Markup Language",
         "TOML": "Tom's Obvious Minimal Language",
         "PDF": "Portable Document Format",
         "OCR": "Optical Character Recognition",
-
         # Technical Service Assistant specific
         "RNI": "Radio Network Interface",
         "AMI": "Advanced Metering Infrastructure",
@@ -147,17 +140,19 @@ def populate_acronyms_database():
             port=settings.db_port,
             database=settings.db_name,
             user=settings.db_user,
-            password=settings.db_password
+            password=settings.db_password,
         )
         cursor = conn.cursor()
 
         # Check if acronyms table exists
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT EXISTS (
                 SELECT FROM information_schema.tables
                 WHERE table_name = 'acronyms'
             )
-        """)
+        """
+        )
         result = cursor.fetchone()
         table_exists = result[0] if result else False
 
@@ -179,16 +174,19 @@ def populate_acronyms_database():
                 continue
 
             # Insert new acronym
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO acronyms (acronym, definition, confidence_score, source_documents, is_verified)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (
-                acronym,
-                definition,
-                0.9,  # High confidence for curated acronyms
-                ['curated_technical_terms'],  # Source document
-                True   # Mark as verified
-            ))
+            """,
+                (
+                    acronym,
+                    definition,
+                    0.9,  # High confidence for curated acronyms
+                    ["curated_technical_terms"],  # Source document
+                    True,  # Mark as verified
+                ),
+            )
             inserted_count += 1
 
         conn.commit()

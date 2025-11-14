@@ -1,6 +1,6 @@
 # Phase 2 Implementation Complete
-**Date**: November 13, 2025  
-**Status**: ✅ Implementation & Validation Complete  
+**Date**: November 13, 2025
+**Status**: ✅ Implementation & Validation Complete
 **Session**: Continued from Phase 1 Deployment
 
 ---
@@ -145,21 +145,21 @@ ENABLE_QUERY_RESPONSE_CACHE=true
 ## Technical Challenges & Resolutions
 
 ### Challenge 1: Database Schema Mismatch
-**Problem**: `hybrid_search.py` expected separate `embeddings` table; project uses embedded vectors  
-**Root Cause**: Script was built before schema consolidation  
-**Solution**: Updated `build_index()` to query `document_chunks.embedding` column directly  
+**Problem**: `hybrid_search.py` expected separate `embeddings` table; project uses embedded vectors
+**Root Cause**: Script was built before schema consolidation
+**Solution**: Updated `build_index()` to query `document_chunks.embedding` column directly
 **Result**: ✅ A/B harness now runs successfully
 
 ### Challenge 2: Ollama URL Resolution Inside Container
-**Problem**: "Ollama not found" - localhost resolution failed inside container  
-**Root Cause**: Container can't resolve `localhost` to Ollama service  
-**Solution**: Hardcoded `http://ollama-server-1:11434` as primary endpoint with fallback  
+**Problem**: "Ollama not found" - localhost resolution failed inside container
+**Root Cause**: Container can't resolve `localhost` to Ollama service
+**Solution**: Hardcoded `http://ollama-server-1:11434` as primary endpoint with fallback
 **Result**: ✅ Vector embedding generation now works in container
 
 ### Challenge 3: Incorrect Model Name
-**Problem**: Model "nomic-embed-text" not found (404)  
-**Root Cause**: Script was stripping `:v1.5` suffix from full model name  
-**Solution**: Use full model name `nomic-embed-text:v1.5` in Ollama API calls  
+**Problem**: Model "nomic-embed-text" not found (404)
+**Root Cause**: Script was stripping `:v1.5` suffix from full model name
+**Solution**: Use full model name `nomic-embed-text:v1.5` in Ollama API calls
 **Result**: ✅ Embedding model loading successful
 
 ---

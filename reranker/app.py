@@ -26,12 +26,14 @@ from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
+from utils.logging_config import configure_root_logging
+
+configure_root_logging()
+
 logger = logging.getLogger(__name__)
 
 print("Starting app.py execution")
 
-# Import auth endpoints
-from config import get_settings
 from reranker.cache import get_db_connection
 from reranker.question_decomposer import QuestionDecomposer
 from reranker.rag_chat import (
@@ -48,6 +50,9 @@ from utils.redis_cache import (
     get_decomposed_response,
     get_sub_request_result,
 )
+
+# Import auth endpoints
+from .reranker_config import get_settings
 
 try:
     from pydantic_agent import (
@@ -1200,63 +1205,6 @@ async def auth_health():
         }
 
 
-print("Defining /api/ollama-health endpoint")
-
-
-@app.get("/api/ollama-health")
-async def ollama_health():
-    """Check health status of all Ollama instances with graceful error handling."""
-    try:
-        # Import here to avoid circular imports
-        from intelligent_router import intelligent_router
-
-        await intelligent_router.refresh_health_status_force()
-
-        status_summary = []
-        for instance in intelligent_router.instances:
-            status_summary.append(
-                {
-                    "name": instance.name,
-                    "url": instance.url,
-                    "healthy": instance.healthy,
-                    "response_time": f"{instance.response_time:.2f}s" if instance.response_time > 0 else "unknown",
-                    "load_score": f"{instance.load_score:.2f}" if instance.load_score > 0 else "unknown",
-                    "last_check": instance.last_check,
-                }
-            )
-
-        healthy_count = sum(1 for i in intelligent_router.instances if i.healthy)
-
-        # Determine overall status with graceful degradation
-        if healthy_count == len(intelligent_router.instances):
-            overall_status = "healthy"
-            message = "All Ollama instances are healthy"
-        elif healthy_count > 0:
-            overall_status = "degraded"
-            message = f"{healthy_count}/{len(intelligent_router.instances)} instances are healthy"
-        else:
-            overall_status = "unhealthy"
-            message = "No Ollama instances are available"
-
-        return {
-            "status": overall_status,
-            "message": message,
-            "healthy_instances": healthy_count,
-            "total_instances": len(intelligent_router.instances),
-            "instances": status_summary,
-        }
-    except Exception as e:
-        # Graceful degradation - return status indicating health check failure
-        return {
-            "status": "unknown",
-            "message": "Unable to check Ollama health",
-            "error": str(e),
-            "healthy_instances": 0,
-            "total_instances": 0,
-            "instances": [],
-        }
-
-
 @app.get("/api/cache-stats")
 async def cache_stats(authorization: Optional[str] = Header(None)):
     """Get query-response cache statistics for monitoring."""
@@ -1357,12 +1305,6 @@ async def optimization_stats(authorization: Optional[str] = Header(None)):
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }
-
-
-@app.get("/api/auth/me", response_model=UserResponse)
-def get_current_user(authorization: Optional[str] = Header(None)):
-    """Get current user profile (mock implementation)."""
-    return _user_from_authorization(authorization)
 
 
 # Admin endpoints for user and role management

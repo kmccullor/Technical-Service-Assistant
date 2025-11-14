@@ -50,7 +50,7 @@ curl http://localhost:8008/api/load-balancer-stats | jq .
 curl http://localhost:8008/api/advanced-cache-stats | jq .
 
 # Watch logs
-docker logs -f reranker | grep -E "(cache|balancer|load)" 
+docker logs -f reranker | grep -E "(cache|balancer|load)"
 ```
 
 ### 3. Generate Test Traffic
@@ -86,18 +86,18 @@ EOF
   - Should see requests across multiple instances
   - No single instance at 100% utilization
   - No unhealthy instances
-  
+
 ✓ Cache Performance
   - Embedding cache hit rate: 70-80% expected
-  - Inference cache hit rate: 40-50% expected  
+  - Inference cache hit rate: 40-50% expected
   - Chunks cache hit rate: 90%+ expected
   - Overall: trending toward 95%+
-  
+
 ✓ Latency
   - P50 should be <100ms
   - P95 should be <130ms
   - P99 should be <200ms
-  
+
 ✓ Throughput
   - Should see 3x improvement (30+ QPS)
   - Concurrent users should increase to 30+
@@ -309,6 +309,6 @@ For issues or questions about Phase 3 Tier 1:
 
 ---
 
-**Last Updated:** November 13, 2025  
-**Phase:** Phase 3 Tier 1 - Production Deployment  
+**Last Updated:** November 13, 2025
+**Phase:** Phase 3 Tier 1 - Production Deployment
 **Status:** ✅ LIVE

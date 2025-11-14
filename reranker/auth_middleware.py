@@ -3,10 +3,9 @@ FastAPI authentication middleware and decorators for JWT and API key authenticat
 """
 
 import logging
-from typing import Callable, Optional
+from typing import Callable
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
 
 from reranker.jwt_auth import (
     AuthenticationMiddleware,
@@ -62,13 +61,10 @@ async def require_role(*allowed_roles: str) -> Callable:
         Dependency function
     """
 
-    async def check_role(
-        request: Request, user: User = Depends(verify_jwt_token)
-    ) -> None:
+    async def check_role(request: Request, user: User = Depends(verify_jwt_token)) -> None:
         if user.role not in allowed_roles:
             logger.warning(
-                f"Insufficient permissions: {user.email} (role: {user.role}) "
-                f"tried to access restricted endpoint"
+                f"Insufficient permissions: {user.email} (role: {user.role}) " f"tried to access restricted endpoint"
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -96,8 +92,7 @@ async def verify_rate_limit(request: Request, user: User) -> None:
 
     if not allowed:
         logger.warning(
-            f"Rate limit exceeded for user {user.email} "
-            f"({status_dict['current']}/{status_dict['limit']})"
+            f"Rate limit exceeded for user {user.email} " f"({status_dict['current']}/{status_dict['limit']})"
         )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -123,8 +118,7 @@ async def check_endpoint_permission(request: Request, user: User) -> None:
     rbac = RoleBasedAccessControl()
     if not rbac.has_permission(user.role, request.url.path):
         logger.warning(
-            f"Insufficient permissions: {user.email} (role: {user.role}) "
-            f"tried to access {request.url.path}"
+            f"Insufficient permissions: {user.email} (role: {user.role}) " f"tried to access {request.url.path}"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -159,6 +153,7 @@ class JWTAuthMiddleware:
 
         # Create a request object for processing
         from starlette.requests import Request
+
         request = Request(scope, receive)
 
         # Add user info to request state if authenticated
@@ -185,11 +180,13 @@ class JWTAuthMiddleware:
                     role=user_info.role,
                 )
                 headers = list(message.get("headers", []))
-                headers.extend([
-                    [b"X-RateLimit-Limit", str(status_dict["limit"]).encode()],
-                    [b"X-RateLimit-Remaining", str(status_dict["remaining"]).encode()],
-                    [b"X-RateLimit-Reset", str(status_dict["reset_at"]).encode()],
-                ])
+                headers.extend(
+                    [
+                        [b"X-RateLimit-Limit", str(status_dict["limit"]).encode()],
+                        [b"X-RateLimit-Remaining", str(status_dict["remaining"]).encode()],
+                        [b"X-RateLimit-Reset", str(status_dict["reset_at"]).encode()],
+                    ]
+                )
                 message["headers"] = headers
             await original_send(message)
 

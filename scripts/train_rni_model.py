@@ -21,6 +21,7 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import get_settings
+from utils.logging_config import configure_root_logging
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -292,7 +293,7 @@ class RNIModelTrainer:
 
 def main():
     """Main training pipeline."""
-    logging.basicConfig(level=logging.INFO)
+    configure_root_logging()
 
     trainer = RNIModelTrainer()
 

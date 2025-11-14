@@ -3,27 +3,26 @@
 Quick performance test for Technical Service Assistant improvements
 """
 
-import requests
 import json
-import time
 import statistics
-from typing import List, Dict, Any
+import time
+from typing import Any, Dict
+
+import requests
+
 
 def test_routing_performance(num_tests: int = 10) -> Dict[str, Any]:
     """Test intelligent routing performance."""
     print(f"Testing routing performance with {num_tests} requests...")
 
     url = "http://localhost:8008/api/intelligent-route"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer mock_access_token_admin@example.com"
-    }
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
 
     test_questions = [
         "What is RNI?",
         "How do I configure device managers?",
         "Write Python code to parse CSV",
-        "Solve: 2x + 3 = 7"
+        "Solve: 2x + 3 = 7",
     ]
 
     results = []
@@ -40,26 +39,22 @@ def test_routing_performance(num_tests: int = 10) -> Dict[str, Any]:
 
             if response.status_code == 200:
                 result = response.json()
-                results.append({
-                    "success": True,
-                    "response_time": req_end - req_start,
-                    "question": question,
-                    "model": result.get('selected_model'),
-                    "question_type": result.get('question_type')
-                })
+                results.append(
+                    {
+                        "success": True,
+                        "response_time": req_end - req_start,
+                        "question": question,
+                        "model": result.get("selected_model"),
+                        "question_type": result.get("question_type"),
+                    }
+                )
             else:
-                results.append({
-                    "success": False,
-                    "response_time": req_end - req_start,
-                    "error": f"HTTP {response.status_code}"
-                })
+                results.append(
+                    {"success": False, "response_time": req_end - req_start, "error": f"HTTP {response.status_code}"}
+                )
         except Exception as e:
             req_end = time.time()
-            results.append({
-                "success": False,
-                "response_time": req_end - req_start,
-                "error": str(e)
-            })
+            results.append({"success": False, "response_time": req_end - req_start, "error": str(e)})
 
     total_time = time.time() - start_time
 
@@ -75,18 +70,16 @@ def test_routing_performance(num_tests: int = 10) -> Dict[str, Any]:
         "avg_response_time": statistics.mean(response_times) if response_times else 0,
         "min_response_time": min(response_times) if response_times else 0,
         "max_response_time": max(response_times) if response_times else 0,
-        "results": results
+        "results": results,
     }
+
 
 def test_chat_simple_performance(num_tests: int = 5) -> Dict[str, Any]:
     """Test simple chat performance."""
     print(f"Testing chat performance with {num_tests} requests...")
 
     url = "http://localhost:8008/api/chat"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer mock_access_token_admin@example.com"
-    }
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
 
     results = []
     start_time = time.time()
@@ -103,25 +96,17 @@ def test_chat_simple_performance(num_tests: int = 5) -> Dict[str, Any]:
                 content_length = len(response.content)
                 req_end = time.time()
 
-                results.append({
-                    "success": True,
-                    "response_time": req_end - req_start,
-                    "content_length": content_length
-                })
+                results.append(
+                    {"success": True, "response_time": req_end - req_start, "content_length": content_length}
+                )
             else:
                 req_end = time.time()
-                results.append({
-                    "success": False,
-                    "response_time": req_end - req_start,
-                    "error": f"HTTP {response.status_code}"
-                })
+                results.append(
+                    {"success": False, "response_time": req_end - req_start, "error": f"HTTP {response.status_code}"}
+                )
         except Exception as e:
             req_end = time.time()
-            results.append({
-                "success": False,
-                "response_time": req_end - req_start,
-                "error": str(e)
-            })
+            results.append({"success": False, "response_time": req_end - req_start, "error": str(e)})
 
     total_time = time.time() - start_time
 
@@ -137,8 +122,9 @@ def test_chat_simple_performance(num_tests: int = 5) -> Dict[str, Any]:
         "avg_response_time": statistics.mean(response_times) if response_times else 0,
         "min_response_time": min(response_times) if response_times else 0,
         "max_response_time": max(response_times) if response_times else 0,
-        "results": results
+        "results": results,
     }
+
 
 def main():
     print("🚀 Quick Performance Test for Technical Service Assistant")
@@ -168,26 +154,26 @@ def main():
 
     # Overall assessment
     print("\n🎯 Performance Assessment:")
-    if routing_results['success_rate'] >= 95:
+    if routing_results["success_rate"] >= 95:
         print("  ✅ Excellent routing reliability")
-    elif routing_results['success_rate'] >= 80:
+    elif routing_results["success_rate"] >= 80:
         print("  ⚠️ Good routing reliability")
     else:
         print("  ❌ Poor routing reliability")
 
-    if routing_results['avg_response_time'] < 0.5:
+    if routing_results["avg_response_time"] < 0.5:
         print("  ✅ Fast routing responses")
-    elif routing_results['avg_response_time'] < 2.0:
+    elif routing_results["avg_response_time"] < 2.0:
         print("  ⚠️ Moderate routing speed")
     else:
         print("  ❌ Slow routing responses")
 
-    if chat_results['success_rate'] >= 90:
+    if chat_results["success_rate"] >= 90:
         print("  ✅ Good chat reliability")
     else:
         print("  ❌ Poor chat reliability")
 
-    if chat_results['avg_response_time'] < 5.0:
+    if chat_results["avg_response_time"] < 5.0:
         print("  ✅ Reasonable chat response times")
     else:
         print("  ❌ Slow chat responses")
@@ -196,11 +182,10 @@ def main():
 
     # Save results
     with open("quick_performance_test.json", "w") as f:
-        json.dump({
-            "routing": routing_results,
-            "chat": chat_results,
-            "timestamp": time.time()
-        }, f, indent=2, default=str)
+        json.dump(
+            {"routing": routing_results, "chat": chat_results, "timestamp": time.time()}, f, indent=2, default=str
+        )
+
 
 if __name__ == "__main__":
     main()

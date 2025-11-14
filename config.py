@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import logging
 import os
+from functools import lru_cache
 from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,6 @@ try:  # pragma: no cover - simple optional side-effect
 except Exception:
     # Silent failure acceptable; config still works with environment variables / docker-compose
     pass
-from functools import lru_cache
 
 
 def _get_bool(name: str, default: bool) -> bool:

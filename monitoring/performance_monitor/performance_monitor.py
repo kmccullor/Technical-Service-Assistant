@@ -41,12 +41,10 @@ import requests
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest, start_http_server
 
 from config import get_settings
+from utils.logging_config import configure_root_logging
 
+configure_root_logging()
 LOG = logging.getLogger("performance_monitor")
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s level=%(levelname)s msg=%(message)s",
-)
 
 # ---------------------------------------------------------------------------
 # Registry & Metric definitions

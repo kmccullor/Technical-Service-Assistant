@@ -702,4 +702,6 @@ def add_intelligent_routing_endpoints(app):
     app.add_api_route(
         "/api/intelligent-route", intelligent_route, methods=["POST"], response_model=ModelSelectionResponse
     )
-    app.add_api_route("/api/ollama-health", ollama_health, methods=["GET"], operation_id="intelligent_router_ollama_health")
+    app.add_api_route(
+        "/api/ollama-health", ollama_health, methods=["GET"], operation_id="intelligent_router_ollama_health"
+    )

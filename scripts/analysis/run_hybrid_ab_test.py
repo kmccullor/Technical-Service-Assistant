@@ -11,7 +11,7 @@ import json
 import os
 import sys
 import time
-from typing import List, Dict
+from typing import Dict, List
 
 # Ensure project root is on path so imports from scripts/analysis work when run directly
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -58,6 +58,7 @@ def run_ab_test(queries: List[str], top_k: int, alphas: List[float]) -> Dict:
         try:
             import psycopg2
             from psycopg2.extras import RealDictCursor
+
             from config import get_settings
 
             settings = get_settings()
@@ -88,13 +89,13 @@ def run_ab_test(queries: List[str], top_k: int, alphas: List[float]) -> Dict:
 
             conn.close()
 
-            hs.document_texts = [row['text'] for row in rows]
+            hs.document_texts = [row["text"] for row in rows]
             hs.document_metadata = [
                 {
-                    'id': row['id'],
-                    'document_name': row.get('document_name'),
-                    'metadata': {'document_type': row.get('document_type')},
-                    'embedding': row.get('embedding'),
+                    "id": row["id"],
+                    "document_name": row.get("document_name"),
+                    "metadata": {"document_type": row.get("document_type")},
+                    "embedding": row.get("embedding"),
                 }
                 for row in rows
             ]
@@ -173,6 +174,8 @@ if __name__ == "__main__":
     print("\nA/B test complete. Summary:")
     for alpha_key, info in result["results"].items():
         agg = info["aggregate"]
-        print(f"{alpha_key}: vector_mean={agg['vector_mean']:.3f}, bm25_mean={agg['bm25_mean']:.3f}, hybrid_mean={agg['hybrid_mean']:.3f}")
+        print(
+            f"{alpha_key}: vector_mean={agg['vector_mean']:.3f}, bm25_mean={agg['bm25_mean']:.3f}, hybrid_mean={agg['hybrid_mean']:.3f}"
+        )
 
     print(f"Results written to: {out_path}")

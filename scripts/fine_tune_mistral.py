@@ -25,6 +25,8 @@ from transformers import (
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.logging_config import configure_root_logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -197,7 +199,7 @@ MESSAGE "You are an expert in RNI systems, gas metering technology, and utility 
 
 def main():
     """Main fine-tuning pipeline."""
-    logging.basicConfig(level=logging.INFO)
+    configure_root_logging()
 
     # Configuration
     training_data_path = "training_data/rni_training_tuned.jsonl"

@@ -11,6 +11,10 @@ import logging
 import os
 from pathlib import Path
 
+from utils.logging_config import configure_root_logging
+
+configure_root_logging()
+
 logger = logging.getLogger(__name__)
 
 
@@ -191,7 +195,6 @@ if __name__ == "__main__":
 
 def main():
     """Create RNI-trained Ollama model."""
-    logging.basicConfig(level=logging.INFO)
 
     # Create model directory
     model_dir = Path("./models/rni-mistral")

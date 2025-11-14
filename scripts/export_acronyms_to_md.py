@@ -4,14 +4,15 @@ Export acronyms from the database to ACRONYM_INDEX.md file.
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import get_settings
 import psycopg2
+
+from config import get_settings
 
 
 def export_acronyms_to_markdown():
@@ -26,16 +27,18 @@ def export_acronyms_to_markdown():
             port=settings.db_port,
             database=settings.db_name,
             user=settings.db_user,
-            password=settings.db_password
+            password=settings.db_password,
         )
         cursor = conn.cursor()
 
         # Get all acronyms ordered by acronym
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT acronym, definition, confidence_score, source_documents, is_verified
             FROM acronyms
             ORDER BY acronym
-        """)
+        """
+        )
 
         acronyms = cursor.fetchall()
 

@@ -44,8 +44,8 @@ stub_settings = types.SimpleNamespace(
     web_cache_ttl_seconds=0,
     web_cache_max_rows=0,
 )
-stub_config = types.SimpleNamespace(get_settings=lambda: stub_settings)
-stub_logging_config = types.SimpleNamespace(setup_logging=_noop)
+stub_config = types.SimpleNamespace(get_settings=lambda: stub_settings, get_model_num_ctx=lambda model_name=None: 4096)
+stub_logging_config = types.SimpleNamespace(setup_logging=_noop, configure_root_logging=_noop)
 
 with patch.dict(
     "sys.modules",
@@ -54,7 +54,7 @@ with patch.dict(
         "psycopg2": mock_psycopg2,
         "psycopg2.extras": mock_psycopg2_extras,
         "FlagEmbedding": types.SimpleNamespace(),
-        "prometheus_client": types.SimpleNamespace(),
+
         "cache": mock_cache,
         "query_classifier": types.SimpleNamespace(),
         "temp_document_processor": types.SimpleNamespace(),

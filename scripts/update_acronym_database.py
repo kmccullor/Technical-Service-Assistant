@@ -8,7 +8,6 @@ This script:
 3. Populates the database acronyms table with the extracted data
 """
 
-import os
 import sys
 from pathlib import Path
 from typing import Dict, Set
@@ -16,10 +15,10 @@ from typing import Dict, Set
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from docling_processor.acronym_extractor import AcronymExtractor, save_acronyms_to_file, load_existing_acronyms
-from config import get_settings
 import psycopg2
-from psycopg2.extras import RealDictCursor
+
+from config import get_settings
+from docling_processor.acronym_extractor import AcronymExtractor, save_acronyms_to_file
 
 
 def extract_acronyms_from_documents() -> tuple[Dict[str, str], Set[str]]:
@@ -65,7 +64,7 @@ def extract_acronyms_from_documents() -> tuple[Dict[str, str], Set[str]]:
     md_files = list(Path("docs").rglob("*.md"))
     for md_file in md_files[:10]:  # Limit to first 10 to avoid too much processing
         try:
-            with open(md_file, 'r', encoding='utf-8') as f:
+            with open(md_file, "r", encoding="utf-8") as f:
                 text = f.read()
 
             acronyms = extractor.extract_from_text(text, md_file.name)
@@ -96,7 +95,7 @@ def populate_database(acronyms: Dict[str, str], source_docs: Set[str]):
             port=settings.db_port,
             database=settings.db_name,
             user=settings.db_user,
-            password=settings.db_password
+            password=settings.db_password,
         )
         cursor = conn.cursor()
 
@@ -113,21 +112,27 @@ def populate_database(acronyms: Dict[str, str], source_docs: Set[str]):
             if acronym in existing_acronyms:
                 # Update existing acronym if definition is different/better
                 if existing_acronyms[acronym] != definition:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         UPDATE acronyms
                         SET definition = %s,
                             source_documents = array_cat(source_documents, %s),
                             last_updated_at = now(),
                             usage_count = usage_count + 1
                         WHERE acronym = %s
-                    """, (definition, source_docs_array, acronym))
+                    """,
+                        (definition, source_docs_array, acronym),
+                    )
                     updated_count += 1
             else:
                 # Insert new acronym
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO acronyms (acronym, definition, source_documents, confidence_score)
                     VALUES (%s, %s, %s, %s)
-                """, (acronym, definition, source_docs_array, 0.8))  # Higher confidence for extracted acronyms
+                """,
+                    (acronym, definition, source_docs_array, 0.8),
+                )  # Higher confidence for extracted acronyms
                 inserted_count += 1
 
         conn.commit()

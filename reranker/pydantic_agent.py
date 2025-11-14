@@ -90,6 +90,7 @@ class RagProxyModel(Model):
             model="rni-mistral",
             temperature=(model_settings or {}).get("temperature", 0.2),
             max_tokens=(model_settings or {}).get("max_tokens", 500),
+            stream=False,
         )
         rag_response = await self._rag_service.chat(rag_request)
         payload_dict = ChatAgentOutput.from_rag_response(rag_response).model_dump()
@@ -203,6 +204,7 @@ async def run_pydantic_agent_chat(user_prompt: str, deps: ChatAgentDeps) -> RAGC
             model="rni-mistral",
             temperature=0.2,
             max_tokens=500,
+            stream=False,
         )
         return await deps.rag_service.chat(fallback_request)
 

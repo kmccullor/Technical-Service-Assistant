@@ -14,7 +14,9 @@ from typing import Any, Dict, List
 
 import httpx
 
-logging.basicConfig(level=logging.INFO)
+from utils.logging_config import configure_root_logging
+
+configure_root_logging()
 logger = logging.getLogger(__name__)
 
 

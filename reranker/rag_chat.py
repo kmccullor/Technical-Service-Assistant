@@ -20,7 +20,6 @@ from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
 from config import get_model_num_ctx
-from .reranker_config import get_settings
 
 # Advanced multi-layer caching for embeddings and inference
 from reranker.advanced_cache import get_advanced_cache
@@ -38,6 +37,8 @@ from reranker.query_optimizer import optimize_query
 from reranker.query_response_cache import cache_rag_response, get_query_response_cache
 from scripts.analysis.hybrid_search import HybridSearch
 from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
+
+from .reranker_config import get_settings
 
 # Setup basic logging
 logger = logging.getLogger(__name__)
@@ -808,9 +809,13 @@ Sources: [list documentation sources]"""
         context_length: int = 4096
 
         if model_value in {"", "rni-mistral", "auto"}:
-            selected_model, preferred_instance, question_type, complexity, context_length = await self._determine_model_and_instance(
-                request.query
-            )
+            (
+                selected_model,
+                preferred_instance,
+                question_type,
+                complexity,
+                context_length,
+            ) = await self._determine_model_and_instance(request.query)
         else:
             selected_model = request.model
             question_type = intelligent_router.classify_question(request.query)
@@ -826,7 +831,9 @@ Sources: [list documentation sources]"""
         max_chunks_based_on_context = max(1, (context_length - reserved_tokens) // estimated_tokens_per_chunk)
         effective_max_chunks = min(request.max_context_chunks, max_chunks_based_on_context)
 
-        logger.info(f"Model {selected_model} has {context_length} token context, allowing max {effective_max_chunks} chunks")
+        logger.info(
+            f"Model {selected_model} has {context_length} token context, allowing max {effective_max_chunks} chunks"
+        )
 
         if request.use_context:
             context_chunks, context_metadata = await self.retrieve_context(request.query, effective_max_chunks)

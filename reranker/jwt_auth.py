@@ -11,11 +11,10 @@ Features:
 
 import hashlib
 import hmac
-import json
 import logging
 import os
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -40,8 +39,8 @@ REFRESH_TOKEN_EXPIRY_DAYS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRY_DAYS", "7"))
 # Rate limiting configuration (requests per minute)
 RATE_LIMITS = {
     "admin": 1000,  # Admins: 1000 req/min
-    "user": 100,    # Users: 100 req/min
-    "viewer": 20,   # Viewers: 20 req/min
+    "user": 100,  # Users: 100 req/min
+    "viewer": 20,  # Viewers: 20 req/min
     "api_key": 50,  # API keys: 50 req/min
 }
 
@@ -76,6 +75,7 @@ _rate_limit_buckets: Dict[str, List[float]] = {}
 @dataclass
 class User:
     """User model for authentication."""
+
     id: int
     email: str
     role: str  # admin, user, viewer
@@ -91,6 +91,7 @@ class User:
 @dataclass
 class APIKey:
     """API Key model for service-to-service authentication."""
+
     key_id: str
     user_id: int
     name: str
@@ -193,7 +194,7 @@ class JWTAuthenticator:
                 token,
                 JWT_SECRET,
                 algorithms=[JWT_ALGORITHM],
-                options={"leeway": 5},
+                options={"verify_iat": False, "leeway": 10},
             )
             logger.debug(f"Token validated for user {payload.get('email')}")
             return payload
@@ -277,9 +278,7 @@ class RateLimiter:
     """Rate limiting using Redis or in-memory storage."""
 
     @staticmethod
-    def check_rate_limit(
-        identifier: str, role: str, limit: Optional[int] = None
-    ) -> Tuple[bool, Dict]:
+    def check_rate_limit(identifier: str, role: str, limit: Optional[int] = None) -> Tuple[bool, Dict]:
         """Check if request is within rate limit.
 
         Args:

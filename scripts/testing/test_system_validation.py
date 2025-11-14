@@ -14,8 +14,10 @@ from typing import Any, Dict, List
 import psycopg2
 import requests
 
+from utils.logging_config import configure_root_logging
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+configure_root_logging()
 logger = logging.getLogger(__name__)
 
 

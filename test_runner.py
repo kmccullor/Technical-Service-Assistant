@@ -92,7 +92,11 @@ class ComprehensiveTestRunner:
             os.environ["PYTEST_ADDOPTS"] = ""
         elif ring_id == 3:
             # Ring 3: Advanced modules with flexible validation
-            cmd = ["pytest"] + ring_config["test_pattern"].split() + ["-k", "", "--cov-fail-under=0", "-v"]
+            cmd = (
+                ["pytest"]
+                + ring_config["test_pattern"].split()
+                + ["--override-ini=addopts=", "--cov-fail-under=0", "-v"]
+            )
             os.environ["PYTEST_ADDOPTS"] = ""
 
         try:
@@ -154,7 +158,7 @@ class ComprehensiveTestRunner:
 
     def _parse_test_count(self, stdout: str) -> int:
         """Parse total test count from pytest output."""
-        for line in stdout.split("\\n"):
+        for line in stdout.split("\n"):
             if "collected" in line and "items" in line:
                 try:
                     parts = line.split()
@@ -169,15 +173,15 @@ class ComprehensiveTestRunner:
         """Parse passed and failed test counts from pytest output."""
         passed = failed = 0
 
-        for line in stdout.split("\\n"):
+        for line in stdout.split("\n"):
             if "passed" in line or "failed" in line:
                 try:
                     # Look for patterns like "17 passed" or "5 failed, 10 passed"
                     parts = line.split()
                     for i, part in enumerate(parts):
-                        if part == "passed" and i > 0:
+                        if "passed" in part and i > 0:
                             passed = int(parts[i - 1])
-                        elif part == "failed" and i > 0:
+                        elif "failed" in part and i > 0:
                             failed = int(parts[i - 1])
                 except (ValueError, IndexError):
                     continue
@@ -186,7 +190,7 @@ class ComprehensiveTestRunner:
 
     def _parse_coverage(self, stdout: str) -> float:
         """Parse coverage percentage from pytest output."""
-        for line in stdout.split("\\n"):
+        for line in stdout.split("\n"):
             if "TOTAL" in line and "%" in line:
                 try:
                     parts = line.split()

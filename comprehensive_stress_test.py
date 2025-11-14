@@ -5,11 +5,11 @@ Tests Q&A functionality with varying complexity to exercise all models
 """
 
 import json
-import time
-import requests
-import concurrent.futures
-from typing import Any, Dict, List, Tuple
 import random
+import time
+from typing import Any, Dict, Tuple
+
+import requests
 
 # Comprehensive test questions with varying complexity
 COMPREHENSIVE_QA_PAIRS = [
@@ -18,61 +18,50 @@ COMPREHENSIVE_QA_PAIRS = [
         "question": "What is RNI?",
         "expected": "Radio Network Interface - a system for managing AMI networks and devices",
         "complexity": "simple",
-        "expected_model": "factual"
+        "expected_model": "factual",
     },
     {
         "question": "What does AMI stand for?",
         "expected": "Advanced Metering Infrastructure",
         "complexity": "simple",
-        "expected_model": "factual"
+        "expected_model": "factual",
     },
-
     # TECHNICAL (tests technical understanding)
     {
         "question": "How do I configure device managers in RNI?",
         "expected": "Use the Device Manager interfaces for electric, gas, and water meters",
         "complexity": "technical",
-        "expected_model": "technical"
+        "expected_model": "technical",
     },
     {
         "question": "What security features does RNI provide?",
         "expected": "Base station security, device authentication, encryption management",
         "complexity": "technical",
-        "expected_model": "technical"
+        "expected_model": "technical",
     },
-
     # CODE (tests programming capabilities)
     {
         "question": "Write Python code to parse a CSV file",
         "expected": "import csv; with open('file.csv') as f: reader = csv.reader(f)",
         "complexity": "code",
-        "expected_model": "code"
+        "expected_model": "code",
     },
-
     # MATH (tests mathematical reasoning)
-    {
-        "question": "Solve: 2x + 3 = 7",
-        "expected": "x = 2",
-        "complexity": "math",
-        "expected_model": "math"
-    },
-
+    {"question": "Solve: 2x + 3 = 7", "expected": "x = 2", "complexity": "math", "expected_model": "math"},
     # CREATIVE (tests creative writing)
     {
         "question": "Write a short story about a robot learning to paint",
         "expected": "A creative story involving a robot and painting",
         "complexity": "creative",
-        "expected_model": "creative"
-    }
+        "expected_model": "creative",
+    },
 ]
+
 
 def send_question(question: str) -> Tuple[str, float, Dict]:
     """Send a question and return response, timing, and routing info."""
     url = "http://localhost:8008/api/chat"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer mock_access_token_admin@example.com"
-    }
+    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
     payload = {"message": question}
 
     start_time = time.time()
@@ -94,13 +83,13 @@ def send_question(question: str) -> Tuple[str, float, Dict]:
         full_response = ""
         for line in response.iter_lines():
             if line:
-                line = line.decode('utf-8')
-                if line.startswith('data: '):
+                line = line.decode("utf-8")
+                if line.startswith("data: "):
                     try:
                         data = json.loads(line[6:])
-                        if data.get('type') == 'token':
-                            full_response += data.get('token', '')
-                        elif data.get('type') == 'done':
+                        if data.get("type") == "token":
+                            full_response += data.get("token", "")
+                        elif data.get("type") == "done":
                             break  # Stop when we get the done signal
                     except json.JSONDecodeError:
                         continue
@@ -109,6 +98,7 @@ def send_question(question: str) -> Tuple[str, float, Dict]:
 
     end_time = time.time()
     return full_response.strip(), end_time - start_time, routing_info
+
 
 def score_response(response: str, expected: str) -> Dict[str, Any]:
     """Score the response against expected answer."""
@@ -131,35 +121,37 @@ def score_response(response: str, expected: str) -> Dict[str, Any]:
         "recall": recall,
         "exact_match": exact_match,
         "response_length": len(response),
-        "expected_length": len(expected)
+        "expected_length": len(expected),
     }
+
 
 def run_single_test(qa_pair: Dict) -> Dict:
     """Run a single question test."""
     try:
-        response, timing, routing = send_question(qa_pair['question'])
-        scores = score_response(response, qa_pair['expected'])
+        response, timing, routing = send_question(qa_pair["question"])
+        scores = score_response(response, qa_pair["expected"])
 
         return {
-            "question": qa_pair['question'],
-            "expected": qa_pair['expected'],
-            "complexity": qa_pair['complexity'],
-            "expected_model": qa_pair['expected_model'],
+            "question": qa_pair["question"],
+            "expected": qa_pair["expected"],
+            "complexity": qa_pair["complexity"],
+            "expected_model": qa_pair["expected_model"],
             "response": response,
             "timing": timing,
             "routing": routing,
             "scores": scores,
-            "success": True
+            "success": True,
         }
     except Exception as e:
         return {
-            "question": qa_pair['question'],
-            "expected": qa_pair['expected'],
-            "complexity": qa_pair['complexity'],
-            "expected_model": qa_pair['expected_model'],
+            "question": qa_pair["question"],
+            "expected": qa_pair["expected"],
+            "complexity": qa_pair["complexity"],
+            "expected_model": qa_pair["expected_model"],
             "error": str(e),
-            "success": False
+            "success": False,
         }
+
 
 def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
     """Run comprehensive stress test with multiple iterations."""
@@ -186,9 +178,9 @@ def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
             result = run_single_test(qa)
             results.append(result)
 
-            status = "✅" if result.get('success', False) else "❌"
-            complexity = result.get('complexity', 'unknown')
-            timing = result.get('timing', 0) if result.get('success', False) else 0
+            status = "✅" if result.get("success", False) else "❌"
+            complexity = result.get("complexity", "unknown")
+            timing = result.get("timing", 0) if result.get("success", False) else 0
             print(f"Test {i+1:2d}: {status} {complexity} ({timing:.2f}s)")
         all_results.extend(results)
 
@@ -197,8 +189,8 @@ def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
     print("📊 COMPREHENSIVE STRESS TEST RESULTS")
     print("=" * 60)
 
-    successful_tests = [r for r in all_results if r.get('success', False)]
-    failed_tests = [r for r in all_results if not r.get('success', False)]
+    successful_tests = [r for r in all_results if r.get("success", False)]
+    failed_tests = [r for r in all_results if not r.get("success", False)]
 
     print(f"Total Tests: {len(all_results)}")
     print(f"Successful: {len(successful_tests)}")
@@ -209,34 +201,36 @@ def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
     exact_matches = 0
 
     if successful_tests:
-        avg_score = sum(r['scores']['score'] for r in successful_tests) / len(successful_tests)
-        avg_timing = sum(r['timing'] for r in successful_tests) / len(successful_tests)
-        exact_matches = sum(1 for r in successful_tests if r['scores']['exact_match'])
+        avg_score = sum(r["scores"]["score"] for r in successful_tests) / len(successful_tests)
+        avg_timing = sum(r["timing"] for r in successful_tests) / len(successful_tests)
+        exact_matches = sum(1 for r in successful_tests if r["scores"]["exact_match"])
 
         print(f"Average F1 Score: {avg_score:.3f}")
         print(f"Average Response Time: {avg_timing:.2f}s")
-        print(f"Exact Matches: {exact_matches}/{len(successful_tests)} ({exact_matches/len(successful_tests)*100:.1f}%)")
+        print(
+            f"Exact Matches: {exact_matches}/{len(successful_tests)} ({exact_matches/len(successful_tests)*100:.1f}%)"
+        )
 
         # Performance by complexity
         print("\n🎯 Performance by Complexity:")
         complexities = {}
         for result in successful_tests:
-            comp = result.get('complexity', 'unknown')
+            comp = result.get("complexity", "unknown")
             if comp not in complexities:
                 complexities[comp] = []
             complexities[comp].append(result)
 
         for comp, results in complexities.items():
-            avg_score_comp = sum(r['scores']['score'] for r in results) / len(results)
-            avg_time_comp = sum(r['timing'] for r in results) / len(results)
+            sum(r["scores"]["score"] for r in results) / len(results)
+            sum(r["timing"] for r in results) / len(results)
             print("15")
 
         # Model routing analysis
         print("\n🤖 Model Routing Analysis:")
         model_usage = {}
         for result in successful_tests:
-            routing = result.get('routing', {})
-            model = routing.get('selected_model', 'unknown')
+            routing = result.get("routing", {})
+            model = routing.get("selected_model", "unknown")
             if model not in model_usage:
                 model_usage[model] = 0
             model_usage[model] += 1
@@ -270,6 +264,7 @@ def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
         print("✅ Good Content: Reasonable accuracy levels")
 
     print("🎯 Model Distribution: Check that all models are being utilized appropriately")
+
 
 if __name__ == "__main__":
     run_stress_test(num_iterations=10000, max_workers=4)
