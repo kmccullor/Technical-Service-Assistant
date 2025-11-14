@@ -18,12 +18,14 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 # Request/Response Models
 class LoginRequest(BaseModel):
     """Login request model."""
+
     email: str = Field(..., description="User email")
     password: str = Field(..., description="User password")
 
 
 class LoginResponse(BaseModel):
     """Login response model."""
+
     access_token: str = Field(..., description="JWT access token")
     refresh_token: str = Field(..., description="JWT refresh token")
     user: dict = Field(..., description="User information")
@@ -33,11 +35,13 @@ class LoginResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """Refresh token request model."""
+
     refresh_token: str = Field(..., description="Refresh token")
 
 
 class RefreshTokenResponse(BaseModel):
     """Refresh token response model."""
+
     access_token: str = Field(..., description="New JWT access token")
     expires_in: int = Field(..., description="Token expiration in seconds")
     token_type: str = Field(default="Bearer", description="Token type")
@@ -45,6 +49,7 @@ class RefreshTokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     """User information response model."""
+
     id: int = Field(..., description="User ID")
     email: str = Field(..., description="User email")
     role: str = Field(..., description="User role (admin, user, viewer)")
@@ -53,6 +58,7 @@ class UserResponse(BaseModel):
 
 class TokenValidationResponse(BaseModel):
     """Token validation response model."""
+
     valid: bool = Field(..., description="Token validity")
     user: Optional[UserResponse] = Field(None, description="User info if valid")
     expires_in: Optional[int] = Field(None, description="Seconds until expiration")
@@ -105,7 +111,7 @@ def get_user_from_db(email: str) -> Optional[dict]:
     return USERS_DB.get(email.lower())
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=LoginResponse, operation_id="auth_login")
 async def login(request: LoginRequest) -> LoginResponse:
     """Login endpoint to generate JWT tokens.
 
@@ -159,7 +165,7 @@ async def login(request: LoginRequest) -> LoginResponse:
     )
 
 
-@router.post("/refresh", response_model=RefreshTokenResponse)
+@router.post("/refresh", response_model=RefreshTokenResponse, operation_id="auth_refresh_token")
 async def refresh_token(request: RefreshTokenRequest) -> RefreshTokenResponse:
     """Refresh access token using refresh token.
 

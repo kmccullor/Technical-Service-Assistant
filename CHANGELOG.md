@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🤖 AI & Model Management
+- **Dynamic Context Sizing**: Implemented intelligent chunk limit calculation based on model token capacities (e.g., 2 chunks for 4096-token models like codellama:7b) to optimize context usage and prevent token overflow
+- **Intelligent Model Routing**: Enhanced router to include context length in selection responses for better model matching
+- **Pydantic Agent Disable**: Set ENABLE_PYDANTIC_AGENT=false in docker-compose.yml to prevent AttributeError issues in chat responses
+
+### 🔧 API & Backend Fixes
+- **FastAPI Operation ID Uniqueness**: Added unique operation_id parameters to login and refresh auth endpoints to resolve duplicate ID warnings
+
 ### 📊 Monitoring & Observability
 - **Reranker Metrics Integration**: Added Prometheus `/metrics` endpoint to reranker service for application monitoring
 - **Prometheus Configuration Update**: Fixed reranker scraping target from port 9091 to 8008 in prometheus.yml

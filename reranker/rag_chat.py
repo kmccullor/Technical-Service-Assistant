@@ -19,7 +19,8 @@ from httpx import Response
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
-from config import get_model_num_ctx, get_settings
+from config import get_model_num_ctx
+from .reranker_config import get_settings
 
 # Advanced multi-layer caching for embeddings and inference
 from reranker.advanced_cache import get_advanced_cache
@@ -191,28 +192,31 @@ class RAGChatService:
         # Default to chat model
         return self.chat_model
 
-    async def _determine_model_and_instance(self, query: str) -> Tuple[str, Optional[str], QuestionType, str]:
+    async def _determine_model_and_instance(self, query: str) -> Tuple[str, Optional[str], QuestionType, str, int]:
         """Use the intelligent router when available; fallback to local heuristics."""
         try:
             router_request = ModelSelectionRequest(query=query)
             router_response = await intelligent_router.route_request(router_request)
             logger.info(
-                "Router selected %s on %s for %s questions",
+                "Router selected %s on %s for %s questions (context: %d tokens)",
                 router_response.selected_model,
                 router_response.selected_instance,
                 router_response.question_type.value,
+                router_response.context_length,
             )
             return (
                 router_response.selected_model,
                 router_response.instance_url,
                 router_response.question_type,
                 router_response.complexity,
+                router_response.context_length,
             )
         except Exception as exc:
             logger.warning(f"Router selection failed; falling back to heuristics: {exc}")
             question_type = intelligent_router.classify_question(query)
             complexity = intelligent_router.assess_complexity(query)
-            return self.select_model(query), None, question_type, complexity
+            # Default context length for fallback
+            return self.select_model(query), None, question_type, complexity, 4096
 
     async def retrieve_context(self, query: str, max_chunks: int = 5) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Retrieve relevant context chunks using hierarchical search: RAG first, then web search."""
@@ -797,8 +801,35 @@ Sources: [list documentation sources]"""
                     fallback_used=False,
                 )
 
+        model_value = (request.model or "").lower()
+        preferred_instance: Optional[str] = None
+        question_type: Optional[QuestionType] = None
+        complexity: str = "moderate"
+        context_length: int = 4096
+
+        if model_value in {"", "rni-mistral", "auto"}:
+            selected_model, preferred_instance, question_type, complexity, context_length = await self._determine_model_and_instance(
+                request.query
+            )
+        else:
+            selected_model = request.model
+            question_type = intelligent_router.classify_question(request.query)
+            complexity = intelligent_router.assess_complexity(request.query)
+            # Get context length from model profile or default
+            model_profile = intelligent_router.model_profiles.get(selected_model)
+            context_length = model_profile.context_length if model_profile else 4096
+
+        # Calculate dynamic max chunks based on model context length
+        # Estimate ~1000 tokens per chunk, reserve ~2000 tokens for system prompt and response
+        estimated_tokens_per_chunk = 1000
+        reserved_tokens = 2000
+        max_chunks_based_on_context = max(1, (context_length - reserved_tokens) // estimated_tokens_per_chunk)
+        effective_max_chunks = min(request.max_context_chunks, max_chunks_based_on_context)
+
+        logger.info(f"Model {selected_model} has {context_length} token context, allowing max {effective_max_chunks} chunks")
+
         if request.use_context:
-            context_chunks, context_metadata = await self.retrieve_context(request.query, request.max_context_chunks)
+            context_chunks, context_metadata = await self.retrieve_context(request.query, effective_max_chunks)
             logger.info(f"Retrieved {len(context_chunks)} chunks and {len(context_metadata)} metadata items")
 
             # Extract web sources for citations
@@ -815,28 +846,15 @@ Sources: [list documentation sources]"""
 
             logger.info(f"Retrieved {len(context_chunks)} context chunks ({len(web_sources)} from web) for query")
 
-        model_value = (request.model or "").lower()
-        preferred_instance: Optional[str] = None
-        question_type: Optional[QuestionType] = None
-        complexity: str = "moderate"
-
-        if model_value in {"", "rni-mistral", "auto"}:
-            selected_model, preferred_instance, question_type, complexity = await self._determine_model_and_instance(
-                request.query
-            )
-        else:
-            selected_model = request.model
-            question_type = intelligent_router.classify_question(request.query)
-            complexity = intelligent_router.assess_complexity(request.query)
-
         prompt_dict = self.build_rag_prompt(request.query, context_chunks, complexity)
 
         logger.info(
-            "Selected model %s for query: %s (question_type=%s, preferred_instance=%s)",
+            "Selected model %s for query: %s (question_type=%s, preferred_instance=%s, context_length=%d)",
             selected_model,
             request.query[:50] + ("..." if len(request.query) > 50 else ""),
             question_type.value if question_type else "unknown",
             preferred_instance,
+            context_length,
         )
 
         track_model_usage(selected_model)
@@ -844,6 +862,15 @@ Sources: [list documentation sources]"""
             track_question_type(question_type.value)
 
         if request.stream:
+            # For streaming, context was retrieved with default limits, but log what it should have been
+            estimated_tokens_per_chunk = 1000
+            reserved_tokens = 2000
+            optimal_max_chunks = max(1, (context_length - reserved_tokens) // estimated_tokens_per_chunk)
+            if len(context_chunks) > optimal_max_chunks:
+                logger.warning(
+                    f"Streaming request retrieved {len(context_chunks)} chunks but model {selected_model} "
+                    f"({context_length} tokens) should only use {optimal_max_chunks} chunks"
+                )
             # For streaming, return the response object
             return cast(
                 Response,

@@ -87,6 +87,7 @@ class ModelSelectionResponse(BaseModel):
     question_type: QuestionType
     complexity: str
     reasoning: str
+    context_length: int
     fallback_options: List[Dict[str, str]] = Field(default_factory=list)
 
 
@@ -634,6 +635,10 @@ class IntelligentRouter:
             question_type, instance_num, prefer_speed, request.require_context, request.exclude_models
         )
 
+        # Get context length for the selected model
+        model_profile = self.model_profiles.get(selected_model)
+        context_length = model_profile.context_length if model_profile else 4096
+
         # Build fallback options
         fallback_options = []
         for instance in self.instances:
@@ -649,6 +654,7 @@ class IntelligentRouter:
             instance_url=selected_instance.url,
             question_type=question_type,
             reasoning=reasoning,
+            context_length=context_length,
             fallback_options=fallback_options[:2],  # Limit to top 2 fallbacks
         )
         print(f"DEBUG: Routing response - complexity: {response.complexity}")
@@ -696,4 +702,4 @@ def add_intelligent_routing_endpoints(app):
     app.add_api_route(
         "/api/intelligent-route", intelligent_route, methods=["POST"], response_model=ModelSelectionResponse
     )
-    app.add_api_route("/api/ollama-health", ollama_health, methods=["GET"])
+    app.add_api_route("/api/ollama-health", ollama_health, methods=["GET"], operation_id="intelligent_router_ollama_health")
