@@ -2,7 +2,16 @@
 
 ## Issues Identified and Fixed
 
-### 1. **Users Unable to Login** ❌ → ✅ FIXED
+### 1. **Authentication System Using Mock Data** ❌ → ✅ FIXED
+**Root Cause:** Authentication endpoints were using hardcoded mock database instead of querying real PostgreSQL database
+
+**Solution Applied:**
+- Updated `reranker/auth_endpoints.py` to query real users table
+- Implemented proper bcrypt password verification
+- Fixed database connection and user lookup logic
+- Authentication now works with actual user accounts in database
+
+### 2. **Users Unable to Login** ❌ → ✅ FIXED
 **Root Cause:** Users were created with `status = 'pending_verification'` and `verified = false`
 
 **Solution Applied:**

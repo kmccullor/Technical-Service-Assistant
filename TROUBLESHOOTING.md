@@ -27,6 +27,7 @@ Common issues encountered while running or extending the AI PDF Vector Stack, wi
 | Users cannot login (401 Unauthorized) | **RESOLVED**: Authentication using mock database instead of real PostgreSQL | ✅ **FIXED**: Updated `reranker/auth_endpoints.py` to query real database with bcrypt password verification |
 | Document downloads fail with 404 | **RESOLVED**: URL pattern mismatch between frontend (`/api/documents/{id}/download`) and backend (`/api/documents/download/{id}`) | ✅ **FIXED**: Added alternative route `/api/documents/{document_id}/download` for frontend compatibility |
 | Reranker container restarts repeatedly | **RESOLVED**: Import errors in `app.py` and `reranker_config.py` | ✅ **FIXED**: Commented out problematic imports causing module loading failures |
+| Document downloads return 404 errors | **RESOLVED**: Frontend using `/api/documents/{id}/download` but backend only supported `/api/documents/download/{id}` | ✅ **FIXED**: Added alternative route `/api/documents/{document_id}/download` for compatibility |
 
 ## 2. Docker RAG & Load Balancing Issues (RESOLVED)
 | Symptom | Cause | Resolution |
