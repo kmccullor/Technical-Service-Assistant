@@ -16,7 +16,7 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.logging_config import configure_root_logging
+# from utils.logging_config import configure_root_logging
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +306,7 @@ def get_settings() -> Settings:
 
 if __name__ == "__main__":
     # Simple debug output
-    configure_root_logging()
+    # configure_root_logging()
     cfg = get_settings()
     for k, v in cfg.as_dict().items():
         logger.info(f"{k}={v}")

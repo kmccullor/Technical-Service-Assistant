@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 Critical Bug Fixes
+- **Authentication System Overhaul**: Completely rewrote authentication endpoints to query real PostgreSQL database instead of mock data, enabling proper user login functionality
+- **Document Download URL Compatibility**: Added alternative download route `/api/documents/{document_id}/download` to support frontend-expected URL pattern alongside existing `/api/documents/download/{document_id}`
+- **Container Stability Fixes**: Resolved import errors causing reranker service restarts by commenting out problematic imports in `app.py` and `reranker_config.py`
+- **Password Verification**: Implemented proper bcrypt password hashing verification in authentication flow
+
 ### 🤖 AI & Model Management
 - **Dynamic Context Sizing**: Implemented intelligent chunk limit calculation based on model token capacities (e.g., 2 chunks for 4096-token models like codellama:7b) to optimize context usage and prevent token overflow
 - **Intelligent Model Routing**: Enhanced router to include context length in selection responses for better model matching

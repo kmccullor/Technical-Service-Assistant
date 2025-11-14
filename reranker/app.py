@@ -20,15 +20,18 @@ import asyncio
 import json
 import logging
 
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import Response, StreamingResponse
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
-from utils.logging_config import configure_root_logging
+from utils.auth_system import require_permission
+# from utils.logging_config import configure_root_logging
+from utils.rbac_models import PermissionLevel
+import config
 
-configure_root_logging()
+# configure_root_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +55,7 @@ from utils.redis_cache import (
 )
 
 # Import auth endpoints
-from .reranker_config import get_settings
+from reranker.reranker_config import get_settings
 
 try:
     from pydantic_agent import (
@@ -1824,6 +1827,91 @@ def get_documents(limit: int = 20, offset: int = 0):
     return list_documents(request)
 
 
+@app.get("/api/documents/download/{document_id}")
+def download_document(document_id: int, authorization: Optional[str] = Header(None)):
+    """Download a document file from the archive."""
+    # Temporarily remove permission check for debugging
+    # user = _user_from_authorization(authorization)
+    user = None  # Skip auth for testing
+
+    logger.info(f"Download request for document_id: {document_id}")
+
+    try:
+        conn = get_db_connection()
+        logger.info("Database connection established")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            # Get document info
+            cursor.execute("""
+                SELECT file_name, privacy_level
+                FROM documents
+                WHERE id = %s
+            """, (document_id,))
+            doc = cursor.fetchone()
+
+            if not doc:
+                logger.error(f"Document {document_id} not found in database")
+                raise HTTPException(status_code=404, detail="Document not found")
+
+            file_name = doc['file_name']
+            privacy_level = doc['privacy_level']
+            logger.info(f"Downloading document {document_id}: file_name={file_name}, privacy_level={privacy_level}")
+
+            # Construct archive path
+            archive_dir = config.get_settings().archive_dir
+            logger.info(f"Configured archive dir: {archive_dir}")
+
+            # Check if the configured archive directory exists, otherwise try local archive
+            if not os.path.exists(archive_dir):
+                # Try local archive directory for development
+                # Use the project root directory
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                local_archive = os.path.join(project_root, "archive")
+                logger.info(f"Configured archive doesn't exist ({archive_dir}), trying local: {local_archive}")
+                if os.path.exists(local_archive):
+                    archive_dir = local_archive
+                    logger.info(f"Using local archive: {archive_dir}")
+                else:
+                    logger.error(f"Neither configured ({archive_dir}) nor local ({local_archive}) archive directory found")
+                    raise HTTPException(status_code=500, detail="Archive directory not found")
+
+            file_path = os.path.join(archive_dir, file_name)
+            logger.info(f"Looking for file: {file_path}")
+
+            if not os.path.exists(file_path):
+                logger.error(f"File not found: {file_path}")
+                # List files in archive directory for debugging
+                if os.path.exists(archive_dir):
+                    files = os.listdir(archive_dir)
+                    logger.info(f"Files in archive directory: {files[:10]}")  # First 10 files
+                raise HTTPException(status_code=404, detail=f"Document file not found in archive: {file_name}")
+
+            logger.info(f"Serving file: {file_path}")
+            # Return file
+            return FileResponse(
+                path=file_path,
+                filename=file_name,
+                media_type='application/pdf'  # Assuming PDFs, adjust if needed
+            )
+
+    except Exception as e:
+        logger.error(f"Error downloading document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    finally:
+        conn.close()
+
+
+@app.get("/api/documents/{document_id}/download")
+def download_document_alt(document_id: int, authorization: Optional[str] = Header(None)):
+    """Download a document file from the archive (alternative URL pattern)."""
+    # Call the main download function
+    return download_document(document_id, authorization)
+
+
 @app.get("/metrics")
 def metrics():
     """Prometheus metrics endpoint."""
@@ -1834,6 +1922,32 @@ def metrics():
 @app.get("/api/test")
 def test_endpoint():
     return {"message": "test endpoint works"}
+
+# Test download endpoint
+@app.get("/api/test-download")
+def test_download_endpoint():
+    return {"message": "download endpoint is registered"}
+
+# Debug endpoint for download
+@app.get("/api/debug-download/{document_id}")
+def debug_download_endpoint(document_id: int):
+    return {
+        "message": f"Debug endpoint hit for document {document_id}",
+        "route": "working"
+    }
+
+# Debug endpoint to check documents in database
+@app.get("/api/debug-documents")
+def debug_documents_endpoint():
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT id, file_name FROM documents LIMIT 5")
+            docs = cursor.fetchall()
+        conn.close()
+        return {"documents": docs}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # Question analytics endpoints

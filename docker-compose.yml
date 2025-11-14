@@ -186,6 +186,8 @@ services:
       - "8008:8008"
       - "9092:9091"
       - "8050:8050"
+    volumes:
+      - ./uploads:/app/uploads
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}

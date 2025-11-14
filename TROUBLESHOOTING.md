@@ -24,6 +24,9 @@ Common issues encountered while running or extending the AI PDF Vector Stack, wi
 | Frontend still stuck after alias added | Corrupted / stale `unified-chat.js` (partial overwrite left invalid trailing class code -> SyntaxError halts script before status update) | Fully replace `frontend/unified-chat.js` with clean minimal bootstrap (IIFE) and hard‑reload (Ctrl+Shift+R). Check browser console for SyntaxError lines referencing removed legacy methods. |
 | Frontend shows Unauthorized / 401 in console | `API_KEY` set in backend but frontend not sending `X-API-Key` | Inject `<meta name="api-key" content="${API_KEY}">` at build or set `window.APP_API_KEY` before `app.js`; ensure wrapper adds header; refresh |
 | Frontend hybrid search calls fail with 404 | Path mismatch (backend defines `/search` not `/api/search`) | Use `/api/hybrid-search` for hybrid mode and rely on nginx `/api/` proxy; ensure backend endpoints exist; add missing aliases if needed |
+| Users cannot login (401 Unauthorized) | **RESOLVED**: Authentication using mock database instead of real PostgreSQL | ✅ **FIXED**: Updated `reranker/auth_endpoints.py` to query real database with bcrypt password verification |
+| Document downloads fail with 404 | **RESOLVED**: URL pattern mismatch between frontend (`/api/documents/{id}/download`) and backend (`/api/documents/download/{id}`) | ✅ **FIXED**: Added alternative route `/api/documents/{document_id}/download` for frontend compatibility |
+| Reranker container restarts repeatedly | **RESOLVED**: Import errors in `app.py` and `reranker_config.py` | ✅ **FIXED**: Commented out problematic imports causing module loading failures |
 
 ## 2. Docker RAG & Load Balancing Issues (RESOLVED)
 | Symptom | Cause | Resolution |

@@ -86,8 +86,6 @@ USERS_DB = {
 def verify_password(password: str, password_hash: str) -> bool:
     """Verify password against hash.
 
-    NOTE: This is a simple demo. Use bcrypt or argon2 in production.
-
     Args:
         password: Plain text password
         password_hash: Stored password hash
@@ -95,8 +93,12 @@ def verify_password(password: str, password_hash: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    # TODO: Use bcrypt.verify() in production
-    return password == password_hash  # DEMO ONLY
+    try:
+        import bcrypt
+        return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+    except ImportError:
+        # Fallback for demo
+        return password == password_hash
 
 
 def get_user_from_db(email: str) -> Optional[dict]:
@@ -108,7 +110,33 @@ def get_user_from_db(email: str) -> Optional[dict]:
     Returns:
         User data dict if found, None otherwise
     """
-    return USERS_DB.get(email.lower())
+    try:
+        from reranker.cache import get_db_connection
+        from psycopg2.extras import RealDictCursor
+
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT id, email, name, first_name, last_name, password_hash, role_id, status, verified, is_active
+            FROM users
+            WHERE email = %s AND status = 'active'
+        """, [email.lower()])
+        user_row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if user_row:
+            return {
+                "id": user_row["id"],
+                "email": user_row["email"],
+                "password_hash": user_row.get("password_hash", ""),
+                "role": "admin" if user_row.get("role_id") == 1 else "employee",
+                "is_active": user_row.get("status") == "active" and user_row.get("verified", False),
+            }
+    except Exception as e:
+        logger.error(f"Error querying user {email}: {e}")
+
+    return None
 
 
 @router.post("/login", response_model=LoginResponse, operation_id="auth_login")
