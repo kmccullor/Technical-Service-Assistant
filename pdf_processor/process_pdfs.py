@@ -7,7 +7,7 @@ from datetime import datetime
 import psutil  # For memory monitoring
 
 sys.path.append("/app")
-from config import get_settings
+from config import get_settings, select_embedding_model
 from pdf_processor.pdf_utils_enhanced import (
     chunk_images,
     chunk_tables,
@@ -285,12 +285,23 @@ def process_pending_files():
             document_id = insert_document_with_categorization(conn, pdf_filename, privacy_level, ai_classification)
             logger.info(f"Document inserted with ID: {document_id}")
 
+            # Dynamically select embedding model based on document characteristics
+            file_size_kb = len(text) // 1024  # Rough estimate
+            selected_embedding_model = select_embedding_model(
+                document_type=ai_classification.get("document_type", ""),
+                content=text[:5000],  # First 5000 chars for analysis
+                size_kb=file_size_kb,
+            )
+            logger.info(
+                f"Selected embedding model for {pdf_filename}: {selected_embedding_model} (type: {ai_classification.get('document_type')}, size: {file_size_kb}KB)"
+            )
+
             # Process chunks with categorization
             logger.info(f"Processing {len(chunks)} chunks for {pdf_filename}")
             chunks_start_time = datetime.now()
             try:
                 metrics = insert_document_chunks_with_categorization(
-                    conn, chunks, document_id, privacy_level, ai_classification, settings.embedding_model
+                    conn, chunks, document_id, privacy_level, ai_classification, selected_embedding_model
                 )
                 chunks_end_time = datetime.now()
                 successful_chunks = metrics.get("inserted_chunks", 0)

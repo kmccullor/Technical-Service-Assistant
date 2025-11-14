@@ -345,18 +345,12 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     return filteredDocuments.every(doc => selectedDocumentIds.has(doc.id))
   }, [filteredDocuments, selectedDocumentIds])
 
-  const toggleConversationSelection = (id: number, ctrlKey: boolean) => {
+  const toggleConversationSelection = (id: number) => {
     setSelectedConversationIds((prev) => {
       const next = new Set(prev)
-      if (ctrlKey) {
-        if (next.has(id)) {
-          next.delete(id)
-        } else {
-          next.add(id)
-        }
+      if (next.has(id)) {
+        next.delete(id)
       } else {
-        // If not Ctrl, clear selection and select only this one
-        next.clear()
         next.add(id)
       }
       return next
@@ -637,15 +631,41 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
         </Dialog>
       </div>
 
-       {/* Conversations */}
-       <div className="flex-1 overflow-y-auto">
-         <div className="px-4 pb-2 flex items-center justify-between gap-2">
-           <h3 className="text-sm font-medium text-muted-foreground">Recent Conversations</h3>
-           <Button size="sm" variant="outline" onClick={onNewChat} className="flex items-center gap-1">
-             <Plus className="h-4 w-4" />
-             <span className="text-xs">New</span>
-           </Button>
-         </div>
+        {/* Conversations */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 pb-2 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Recent Conversations</h3>
+            <Button size="sm" variant="outline" onClick={onNewChat} className="flex items-center gap-1">
+              <Plus className="h-4 w-4" />
+              <span className="text-xs">New</span>
+            </Button>
+          </div>
+          {conversations.length > 0 && (
+            <div className="px-4 pb-2 flex items-center justify-between gap-2">
+               <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                 <input
+                   type="checkbox"
+                   className="h-3 w-3"
+                   checked={conversations.length > 0 && conversations.every(conv => selectedConversationIds.has(conv.id))}
+                   onChange={(e) => {
+                     e.stopPropagation()
+                     toggleSelectAllConversations()
+                   }}
+                 />
+                 <span>Select all</span>
+               </label>
+              {selectedConversationIds.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleDeleteSelectedConversations}
+                  className="text-xs px-2 py-1 h-auto"
+                >
+                  Delete ({selectedConversationIds.size})
+                </Button>
+              )}
+            </div>
+          )}
         <div className="px-2 space-y-1">
           {conversationsLoading ? (
             <div className="px-1 py-2 text-sm text-muted-foreground">Loading conversations...</div>
@@ -658,68 +678,79 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
               const latestTimestamp = conversation.updatedAt ?? conversation.createdAt
               const formattedDate = latestTimestamp ? new Date(latestTimestamp).toLocaleString() : ''
               return (
-                 <Button
-                   key={conversation.id}
-                   variant={currentConversationId === conversation.id ? "secondary" : "ghost"}
-                   className={`w-full justify-start text-left h-auto p-3 ${selectedConversationIds.has(conversation.id) ? 'bg-blue-50 border-blue-200' : ''}`}
-                   onClick={(e) => {
-                     if (e.ctrlKey || e.metaKey) {
-                       e.preventDefault()
-                       toggleConversationSelection(conversation.id, true)
-                     } else {
-                       onSelectConversation(conversation.id)
-                       setSelectedConversationIds(new Set()) // Clear selection when selecting for chat
-                     }
-                   }}
-                   onContextMenu={(e) => handleConversationRightClick(e, conversation.id)}
-                 >
-                   <div className="flex items-start gap-2 w-full">
-                     <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                     <div className="flex-1 min-w-0">
-                       <div className="truncate text-sm">{conversation.title}</div>
-                       <div className="text-xs text-muted-foreground">
-                         {formattedDate}
+                  <div
+                    key={conversation.id}
+                    className={`w-full border rounded p-3 ${selectedConversationIds.has(conversation.id) ? 'bg-blue-50 border-blue-200' : 'border-transparent'} ${currentConversationId === conversation.id ? 'bg-secondary' : ''}`}
+                  >
+                     <div className="flex items-start gap-2 w-full">
+                       <div className="flex-shrink-0 w-5 flex items-center justify-center">
+                         <input
+                           type="checkbox"
+                           className="h-4 w-4"
+                           checked={selectedConversationIds.has(conversation.id)}
+                           onChange={(e) => {
+                             e.stopPropagation()
+                             toggleConversationSelection(conversation.id)
+                           }}
+                         />
                        </div>
-                     </div>
-                    <button
-                      type="button"
-                      className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
-                      onClick={async (event) => {
-                        event.stopPropagation()
-                        if (!window.confirm('Delete this conversation? This action cannot be undone.')) {
-                          return
-                        }
-                        try {
-                          if (!accessToken) {
-                            throw new Error('Not authenticated')
+                       <button
+                         className="flex-1 text-left hover:bg-transparent"
+                         onClick={() => {
+                           onSelectConversation(conversation.id)
+                           setSelectedConversationIds(new Set()) // Clear selection when selecting for chat
+                         }}
+                         onContextMenu={(e) => handleConversationRightClick(e, conversation.id)}
+                       >
+                        <div className="flex items-start gap-2 w-full">
+                          <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate text-sm">{conversation.title}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {formattedDate}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                        onClick={async (event) => {
+                          event.stopPropagation()
+                          if (!window.confirm('Delete this conversation? This action cannot be undone.')) {
+                            return
                           }
-                          const res = await fetch(`/api/conversations/${conversation.id}`, {
-                            method: 'DELETE',
-                            headers: { Authorization: `Bearer ${accessToken}` },
-                          })
-                          if (!res.ok && res.status !== 204) {
-                            let detail = ''
-                            try {
-                              const err = await res.json()
-                              detail = err?.error || err?.detail || ''
-                            } catch {
-                              /* ignore */
+                          try {
+                            if (!accessToken) {
+                              throw new Error('Not authenticated')
                             }
-                            throw new Error(detail || `Failed to delete conversation (status ${res.status})`)
+                            const res = await fetch(`/api/conversations/${conversation.id}`, {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${accessToken}` },
+                            })
+                            if (!res.ok && res.status !== 204) {
+                              let detail = ''
+                              try {
+                                const err = await res.json()
+                                detail = err?.error || err?.detail || ''
+                              } catch {
+                                /* ignore */
+                              }
+                              throw new Error(detail || `Failed to delete conversation (status ${res.status})`)
+                            }
+                            onConversationDeleted?.(conversation.id)
+                            loadConversations()
+                          } catch (error) {
+                            console.error('Failed to delete conversation:', error)
+                            alert('Failed to delete conversation. Please try again.')
                           }
-                          onConversationDeleted?.(conversation.id)
-                          loadConversations()
-                        } catch (error) {
-                          console.error('Failed to delete conversation:', error)
-                          alert('Failed to delete conversation. Please try again.')
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete conversation</span>
-                    </button>
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete conversation</span>
+                      </button>
+                    </div>
                   </div>
-                </Button>
               )
             })
           )}

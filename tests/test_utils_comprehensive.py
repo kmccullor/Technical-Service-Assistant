@@ -10,7 +10,6 @@ Test coverage for utils/ modules including:
 Following Ring 2 proven patterns for comprehensive coverage.
 """
 
-import json
 import logging
 import os
 import tempfile
@@ -203,6 +202,7 @@ class TestMonitoringUtils:
             if PROMETHEUS_AVAILABLE:
                 # If Prometheus is available, we can test metrics
                 from prometheus_client import Counter
+
                 counter = Counter("test_counter", "Test counter", ["service"])
                 counter.labels(service="test").inc()
             else:

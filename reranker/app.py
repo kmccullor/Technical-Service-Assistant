@@ -20,16 +20,15 @@ import asyncio
 import json
 import logging
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
-from utils.auth_system import require_permission
-# from utils.logging_config import configure_root_logging
-from utils.rbac_models import PermissionLevel
 import config
+
+# from utils.logging_config import configure_root_logging
 
 # configure_root_logging()
 
@@ -46,6 +45,9 @@ from reranker.rag_chat import (
     RAGChatService,
     add_rag_endpoints,
 )
+
+# Import auth endpoints
+from reranker.reranker_config import get_settings
 from reranker.rethink_reranker import rethink_pipeline
 from utils.redis_cache import (
     cache_decomposed_response,
@@ -53,9 +55,6 @@ from utils.redis_cache import (
     get_decomposed_response,
     get_sub_request_result,
 )
-
-# Import auth endpoints
-from reranker.reranker_config import get_settings
 
 try:
     from pydantic_agent import (
@@ -146,16 +145,12 @@ if ENABLE_A2A_AGENT:
 # Include RAG endpoints
 add_rag_endpoints(app)
 
-# Include auth endpoints
-app.include_router(rbac_router)
-
-# Include Tier 2 authentication endpoints if available
+# Include Tier 2 authentication endpoints if available (register FIRST to take precedence)
 if _HAS_TIER2_AUTH:
     app.include_router(auth_router)
-    # app.add_middleware(JWTAuthMiddleware)  # Temporarily disabled for testing
-    logger.info("Tier 2 authentication enabled (middleware disabled)")
-else:
-    logger.warning("Tier 2 authentication disabled - modules not available")
+
+# Include RBAC endpoints (fallback if Tier 2 not available)
+app.include_router(rbac_router)
 
 
 @app.on_event("startup")
@@ -1846,19 +1841,22 @@ def download_document(document_id: int, authorization: Optional[str] = Header(No
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             # Get document info
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT file_name, privacy_level
                 FROM documents
                 WHERE id = %s
-            """, (document_id,))
+            """,
+                (document_id,),
+            )
             doc = cursor.fetchone()
 
             if not doc:
                 logger.error(f"Document {document_id} not found in database")
                 raise HTTPException(status_code=404, detail="Document not found")
 
-            file_name = doc['file_name']
-            privacy_level = doc['privacy_level']
+            file_name = doc["file_name"]
+            privacy_level = doc["privacy_level"]
             logger.info(f"Downloading document {document_id}: file_name={file_name}, privacy_level={privacy_level}")
 
             # Construct archive path
@@ -1876,7 +1874,9 @@ def download_document(document_id: int, authorization: Optional[str] = Header(No
                     archive_dir = local_archive
                     logger.info(f"Using local archive: {archive_dir}")
                 else:
-                    logger.error(f"Neither configured ({archive_dir}) nor local ({local_archive}) archive directory found")
+                    logger.error(
+                        f"Neither configured ({archive_dir}) nor local ({local_archive}) archive directory found"
+                    )
                     raise HTTPException(status_code=500, detail="Archive directory not found")
 
             file_path = os.path.join(archive_dir, file_name)
@@ -1893,9 +1893,7 @@ def download_document(document_id: int, authorization: Optional[str] = Header(No
             logger.info(f"Serving file: {file_path}")
             # Return file
             return FileResponse(
-                path=file_path,
-                filename=file_name,
-                media_type='application/pdf'  # Assuming PDFs, adjust if needed
+                path=file_path, filename=file_name, media_type="application/pdf"  # Assuming PDFs, adjust if needed
             )
 
     except Exception as e:
@@ -1923,18 +1921,18 @@ def metrics():
 def test_endpoint():
     return {"message": "test endpoint works"}
 
+
 # Test download endpoint
 @app.get("/api/test-download")
 def test_download_endpoint():
     return {"message": "download endpoint is registered"}
 
+
 # Debug endpoint for download
 @app.get("/api/debug-download/{document_id}")
 def debug_download_endpoint(document_id: int):
-    return {
-        "message": f"Debug endpoint hit for document {document_id}",
-        "route": "working"
-    }
+    return {"message": f"Debug endpoint hit for document {document_id}", "route": "working"}
+
 
 # Debug endpoint to check documents in database
 @app.get("/api/debug-documents")

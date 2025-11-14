@@ -116,7 +116,9 @@ class EnsembleEmbedder:
         # Fallback to direct API call
         try:
             response = requests.post(
-                "http://localhost:11434/api/embeddings", json={"model": model_name, "prompt": text}, timeout=10
+                "http://localhost:11434/api/embeddings",
+                json={"model": model_name, "prompt": text, "options": {"num_ctx": 131072}},
+                timeout=10,
             )
 
             if response.status_code == 200:

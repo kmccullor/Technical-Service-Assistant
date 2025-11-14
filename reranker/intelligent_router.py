@@ -155,7 +155,7 @@ class IntelligentRouter:
             chat_model: ModelCapability(
                 name=chat_model,
                 strengths=[QuestionType.TECHNICAL, QuestionType.FACTUAL, QuestionType.CHAT],
-                context_length=8192,
+                context_length=32768,
                 speed_tier=2,
                 quality_tier=3,
             ),
@@ -169,7 +169,7 @@ class IntelligentRouter:
             reasoning_model: ModelCapability(
                 name=reasoning_model,
                 strengths=[QuestionType.MATH, QuestionType.FACTUAL, QuestionType.TECHNICAL],
-                context_length=4096,
+                context_length=131072,
                 speed_tier=1,
                 quality_tier=2,
             ),

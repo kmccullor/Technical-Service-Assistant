@@ -54,7 +54,6 @@ with patch.dict(
         "psycopg2": mock_psycopg2,
         "psycopg2.extras": mock_psycopg2_extras,
         "FlagEmbedding": types.SimpleNamespace(),
-
         "cache": mock_cache,
         "query_classifier": types.SimpleNamespace(),
         "temp_document_processor": types.SimpleNamespace(),

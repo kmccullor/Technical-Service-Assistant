@@ -9,10 +9,9 @@ sleep 5
 
 # Default model set covers embeddings, chat, coding, reasoning, and vision.
 DEFAULT_MODELS="
-nomic-embed-text:v1.5
+llama3.2:3b
 mistral:7b
 codellama:7b
-llama3.2:3b
 llava:7b
 "
 

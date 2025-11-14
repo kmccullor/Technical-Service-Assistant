@@ -78,7 +78,7 @@ CREATE TABLE document_chunks (
     content_length INTEGER,
 
     -- Vector embedding
-    embedding vector(768), -- nomic-embed-text dimensions
+    embedding vector(3072), -- llama3.2:3b dimensions
 
     -- Chunk-level metadata
     language TEXT DEFAULT 'en',

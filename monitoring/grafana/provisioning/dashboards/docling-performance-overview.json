@@ -12,7 +12,7 @@
       "id": 1,
       "datasource": "Prometheus",
       "targets": [
-        {"expr": "increase(docling_documents_processed_total[24h])", "refId": "A"}
+         {"expr": "docling_documents_processed_total", "refId": "A"}
       ],
       "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
       "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "textMode": "auto"}
@@ -23,7 +23,7 @@
       "id": 2,
       "datasource": "Prometheus",
       "targets": [
-        {"expr": "(rate(docling_documents_failed_total[10m]) / (rate(docling_documents_processed_total[10m]) + 1))", "refId": "A"}
+         {"expr": "(docling_documents_failed_total / (docling_documents_processed_total + docling_documents_failed_total))", "refId": "A"}
       ],
       "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
       "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 0.2}, {"color": "red", "value": 0.4}]}}},

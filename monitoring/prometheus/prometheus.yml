@@ -47,12 +47,6 @@ scrape_configs:
     scrape_timeout: 15s
     honor_labels: true
 
-  # SearXNG search engine monitoring (disabled - stats endpoint not metrics format)
-  # - job_name: 'searxng'
-  #   static_configs:
-  #     - targets: ['searxng:8888']
-  #   metrics_path: '/stats'
-
   # Docker container metrics via cAdvisor
   - job_name: 'cadvisor'
     static_configs:
@@ -91,7 +85,7 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
-          - http://frontend:3000/api/status
+        - http://frontend:3000/api/status
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -99,6 +93,7 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
+
   # Alertmanager monitoring
   - job_name: 'alertmanager'
     static_configs:
@@ -106,5 +101,8 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
-   # Note: Custom application metrics will be added when services expose endpoints
-   # Currently monitoring infrastructure services only
+  # Docling processor metrics (document processing and ingestion)
+  - job_name: 'docling_processor'
+    static_configs:
+      - targets: ['docling_processor:9110']
+    scrape_interval: 15s

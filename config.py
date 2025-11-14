@@ -12,7 +12,6 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-
 logger = logging.getLogger(__name__)
 
 # Load .env file early if present (local development convenience)
@@ -189,7 +188,7 @@ def get_settings() -> Settings:
     s.db_password = os.getenv("DB_PASSWORD", "postgres")
 
     # Models
-    s.embedding_model = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5")
+    s.embedding_model = os.getenv("EMBEDDING_MODEL", "llama3.2:3b")
     s.rerank_model = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-base")
     s.chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
     s.coding_model = os.getenv("CODING_MODEL", "codellama:7b")
@@ -359,6 +358,59 @@ def get_model_num_ctx(model_name: str | None) -> int:
             return value
 
     return default
+
+
+def select_embedding_model(document_type: str = "", content: str = "", size_kb: int = 0) -> str:
+    """
+    Dynamically select the best embedding model based on document characteristics.
+
+    Args:
+        document_type: Classified document type (e.g., 'code', 'technical', 'general')
+        content: Document content for keyword analysis
+        size_kb: Document size in KB
+
+    Returns:
+        Model name to use for embeddings
+    """
+    settings = get_settings()
+
+    # Default to configured embedding model
+    selected_model = settings.embedding_model
+
+    # Analyze content for keywords
+    content_lower = content.lower()
+    has_code = any(
+        keyword in content_lower
+        for keyword in ["function", "class", "import", "def ", "var ", "const ", "let ", "public", "private"]
+    )
+    has_math = any(
+        keyword in content_lower for keyword in ["equation", "formula", "theorem", "proof", "calculate", "algorithm"]
+    )
+    has_technical = any(
+        keyword in content_lower for keyword in ["api", "protocol", "network", "database", "server", "client"]
+    )
+
+    # Model selection logic
+    if document_type == "code" or has_code:
+        # For code documents, use a model good at code understanding
+        # Since we don't have specialized code embedding models, use reasoning model for embeddings if available
+        if settings.reasoning_model and "llama" in settings.reasoning_model.lower():
+            selected_model = settings.reasoning_model
+    elif document_type in ["mathematical", "scientific"] or has_math:
+        # For math/science, use reasoning model
+        if settings.reasoning_model:
+            selected_model = settings.reasoning_model
+    elif size_kb > 1000:  # Large documents
+        # For very large documents, use model with largest context
+        if settings.reasoning_model and get_model_num_ctx(settings.reasoning_model) > get_model_num_ctx(
+            settings.embedding_model
+        ):
+            selected_model = settings.reasoning_model
+    elif document_type == "technical" or has_technical:
+        # Technical docs benefit from general embeddings
+        pass  # Keep default
+
+    return selected_model
 
 
 if __name__ == "__main__":

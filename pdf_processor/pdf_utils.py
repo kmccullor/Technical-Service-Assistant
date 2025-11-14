@@ -26,7 +26,7 @@ logger = setup_logging(
 sys.path.append("/app")
 from typing import Any, Dict, List, Optional, Tuple
 
-from config import get_settings
+from config import get_model_num_ctx, get_settings
 
 # Get settings instance
 settings = get_settings()
@@ -822,8 +822,11 @@ def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[s
     for attempt, url in enumerate(urls_to_try, 1):
         try:
             logger.debug(f"Attempt {attempt}/{len(urls_to_try)}: Calling {url}")
+            num_ctx = get_model_num_ctx(model) or 4096
             response = requests.post(
-                url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds
+                url,
+                json={"model": model, "input": text, "options": {"num_ctx": num_ctx}},
+                timeout=settings.embedding_timeout_seconds,
             )
             response.raise_for_status()
 
@@ -1032,7 +1035,7 @@ def insert_document_chunks_with_categorization(
     document_id: int,
     privacy_level: str,
     classification: Dict[str, Any],
-    embedding_model: str,
+    embedding_model: str = "",
 ) -> Dict[str, Any]:
     """
     Insert document chunks with enhanced categorization metadata.
@@ -1070,7 +1073,7 @@ def insert_document_chunks_with_categorization(
                 page_number = chunk.get("page_number", 1)
                 chunk_type = chunk.get("chunk_type", chunk.get("metadata", {}).get("type", "text"))
                 try:
-                    chunk_embedding = get_embedding(chunk_text)
+                    chunk_embedding = get_embedding(chunk_text, model=embedding_model or None)
                     if not chunk_embedding:
                         metrics["failed_embeddings"] += 1
                         continue

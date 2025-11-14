@@ -38,6 +38,9 @@ services:
     restart: unless-stopped
     ports:
       - "11434:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_1:/root/.ollama
@@ -56,6 +59,9 @@ services:
     restart: unless-stopped
     ports:
       - "11435:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_2:/root/.ollama
@@ -74,6 +80,9 @@ services:
     restart: unless-stopped
     ports:
       - "11436:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_3:/root/.ollama
@@ -92,6 +101,9 @@ services:
     restart: unless-stopped
     ports:
       - "11437:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_4:/root/.ollama
@@ -110,6 +122,9 @@ services:
     restart: unless-stopped
     ports:
       - "11438:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_5:/root/.ollama
@@ -128,6 +143,9 @@ services:
     restart: unless-stopped
     ports:
       - "11439:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_6:/root/.ollama
@@ -146,6 +164,9 @@ services:
     restart: unless-stopped
     ports:
       - "11440:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_7:/root/.ollama
@@ -164,6 +185,9 @@ services:
     restart: unless-stopped
     ports:
       - "11441:11434"
+    environment:
+      - OLLAMA_DEBUG=false
+      - OLLAMA_VERBOSE=false
     volumes:
       - ollama_models:/root/.ollama/models
       - ollama_data_8:/root/.ollama
@@ -198,8 +222,10 @@ services:
       - REDIS_URL=redis://redis-cache:6379/0
       - ENABLE_QUERY_RESPONSE_CACHE=true
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
-      - EMBEDDING_MODEL=nomic-embed-text:v1.5
-      - LOG_LEVEL=info
+       - EMBEDDING_MODEL=llama3.2:3b
+       - CHAT_MODEL_NUM_CTX=32768
+       - REASONING_MODEL_NUM_CTX=131072
+       - LOG_LEVEL=info
       - ENABLE_QUESTION_DECOMPOSITION=true
        - ENABLE_PYDANTIC_AGENT=false
       - PYDANTIC_AGENT_MODEL=${PYDANTIC_AGENT_MODEL}
@@ -215,6 +241,38 @@ services:
       retries: 3
       start_period: 30m
 
+  docling_processor:
+    build:
+      context: .
+      dockerfile: docling_processor/Dockerfile
+    container_name: docling_processor
+    restart: unless-stopped
+    ports:
+      - "9110:9110"
+    environment:
+      - DB_HOST=pgvector
+      - DB_PORT=5432
+      - DB_NAME=vector_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - UPLOADS_DIR=/app/uploads
+      - ARCHIVE_DIR=/app/archive
+      - LOG_DIR=/app/logs
+      - POLL_INTERVAL_SECONDS=60
+      - DOCLING_DEVICE=cpu
+    volumes:
+      - ./uploads:/app/uploads
+      - ./archive:/app/archive
+      - ./logs:/app/logs
+    depends_on:
+      - pgvector
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   frontend:
     build: ./next-rag-app
     container_name: tsa-frontend
@@ -224,7 +282,7 @@ services:
       - USE_LOCAL_MODELS=true
       - OLLAMA_BASE_URL=http://ollama-server-1:11434
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
-      - EMBEDDING_MODEL=nomic-embed-text:v1.5
+      - EMBEDDING_MODEL=llama3.2:3b
       - CHAT_MODEL=mistral:7b
       - NODE_ENV=production
       - NEXT_PUBLIC_APP_URL=https://rni-llm-01.lab.sensus.net

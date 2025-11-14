@@ -102,7 +102,7 @@ User Scripts / UI ----------------------------------------------------
 | **Instance 1** | General Chat & Document QA | mistral:7b, mistral:latest, llama3.1:8b | Chat, Factual, Technical |
 | **Instance 2** | Code & Technical Analysis | mistral:7b, gemma2:2b, phi3:mini | Code, Technical |
 | **Instance 3** | Advanced Reasoning & Math | llama3.1:8b, llama3.2:3b, mistral:latest | Math, Complex Reasoning |
-| **Instance 4** | Embeddings & Search | nomic-embed-text:v1.5, nomic-embed-text:latest | Embedding Generation |
+| **Instance 4** | Embeddings & Search | llama3.2:3b, nomic-embed-text:v1.5 | Embedding Generation |
 
 ## Components
 | Component | Responsibility | Notes |
@@ -135,7 +135,7 @@ User Scripts / UI ----------------------------------------------------
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | DB_HOST / PORT / NAME / USER / PASSWORD | Database connectivity | pgvector / 5432 / vector_db / postgres / postgres |
-| EMBEDDING_MODEL | Embedding model tag for Ollama | nomic-embed-text:v1.5 |
+| EMBEDDING_MODEL | Embedding model tag for Ollama | llama3.2:3b |
 | RERANK_MODEL | Hugging Face model id for reranker | BAAI/bge-reranker-base |
 | CHAT_MODEL | Generation model tag | mistral |
 | OLLAMA_URL | Embedding endpoint base | http://ollama:11434/api/embeddings |

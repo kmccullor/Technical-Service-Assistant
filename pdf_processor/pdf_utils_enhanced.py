@@ -14,7 +14,7 @@ import requests
 sys.path.append("/app")
 from typing import Any, Dict, List, Optional, Tuple
 
-from config import get_settings
+from config import get_model_num_ctx, get_settings
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
@@ -1214,8 +1214,11 @@ def get_embedding(text: str, model: Optional[str] = None, ollama_url: Optional[s
     for attempt, url in enumerate(urls_to_try, 1):
         try:
             logger.debug(f"Attempt {attempt}/{len(urls_to_try)}: Calling {url}")
+            num_ctx = get_model_num_ctx(model) or 4096
             response = requests.post(
-                url, json={"model": model, "input": text}, timeout=settings.embedding_timeout_seconds
+                url,
+                json={"model": model, "input": text, "options": {"num_ctx": num_ctx}},
+                timeout=settings.embedding_timeout_seconds,
             )
             response.raise_for_status()
 

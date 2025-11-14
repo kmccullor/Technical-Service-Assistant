@@ -929,7 +929,11 @@ Sources: [list documentation sources]"""
                                     "model": fallback_model,
                                     "prompt": prompt,
                                     "stream": False,
-                                    "options": {"temperature": request.temperature, "num_predict": request.max_tokens},
+                                    "options": {
+                                        "temperature": request.temperature,
+                                        "num_predict": request.max_tokens,
+                                        "num_ctx": get_model_num_ctx(fallback_model) or 4096,
+                                    },
                                 },
                             )
 

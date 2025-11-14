@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS models (
 
 -- Insert default embedding model
 INSERT INTO models (name, provider, dimension_size)
-VALUES ('nomic-embed-text:v1.5', 'ollama', 768)
-ON CONFLICT (name) DO UPDATE SET dimension_size = 768;
+VALUES ('llama3.2:3b', 'ollama', 3072)
+ON CONFLICT (name) DO UPDATE SET dimension_size = 3072;
 
 -- Privacy level for chunks (inherits from documents, can be overridden)
 CREATE INDEX IF NOT EXISTS document_chunks_metadata_gin_idx ON document_chunks USING gin(metadata);

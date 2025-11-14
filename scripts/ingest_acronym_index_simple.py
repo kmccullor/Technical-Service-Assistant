@@ -41,7 +41,9 @@ def get_ollama_embedding(text: str, model: str = "nomic-embed-text:v1.5") -> lis
 
     for url in ollama_urls:
         try:
-            response = requests.post(f"{url}/api/embed", json={"model": model, "input": text}, timeout=30)
+            response = requests.post(
+                f"{url}/api/embed", json={"model": model, "input": text, "options": {"num_ctx": 131072}}, timeout=30
+            )
             if response.status_code == 200:
                 data = response.json()
                 return data.get("embeddings", [data.get("embedding", [])])[0]

@@ -95,7 +95,8 @@ def verify_password(password: str, password_hash: str) -> bool:
     """
     try:
         import bcrypt
-        return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
     except ImportError:
         # Fallback for demo
         return password == password_hash
@@ -111,16 +112,20 @@ def get_user_from_db(email: str) -> Optional[dict]:
         User data dict if found, None otherwise
     """
     try:
-        from reranker.cache import get_db_connection
         from psycopg2.extras import RealDictCursor
+
+        from reranker.cache import get_db_connection
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, email, name, first_name, last_name, password_hash, role_id, status, verified, is_active
             FROM users
             WHERE email = %s AND status = 'active'
-        """, [email.lower()])
+        """,
+            [email.lower()],
+        )
         user_row = cursor.fetchone()
         cursor.close()
         conn.close()

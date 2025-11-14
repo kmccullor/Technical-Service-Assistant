@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password Verification**: Implemented proper bcrypt password hashing verification in authentication flow
 
 ### 🤖 AI & Model Management
+- **Embedding Model Upgrade**: Migrated from nomic-embed-text:v1.5 (768 dimensions, 2048 tokens) to llama3.2:3b (3072 dimensions, 131,072 tokens) for vastly improved document processing capabilities and context window handling
 - **Dynamic Context Sizing**: Implemented intelligent chunk limit calculation based on model token capacities (e.g., 2 chunks for 4096-token models like codellama:7b) to optimize context usage and prevent token overflow
 - **Intelligent Model Routing**: Enhanced router to include context length in selection responses for better model matching
 - **Pydantic Agent Disable**: Set ENABLE_PYDANTIC_AGENT=false in docker-compose.yml to prevent AttributeError issues in chat responses
