@@ -4,7 +4,7 @@ python-dotenv==1.0.1
 # Web / API
 fastapi==0.115.6
 uvicorn==0.32.1
-starlette==0.41.3
+starlette==0.47.2
 httpx==0.28.1
 
 # Authentication & Security
@@ -13,7 +13,7 @@ bcrypt==4.2.1
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.18
 email-validator==2.2.0
-cryptography==42.0.8
+cryptography==44.0.1
 idna==3.7
 lxml==4.9.4
 pip==25.3
@@ -52,9 +52,9 @@ spacy==3.8.2
 
 # Phase 3A Multimodal Enhancement
 opencv-python==4.10.0.84
-torch==2.5.1
-torchvision==0.20.1
-transformers==4.46.3
+torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+transformers==4.53.0
 ollama==0.4.4
 
 # Optional: add version pins for frontend or other services later

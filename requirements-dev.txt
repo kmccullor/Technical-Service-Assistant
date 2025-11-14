@@ -15,7 +15,7 @@ types-redis==4.6.0.5
 
 # Security scanning
 safety==2.3.4
-bandit==1.7.5
+bandit==1.7.7
 pip-audit==2.6.1
 
 # Documentation
