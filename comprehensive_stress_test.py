@@ -272,4 +272,4 @@ def run_stress_test(num_iterations: int = 3, max_workers: int = 5):
     print("🎯 Model Distribution: Check that all models are being utilized appropriately")
 
 if __name__ == "__main__":
-    run_stress_test(num_iterations=2, max_workers=4)
+    run_stress_test(num_iterations=10000, max_workers=4)
