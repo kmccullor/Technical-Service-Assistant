@@ -34,6 +34,7 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
+  const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set())
   const [stats, setStats] = useState({ documents: 0, chunks: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
@@ -96,14 +97,25 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
         setConversations([])
         return
       }
-      const mapped = responseData.conversations.map((item: any) => ({
-        id: item.id,
-        title: item.title ?? 'Untitled conversation',
-        createdAt: (item.createdAt ?? item.created_at ?? null) as string | null,
-        updatedAt: (item.updatedAt ?? item.updated_at ?? null) as string | null,
-        lastReviewedAt: (item.lastReviewedAt ?? item.last_reviewed_at ?? null) as string | null,
-      }))
-      setConversations(mapped)
+       const mapped = responseData.conversations.map((item: any) => ({
+         id: item.id,
+         title: item.title ?? 'Untitled conversation',
+         createdAt: (item.createdAt ?? item.created_at ?? null) as string | null,
+         updatedAt: (item.updatedAt ?? item.updated_at ?? null) as string | null,
+         lastReviewedAt: (item.lastReviewedAt ?? item.last_reviewed_at ?? null) as string | null,
+       }))
+       setConversations(mapped)
+       // Clear selections for conversations that no longer exist
+       setSelectedConversationIds(prev => {
+         const existingIds = new Set(mapped.map((conv: ConversationSummary) => conv.id))
+         const filtered = new Set<number>()
+         prev.forEach(id => {
+           if (existingIds.has(id)) {
+             filtered.add(id)
+           }
+         })
+         return filtered
+       })
     } catch (error) {
       console.error('[Conversations] fetch error:', error)
       setConversations([])
@@ -332,6 +344,69 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     return filteredDocuments.every(doc => selectedDocumentIds.has(doc.id))
   }, [filteredDocuments, selectedDocumentIds])
 
+  const toggleConversationSelection = (id: number) => {
+    setSelectedConversationIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAllConversations = () => {
+    setSelectedConversationIds((prev) => {
+      const next = new Set(prev)
+      const everySelected = conversations.length > 0 && conversations.every(conv => next.has(conv.id))
+      if (everySelected) {
+        conversations.forEach(conv => next.delete(conv.id))
+      } else {
+        conversations.forEach(conv => next.add(conv.id))
+      }
+      return next
+    })
+  }
+
+  const handleDeleteSelectedConversations = async () => {
+    if (!accessToken || selectedConversationIds.size === 0) return
+    const ids = Array.from(selectedConversationIds)
+    if (!window.confirm(`Delete ${ids.length} conversation${ids.length > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return
+    }
+    try {
+      for (const id of ids) {
+        const res = await fetch(`/api/conversations/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        if (!res.ok && res.status !== 204) {
+          let detail = ''
+          try {
+            const err = await res.json()
+            detail = err?.error || err?.detail || ''
+          } catch {
+            /* ignore */
+          }
+          throw new Error(detail || `Failed to delete conversation ${id} (status ${res.status})`)
+        }
+        onConversationDeleted?.(id)
+      }
+      setSelectedConversationIds(new Set())
+      loadConversations()
+    } catch (error) {
+      console.error('Failed to delete selected conversations:', error)
+      alert('Failed to delete some conversations. Please try again.')
+    }
+  }
+
+  const selectedConversationsCount = selectedConversationIds.size
+  const allConversationsSelected = useMemo(() => {
+    if (conversations.length === 0) return false
+    return conversations.every(conv => selectedConversationIds.has(conv.id))
+  }, [conversations, selectedConversationIds])
+
   // Don't render dialogs until component is mounted (prevents hydration issues)
   if (!mounted) {
     return (
@@ -546,15 +621,40 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
         </Dialog>
       </div>
 
-      {/* Conversations */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pb-2 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Recent Conversations</h3>
-          <Button size="sm" variant="outline" onClick={onNewChat} className="flex items-center gap-1">
-            <Plus className="h-4 w-4" />
-            <span className="text-xs">New</span>
-          </Button>
-        </div>
+       {/* Conversations */}
+       <div className="flex-1 overflow-y-auto">
+         <div className="px-4 pb-2 flex items-center justify-between gap-2">
+           <h3 className="text-sm font-medium text-muted-foreground">Recent Conversations</h3>
+           <Button size="sm" variant="outline" onClick={onNewChat} className="flex items-center gap-1">
+             <Plus className="h-4 w-4" />
+             <span className="text-xs">New</span>
+           </Button>
+         </div>
+         {selectedConversationsCount > 0 && (
+           <div className="px-4 pb-2 flex items-center justify-between gap-2">
+             <span className="text-xs text-muted-foreground">{selectedConversationsCount} selected</span>
+             <Button
+               size="sm"
+               variant="destructive"
+               onClick={handleDeleteSelectedConversations}
+               className="text-xs"
+             >
+               Delete Selected
+             </Button>
+           </div>
+         )}
+         <div className="px-4 pb-2">
+           <label className="flex items-center gap-2 text-xs text-muted-foreground">
+             <input
+               type="checkbox"
+               className="h-3 w-3"
+               checked={allConversationsSelected}
+               onChange={toggleSelectAllConversations}
+               disabled={conversations.length === 0}
+             />
+             <span>Select all</span>
+           </label>
+         </div>
         <div className="px-2 space-y-1">
           {conversationsLoading ? (
             <div className="px-1 py-2 text-sm text-muted-foreground">Loading conversations...</div>
@@ -567,20 +667,30 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
               const latestTimestamp = conversation.updatedAt ?? conversation.createdAt
               const formattedDate = latestTimestamp ? new Date(latestTimestamp).toLocaleString() : ''
               return (
-                <Button
-                  key={conversation.id}
-                  variant={currentConversationId === conversation.id ? "secondary" : "ghost"}
-                  className="w-full justify-start text-left h-auto p-3"
-                  onClick={() => onSelectConversation(conversation.id)}
-                >
-                  <div className="flex items-start gap-2 w-full">
-                    <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-sm">{conversation.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formattedDate}
-                      </div>
-                    </div>
+                 <Button
+                   key={conversation.id}
+                   variant={currentConversationId === conversation.id ? "secondary" : "ghost"}
+                   className="w-full justify-start text-left h-auto p-3"
+                   onClick={() => onSelectConversation(conversation.id)}
+                 >
+                   <div className="flex items-start gap-2 w-full">
+                     <input
+                       type="checkbox"
+                       className="h-4 w-4 mt-0.5 flex-shrink-0"
+                       checked={selectedConversationIds.has(conversation.id)}
+                       onChange={(e) => {
+                         e.stopPropagation()
+                         toggleConversationSelection(conversation.id)
+                       }}
+                       onClick={(e) => e.stopPropagation()}
+                     />
+                     <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                     <div className="flex-1 min-w-0">
+                       <div className="truncate text-sm">{conversation.title}</div>
+                       <div className="text-xs text-muted-foreground">
+                         {formattedDate}
+                       </div>
+                     </div>
                     <button
                       type="button"
                       className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
