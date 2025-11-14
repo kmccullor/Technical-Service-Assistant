@@ -35,6 +35,7 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set())
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false })
   const [stats, setStats] = useState({ documents: 0, chunks: 0 })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
@@ -344,16 +345,35 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     return filteredDocuments.every(doc => selectedDocumentIds.has(doc.id))
   }, [filteredDocuments, selectedDocumentIds])
 
-  const toggleConversationSelection = (id: number) => {
+  const toggleConversationSelection = (id: number, ctrlKey: boolean) => {
     setSelectedConversationIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
+      if (ctrlKey) {
+        if (next.has(id)) {
+          next.delete(id)
+        } else {
+          next.add(id)
+        }
       } else {
+        // If not Ctrl, clear selection and select only this one
+        next.clear()
         next.add(id)
       }
       return next
     })
+  }
+
+  const handleConversationRightClick = (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    // If the conversation is not selected, select it
+    if (!selectedConversationIds.has(id)) {
+      setSelectedConversationIds(new Set([id]))
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY, visible: true })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu({ ...contextMenu, visible: false })
   }
 
   const toggleSelectAllConversations = () => {
@@ -401,11 +421,7 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
     }
   }
 
-  const selectedConversationsCount = selectedConversationIds.size
-  const allConversationsSelected = useMemo(() => {
-    if (conversations.length === 0) return false
-    return conversations.every(conv => selectedConversationIds.has(conv.id))
-  }, [conversations, selectedConversationIds])
+
 
   // Don't render dialogs until component is mounted (prevents hydration issues)
   if (!mounted) {
@@ -630,31 +646,6 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
              <span className="text-xs">New</span>
            </Button>
          </div>
-         {selectedConversationsCount > 0 && (
-           <div className="px-4 pb-2 flex items-center justify-between gap-2">
-             <span className="text-xs text-muted-foreground">{selectedConversationsCount} selected</span>
-             <Button
-               size="sm"
-               variant="destructive"
-               onClick={handleDeleteSelectedConversations}
-               className="text-xs"
-             >
-               Delete Selected
-             </Button>
-           </div>
-         )}
-         <div className="px-4 pb-2">
-           <label className="flex items-center gap-2 text-xs text-muted-foreground">
-             <input
-               type="checkbox"
-               className="h-3 w-3"
-               checked={allConversationsSelected}
-               onChange={toggleSelectAllConversations}
-               disabled={conversations.length === 0}
-             />
-             <span>Select all</span>
-           </label>
-         </div>
         <div className="px-2 space-y-1">
           {conversationsLoading ? (
             <div className="px-1 py-2 text-sm text-muted-foreground">Loading conversations...</div>
@@ -670,20 +661,19 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
                  <Button
                    key={conversation.id}
                    variant={currentConversationId === conversation.id ? "secondary" : "ghost"}
-                   className="w-full justify-start text-left h-auto p-3"
-                   onClick={() => onSelectConversation(conversation.id)}
+                   className={`w-full justify-start text-left h-auto p-3 ${selectedConversationIds.has(conversation.id) ? 'bg-blue-50 border-blue-200' : ''}`}
+                   onClick={(e) => {
+                     if (e.ctrlKey || e.metaKey) {
+                       e.preventDefault()
+                       toggleConversationSelection(conversation.id, true)
+                     } else {
+                       onSelectConversation(conversation.id)
+                       setSelectedConversationIds(new Set()) // Clear selection when selecting for chat
+                     }
+                   }}
+                   onContextMenu={(e) => handleConversationRightClick(e, conversation.id)}
                  >
                    <div className="flex items-start gap-2 w-full">
-                     <input
-                       type="checkbox"
-                       className="h-4 w-4 mt-0.5 flex-shrink-0"
-                       checked={selectedConversationIds.has(conversation.id)}
-                       onChange={(e) => {
-                         e.stopPropagation()
-                         toggleConversationSelection(conversation.id)
-                       }}
-                       onClick={(e) => e.stopPropagation()}
-                     />
                      <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                      <div className="flex-1 min-w-0">
                        <div className="truncate text-sm">{conversation.title}</div>
@@ -780,6 +770,37 @@ export function Sidebar({ onNewChat, onSelectConversation, currentConversationId
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.visible && (
+        <div
+          className="fixed z-50 bg-white border border-gray-300 rounded shadow-lg py-1"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={closeContextMenu}
+        >
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+            onClick={() => {
+              handleDeleteSelectedConversations()
+              closeContextMenu()
+            }}
+          >
+            Delete Selected Conversations
+          </button>
+        </div>
+      )}
+
+      {/* Overlay to close context menu */}
+      {contextMenu.visible && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={closeContextMenu}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            closeContextMenu()
+          }}
+        />
+      )}
     </div>
   )
 }
