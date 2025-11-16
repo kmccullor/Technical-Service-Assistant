@@ -506,7 +506,7 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                 role_name="admin" if user_row.get("role_id") == 1 else "employee",
                 status=user_row.get("status", "active"),
                 verified=user_row.get("verified", True),
-                last_login=user_row.get("last_login"),
+                 last_login=_serialize_timestamp(user_row.get("last_login")),
                 is_active=True,
                 is_locked=False,
                 password_change_required=user_row.get("password_change_required", False),
