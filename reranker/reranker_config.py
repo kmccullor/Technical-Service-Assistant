@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Centralized configuration loader for the Technical Service Assistant.
 
 Provides a typed-ish interface (simple dataclasses avoided to keep dependency surface small)
@@ -5,9 +7,6 @@ and lazy environment variable parsing with sensible defaults. All services shoul
 from this module instead of reading os.environ directly to ensure consistency.
 """
 
-from __future__ import annotations
-
-import logging
 import os
 import sys
 from functools import lru_cache
@@ -16,9 +15,9 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# from utils.logging_config import configure_root_logging
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Load .env automatically if present to mirror top-level config behavior
 try:  # pragma: no cover - optional convenience
@@ -216,15 +215,16 @@ def get_settings() -> Settings:
     s.verification_email_subject = os.getenv(
         "VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account"
     )
+    app_url = os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net")
     s.verification_email_link_base = os.getenv(
-        "VERIFICATION_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/verify-email"
+        "VERIFICATION_EMAIL_LINK_BASE", f"{app_url}/verify-email"
     )
     s.password_reset_email_sender = os.getenv("PASSWORD_RESET_EMAIL_SENDER", s.verification_email_sender)
     s.password_reset_email_subject = os.getenv(
         "PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password"
     )
     s.password_reset_email_link_base = os.getenv(
-        "PASSWORD_RESET_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/reset-password"
+        "PASSWORD_RESET_EMAIL_LINK_BASE", f"{app_url}/reset-password"
     )
 
     # Feature Flags

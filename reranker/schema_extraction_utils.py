@@ -1,9 +1,19 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='schema_extraction_utils',
+    log_level='INFO',
+    log_file=f'/app/logs/schema_extraction_utils_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Schema Extraction Utilities
 Provides utilities to extract and update data dictionary from live databases
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -20,9 +30,7 @@ from psycopg2.extras import RealDictCursor
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 class SchemaImporter:
     """Imports extracted schema information into the data dictionary."""
@@ -580,7 +588,6 @@ class SchemaImporter:
             return bool(value)
         return False
 
-
 # API endpoint for schema extraction
 def extract_and_import_schema(
     rni_version_id: int,
@@ -612,7 +619,6 @@ def extract_and_import_schema(
     return importer.import_database_schema(
         rni_version_id=rni_version_id, conn_config=conn_config, schema_name=schema_name, created_by=created_by
     )
-
 
 # Global schema importer instance
 schema_importer = SchemaImporter()

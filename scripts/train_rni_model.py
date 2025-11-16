@@ -55,7 +55,7 @@ class RNIModelTrainer:
         settings = get_settings()
         # Force localhost for local development
         db_host = "localhost"
-        print(f"Using DB_HOST: {db_host}")
+        logger.info(f"Using DB_HOST: {db_host}")
         self.db_config = {
             "host": db_host,
             "database": settings.db_name,

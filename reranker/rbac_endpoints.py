@@ -1,9 +1,19 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='rbac_endpoints',
+    log_level='INFO',
+    log_file=f'/app/logs/rbac_endpoints_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """RBAC Authentication Endpoints.
 
 Clean implementation of authentication and password management endpoints.
 """
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -21,22 +31,17 @@ from utils.rbac_models import (
     UserResponse,
 )
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 rbac_router = router
-
 
 class HealthResponse(BaseModel):
     status: str = "ok"
     service: str = "auth"
 
-
 @router.get("/health")
 async def health(auth: AuthSystem = Depends(get_auth_manager)):
     result = await auth.health_check()
     return result
-
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_manager)) -> UserResponse:
@@ -65,7 +70,6 @@ async def register(user: CreateUserRequest, auth: AuthSystem = Depends(get_auth_
         logger.exception("Registration failed for %s", getattr(user, "email", "<unknown>"))
         raise HTTPException(status_code=500, detail="Registration failed") from e
 
-
 @router.post("/login", response_model=TokenResponse)
 async def login(
     credentials: LoginRequest, request: Request, auth: AuthSystem = Depends(get_auth_manager)
@@ -80,7 +84,6 @@ async def login(
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Login failed") from e
 
-
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(req: RefreshTokenRequest, auth: AuthSystem = Depends(get_auth_manager)) -> TokenResponse:
     """Refresh access token using a valid refresh token.
@@ -94,16 +97,13 @@ async def refresh_token(req: RefreshTokenRequest, auth: AuthSystem = Depends(get
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Token refresh failed") from e
 
-
 class VerifyEmailRequest(BaseModel):
     token: str = Field(..., min_length=8)
-
 
 class VerifyEmailResponse(BaseModel):
     success: bool
     message: str
     verified: bool
-
 
 @router.post("/verify-email", response_model=VerifyEmailResponse)
 async def verify_email(req: VerifyEmailRequest, auth: AuthSystem = Depends(get_auth_manager)) -> VerifyEmailResponse:
@@ -124,7 +124,6 @@ async def verify_email(req: VerifyEmailRequest, auth: AuthSystem = Depends(get_a
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Verification failed") from e
-
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user=Depends(get_current_user), auth: AuthSystem = Depends(get_auth_manager)) -> UserResponse:  # type: ignore
@@ -155,12 +154,10 @@ async def me(current_user=Depends(get_current_user), auth: AuthSystem = Depends(
     except Exception as e:  # pragma: no cover
         raise HTTPException(status_code=500, detail="Failed to load profile") from e
 
-
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: Optional[str] = None
-
 
 @router.post("/change-password", response_model=APIResponse)
 async def change_password(
@@ -180,11 +177,9 @@ async def change_password(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Password change failed") from e
 
-
 class ForceChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: Optional[str] = None
-
 
 @router.post("/force-change-password", response_model=APIResponse)
 async def force_change_password(
@@ -207,7 +202,6 @@ async def force_change_password(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Password change failed") from e
 
-
 @router.post("/forgot-password", response_model=APIResponse)
 async def forgot_password(payload: ResetPasswordRequest, auth: AuthSystem = Depends(get_auth_manager)) -> APIResponse:
     """Initiate password reset by emailing a one-time token."""
@@ -219,7 +213,6 @@ async def forgot_password(payload: ResetPasswordRequest, auth: AuthSystem = Depe
 
     message = "If an account exists for that email, you'll receive password reset instructions shortly."
     return APIResponse(success=True, message=message, data={"email_dispatched": dispatched})
-
 
 @router.post("/reset-password", response_model=APIResponse)
 async def reset_password(
@@ -236,17 +229,14 @@ async def reset_password(
 
     return APIResponse(success=True, message="Password reset successfully", data={"reset": True})
 
-
 class AdminResetPasswordRequest(BaseModel):
     user_id: int = Field(..., gt=0)
     new_password: str = Field(..., min_length=8, max_length=128)
     rotate: bool = Field(True)
 
-
 class AdminResetPasswordResponse(APIResponse):
     rotated: bool = False
     target_user_id: int = 0
-
 
 @router.post("/admin-reset", response_model=AdminResetPasswordResponse)
 async def admin_reset_password(

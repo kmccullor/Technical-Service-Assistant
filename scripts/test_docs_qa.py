@@ -204,17 +204,17 @@ async def main():
     tester.save_results(results, results_file)
 
     # Print summary
-    print(f"\nTest Summary:")
-    print(f"Total tests: {results['total_tests']}")
-    print(f"Passed: {results['passed']}")
-    print(f"Failed: {results['failed']}")
-    print(f"Overall confidence: {results['overall_confidence']:.1f}%")
+    logger.info(f"\nTest Summary:")
+    logger.info(f"Total tests: {results['total_tests']}")
+    logger.info(f"Passed: {results['passed']}")
+    logger.info(f"Failed: {results['failed']}")
+    logger.info(f"Overall confidence: {results['overall_confidence']:.1f}%")
 
     if results["overall_confidence"] < 100:
-        print("\nFailed tests:")
+        logger.info("\nFailed tests:")
         for result in results["results"]:
             if not result["passed"]:
-                print(f"- {result['document']}: {result['question'][:50]}... (confidence: {result['confidence']:.1f}%)")
+                logger.info(f"- {result['document']}: {result['question'][:50]}... (confidence: {result['confidence']:.1f}%)")
 
 
 if __name__ == "__main__":

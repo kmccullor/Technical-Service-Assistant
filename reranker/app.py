@@ -27,14 +27,13 @@ from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
 import config
+from utils.logging_config import configure_root_logging
 
-# from utils.logging_config import configure_root_logging
-
-# configure_root_logging()
+configure_root_logging()
 
 logger = logging.getLogger(__name__)
 
-print("Starting app.py execution")
+logger.info("Starting app.py execution")
 
 from reranker.cache import get_db_connection
 from reranker.question_decomposer import QuestionDecomposer
@@ -168,12 +167,12 @@ async def shutdown_agents() -> None:
 
 
 # Add intelligent routing endpoints
-print("Importing intelligent_router...")
+logger.info("Importing intelligent_router...")
 from reranker.intelligent_router import add_intelligent_routing_endpoints
 
-print("Calling add_intelligent_routing_endpoints...")
+logger.info("Calling add_intelligent_routing_endpoints...")
 add_intelligent_routing_endpoints(app)
-print("Intelligent routing endpoints added.")
+logger.info("Intelligent routing endpoints added.")
 
 
 class ChatRequest(BaseModel):
@@ -422,9 +421,9 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         "terrence.blacknell@xylem.com": 19,
     }
 
-    print(f"DEBUG: Email extracted: {email}")
+    logger.debug(f"DEBUG: Email extracted: {email}")
     if email in known_users:
-        print(f"DEBUG: Using hardcoded user ID: {known_users[email]}")
+        logger.debug(f"DEBUG: Using hardcoded user ID: {known_users[email]}")
         user_id = known_users[email]
         # Mock response for known users
         is_admin = email in ["jim.hitchcock@xylem.com", "admin@example.com"]
@@ -560,7 +559,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     user = _user_from_authorization(authorization)
-    print(f"User ID: {user.id}, email: {user.email}, type: {type(user.id)}")
+    logger.info(f"User ID: {user.id}, email: {user.email}, type: {type(user.id)}")
 
     conversation_id = request.conversationId
     is_new_conversation = False
@@ -1182,8 +1181,6 @@ async def auth_health():
     """Auth health check endpoint with database connectivity check."""
     try:
         # Check database connectivity
-        from reranker.cache import get_db_connection
-
         conn = get_db_connection()
         conn.close()
 
@@ -1402,11 +1399,11 @@ def list_users(limit: int = 50, offset: int = 0, search: Optional[str] = None):
             items = [UserListItem(**user) for user in processed_users]
             return UserListResponse(total=total, limit=limit, offset=offset, items=items)
         except Exception as e:
-            print(f"Pydantic validation error: {e}")
+            logger.error(f"Pydantic validation error: {e}")
             raise
     except Exception as e:
         # Fallback to mock data if database connection fails
-        print(f"Database error in list_users: {e}")
+        logger.error(f"Database error in list_users: {e}")
         mock_users = [
             {
                 "id": 1,
@@ -1949,7 +1946,7 @@ def debug_documents_endpoint():
 
 
 # Question analytics endpoints
-print("Loading question analytics endpoints")
+logger.info("Loading question analytics endpoints")
 
 
 class QuestionStatsResponse(BaseModel):

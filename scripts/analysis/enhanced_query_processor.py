@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='enhanced_query_processor',
+    log_level='INFO',
+    log_file=f'/app/logs/enhanced_query_processor_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Enhanced Query Understanding for 90% Accuracy
@@ -7,7 +18,6 @@ and context-aware query enhancement for maximum retrieval accuracy.
 """
 
 import json
-import logging
 import re
 import time
 from dataclasses import dataclass
@@ -15,9 +25,7 @@ from typing import Any, Dict, List, Tuple
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class QueryAnalysis:
@@ -31,7 +39,6 @@ class QueryAnalysis:
     expansion_terms: List[str]
     suggested_filters: Dict[str, Any]
     processing_time: float
-
 
 class EnhancedQueryProcessor:
     """Advanced query understanding and enhancement."""
@@ -417,11 +424,10 @@ class EnhancedQueryProcessor:
         # Default to hybrid for balanced approach
         return "hybrid"
 
-
 def main():
     """Test enhanced query understanding for 90% accuracy."""
-    print("🎯 Enhanced Query Understanding for 90% Accuracy")
-    print("=" * 60)
+    logger.info("🎯 Enhanced Query Understanding for 90% Accuracy")
+    logger.info("=" * 60)
 
     # Initialize enhanced query processor
     processor = EnhancedQueryProcessor()
@@ -437,28 +443,28 @@ def main():
         "Fix authentication certificate problems",
     ]
 
-    print("🧪 Testing enhanced query understanding...")
+    logger.info("🧪 Testing enhanced query understanding...")
 
     results = []
 
     for query in test_queries:
-        print(f"\n" + "=" * 50)
-        print(f"📝 Original Query: '{query}'")
+        logger.info(f"\n" + "=" * 50)
+        logger.info(f"📝 Original Query: '{query}'")
 
         # Analyze query
         analysis = processor.analyze_query(query)
 
-        print(f"🎯 Query Type: {analysis.query_type} (confidence: {analysis.intent_confidence:.2f})")
-        print(f"✨ Enhanced Query: '{analysis.enhanced_query}'")
-        print(f"🔧 Technical Terms: {analysis.technical_terms}")
-        print(f"📈 Expansion Terms: {analysis.expansion_terms}")
+        logger.info(f"🎯 Query Type: {analysis.query_type} (confidence: {analysis.intent_confidence:.2f})")
+        logger.info(f"✨ Enhanced Query: '{analysis.enhanced_query}'")
+        logger.info(f"🔧 Technical Terms: {analysis.technical_terms}")
+        logger.info(f"📈 Expansion Terms: {analysis.expansion_terms}")
 
         if analysis.suggested_filters:
-            print(f"🔍 Suggested Filters: {analysis.suggested_filters}")
+            logger.info(f"🔍 Suggested Filters: {analysis.suggested_filters}")
 
         # Get search system enhancements
         enhancements = processor.enhance_for_search_system(query, "hybrid")
-        print(f"🎪 Recommended System: {enhancements['recommended_system']}")
+        logger.info(f"🎪 Recommended System: {enhancements['recommended_system']}")
 
         results.append(
             {
@@ -482,32 +488,31 @@ def main():
     avg_confidence = sum(r["analysis"]["confidence"] for r in results) / len(results)
     total_expansions = sum(len(r["analysis"]["expansion_terms"]) for r in results)
 
-    print(f"\n📊 Enhancement Statistics:")
-    print(f"  Queries processed: {len(results)}")
-    print(f"  Average confidence: {avg_confidence:.2f}")
-    print(f"  Total expansion terms: {total_expansions}")
-    print(f"  Average expansions per query: {total_expansions/len(results):.1f}")
+    logger.info(f"\n📊 Enhancement Statistics:")
+    logger.info(f"  Queries processed: {len(results)}")
+    logger.info(f"  Average confidence: {avg_confidence:.2f}")
+    logger.info(f"  Total expansion terms: {total_expansions}")
+    logger.info(f"  Average expansions per query: {total_expansions/len(results):.1f}")
 
     # Project accuracy improvement
     enhancement_factor = avg_confidence * (total_expansions / len(results)) * 0.1
     projected_improvement = min(enhancement_factor * 10, 8)  # Cap at 8% improvement
 
-    print(f"\n🎯 Projected Impact:")
-    print(f"  Enhancement factor: {enhancement_factor:.3f}")
-    print(f"  Projected accuracy improvement: +{projected_improvement:.1f}%")
+    logger.info(f"\n🎯 Projected Impact:")
+    logger.info(f"  Enhancement factor: {enhancement_factor:.3f}")
+    logger.info(f"  Projected accuracy improvement: +{projected_improvement:.1f}%")
 
     current_accuracy = 90  # From ensemble results
     final_accuracy = current_accuracy + projected_improvement
 
-    print(f"  Current system accuracy: {current_accuracy}%")
-    print(f"  With query enhancement: {final_accuracy:.1f}%")
+    logger.info(f"  Current system accuracy: {current_accuracy}%")
+    logger.info(f"  With query enhancement: {final_accuracy:.1f}%")
 
     if final_accuracy >= 90:
-        print(f"  ✅ 90% accuracy target maintained and improved!")
+        logger.info(f"  ✅ 90% accuracy target maintained and improved!")
 
-    print(f"\n💾 Results saved to: logs/query_enhancement_results.json")
-    print(f"🚀 Enhanced query understanding ready for integration!")
-
+    logger.info(f"\n💾 Results saved to: logs/query_enhancement_results.json")
+    logger.info(f"🚀 Enhanced query understanding ready for integration!")
 
 if __name__ == "__main__":
     main()

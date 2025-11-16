@@ -1,3 +1,16 @@
+from __future__ import annotations
+
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='rethink_reranker',
+    log_level='INFO',
+    log_file=f'/app/logs/rethink_reranker_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """Rerank and rethink utilities for decomposed chat responses.
 
 Provides helpers to aggregate cached components from Redis, compute simple
@@ -10,17 +23,12 @@ and token-overlap heuristics so it can run without external models. It is
 meant to be integrated into the chat synthesis step after sub-requests are
 processed (and/or retrieved from Redis).
 """
-from __future__ import annotations
 
-import logging
 import re
 from difflib import SequenceMatcher
 from typing import List, Optional, Tuple
 
 from utils.redis_cache import get_decomposed_response, get_sub_request_result
-
-logger = logging.getLogger(__name__)
-
 
 def _normalize_text(text: str) -> str:
     """Basic normalization: lowercasing, collapse whitespace, remove punctuation."""
@@ -31,7 +39,6 @@ def _normalize_text(text: str) -> str:
     text = re.sub(r"[\.,;:\-()\[\]]", "", text)
     text = " ".join(text.split())
     return text
-
 
 def _token_overlap(a: str, b: str) -> float:
     """Compute token overlap ratio between two texts.
@@ -45,13 +52,11 @@ def _token_overlap(a: str, b: str) -> float:
     overlap = atoks.intersection(btoks)
     return len(overlap) / max(1, len(atoks))
 
-
 def _sequence_similarity(a: str, b: str) -> float:
     """Return a 0.0-1.0 similarity score using difflib.SequenceMatcher."""
     if not a or not b:
         return 0.0
     return SequenceMatcher(None, a, b).ratio()
-
 
 def score_subresponse_relevance(original_query: str, subresponse_text: str) -> float:
     """Compute a combined relevance score between original question and a subresponse.
@@ -70,7 +75,6 @@ def score_subresponse_relevance(original_query: str, subresponse_text: str) -> f
     # Weighting: give slightly more weight to overlap (exact terms matter)
     score = (0.6 * overlap) + (0.4 * seq)
     return float(max(0.0, min(1.0, score)))
-
 
 def aggregate_cached_subresponses(query_hash: str, user_id: int) -> Tuple[Optional[dict], List[dict]]:
     """Retrieve decomposition metadata and cached sub-responses from Redis.
@@ -120,7 +124,6 @@ def aggregate_cached_subresponses(query_hash: str, user_id: int) -> Tuple[Option
 
     return decomposition, subresponses
 
-
 def rerank_subresponses(original_query: str, subresponses: List[dict]) -> List[dict]:
     """Rerank subresponses by relevance to original query.
 
@@ -141,7 +144,6 @@ def rerank_subresponses(original_query: str, subresponses: List[dict]) -> List[d
 
     scored_sorted = sorted(scored, key=lambda x: x.get("relevance", 0.0), reverse=True)
     return scored_sorted
-
 
 def synthesize_reranked_response(original_query: str, reranked_subresponses: List[dict]) -> dict:
     """Combine reranked subresponses into a final synthesized response.
@@ -174,7 +176,6 @@ def synthesize_reranked_response(original_query: str, reranked_subresponses: Lis
         "notes": notes,
     }
 
-
 def evaluate_response_relevance(original_query: str, final_text: str) -> float:
     """Compute relevance between original question and final synthesized text.
 
@@ -183,7 +184,6 @@ def evaluate_response_relevance(original_query: str, final_text: str) -> float:
     if not final_text:
         return 0.0
     return score_subresponse_relevance(original_query, final_text)
-
 
 # Convenience helper: full pipeline given query_hash and user_id
 def rethink_pipeline(query_hash: str, user_id: int, original_query: Optional[str] = None) -> dict:

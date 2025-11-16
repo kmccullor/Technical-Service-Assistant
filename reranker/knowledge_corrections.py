@@ -1,9 +1,17 @@
-import logging
 from datetime import datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+from datetime import datetime
+from utils.logging_config import setup_logging
 
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='knowledge_corrections',
+    log_level='INFO',
+    log_file=f'/app/logs/knowledge_corrections_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
 
 class KnowledgeCorrection(BaseModel):
     id: Optional[int] = None
@@ -14,13 +22,9 @@ class KnowledgeCorrection(BaseModel):
     user_id: Optional[str] = Field(None, description="ID of the user who submitted the correction.")
     created_at: Optional[datetime] = None
 
-
 # DB access helpers (psycopg2 or asyncpg, depending on project)
 import psycopg2
 import psycopg2.extras
-
-logger = logging.getLogger(__name__)
-
 
 def _has_corrections_table(conn) -> bool:
     """Return True if the knowledge_corrections table exists."""
@@ -32,7 +36,6 @@ def _has_corrections_table(conn) -> bool:
     except psycopg2.Error as exc:
         logger.error("Failed to check knowledge_corrections table existence: %s", exc)
         return False
-
 
 def insert_correction(conn, correction: KnowledgeCorrection) -> int:
     """Insert a new correction and return its ID."""
@@ -64,7 +67,6 @@ def insert_correction(conn, correction: KnowledgeCorrection) -> int:
         conn.rollback()
         logger.error("Failed to insert knowledge correction: %s", exc)
         return -1
-
 
 def get_correction_for_question(conn, question: str) -> Optional[KnowledgeCorrection]:
     """Return the most recent correction for a question, if any."""

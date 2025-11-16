@@ -7,6 +7,7 @@ of the authentication flow.
 """
 
 
+import os
 import requests
 
 
@@ -25,10 +26,12 @@ def test_backend_health():
     except Exception as e:
         print(f"❌ Reranker: Connection failed - {e}")
 
-    # Test frontend health
+    # Test frontend health via nginx
     try:
-        response = requests.get("http://localhost:3000", timeout=5)
-        if response.status_code == 200:
+        response = requests.get("http://localhost:80", timeout=5, allow_redirects=False)
+        if response.status_code == 301:
+            print("✅ Frontend: Redirecting to HTTPS (nginx working)")
+        elif response.status_code == 200:
             print("✅ Frontend: Responsive")
         else:
             print(f"❌ Frontend: Status {response.status_code}")
@@ -45,7 +48,7 @@ def test_api_login():
     try:
         response = requests.post(
             "http://localhost:8008/api/auth/login",
-            json={"email": "admin@example.com", "password": "admin%2025"},
+            json={"email": "admin@employee.com", "password": "admin123"},
             timeout=10,
         )
         if response.status_code == 200:
@@ -59,12 +62,13 @@ def test_api_login():
     except Exception as e:
         print(f"❌ Backend API: Failed - {e}")
 
-    # Test frontend proxy
+    # Test frontend proxy via nginx
     try:
         response = requests.post(
-            "http://localhost:3000/api/auth/login",
-            json={"email": "admin@example.com", "password": "admin%2025"},
+            "http://localhost:80/api/auth/login",
+            json={"email": "admin@employee.com", "password": "admin123"},
             timeout=10,
+            allow_redirects=False,
         )
         if response.status_code == 200:
             data = response.json()
@@ -83,7 +87,7 @@ def test_cors_headers():
     print("-" * 25)
 
     try:
-        response = requests.options("http://localhost:3000/api/auth/login")
+        response = requests.options("http://localhost:80/api/auth/login")
         headers = response.headers
 
         print(f"Access-Control-Allow-Origin: {headers.get('Access-Control-Allow-Origin', 'Not set')}")
@@ -109,7 +113,8 @@ def main():
     print("2. Open browser developer tools and check console errors")
     print("3. Disable browser extensions temporarily")
     print("4. Try incognito/private browsing mode")
-    print(f"5. Test the standalone page: http://localhost:3000/admin_login_test.html")
+    app_url = os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net")
+    print(f"5. Test the standalone page: {app_url}/admin_login_test.html")
 
 
 if __name__ == "__main__":

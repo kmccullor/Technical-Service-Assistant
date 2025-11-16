@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env", override=False)
 
-DEFAULT_TARGET = os.getenv("LOAD_TEST_TARGET_URL", "https://rni-llm-01.lab.sensus.net")
+DEFAULT_TARGET = os.getenv("LOAD_TEST_TARGET_URL", os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net"))
 DEFAULT_PUBLIC_ENDPOINTS = [
     "/health",
     "/api/ollama-health",

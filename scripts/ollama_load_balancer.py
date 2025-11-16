@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='ollama_load_balancer',
+    log_level='INFO',
+    log_file=f'/app/logs/ollama_load_balancer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Ollama Load Balancer Implementation
@@ -7,16 +18,12 @@ for optimal performance in the Technical Service Assistant.
 """
 
 import json
-import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import requests
-
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class ContainerHealth:
@@ -28,7 +35,6 @@ class ContainerHealth:
     response_time: float
     error_count: int
     request_count: int
-
 
 class OllamaLoadBalancer:
     """Production-ready load balancer for Ollama containers."""
@@ -275,25 +281,24 @@ class OllamaLoadBalancer:
             "uptime_percentage": (healthy_count / len(self.containers)) * 100,
         }
 
-
 def main():
     """Test the Ollama load balancer implementation."""
-    print("⚖️ Testing Ollama Load Balancer")
-    print("=" * 50)
+    logger.info("⚖️ Testing Ollama Load Balancer")
+    logger.info("=" * 50)
 
     # Initialize load balancer
     lb = OllamaLoadBalancer(strategy="response_time")
 
-    print("🏥 Checking container health...")
+    logger.info("🏥 Checking container health...")
     health = lb.get_health_status()
-    print(f"Healthy containers: {health['healthy_containers']}/{health['total_containers']}")
+    logger.info(f"Healthy containers: {health['healthy_containers']}/{health['total_containers']}")
 
     for port, status in health["containers"].items():
         health_icon = "✅" if status["healthy"] else "❌"
-        print(f"  {health_icon} Container {port}: {status['response_time']:.3f}s, {status['specializations']}")
+        logger.info(f"  {health_icon} Container {port}: {status['response_time']:.3f}s, {status['specializations']}")
 
     # Test single embedding
-    print(f"\n🔍 Testing single embedding...")
+    logger.info(f"\n🔍 Testing single embedding...")
     single_time = 0  # Initialize default value
     try:
         start_time = time.time()
@@ -301,15 +306,15 @@ def main():
         single_time = time.time() - start_time
 
         if result:
-            print(f"✅ Single embedding: {single_time:.3f}s")
+            logger.info(f"✅ Single embedding: {single_time:.3f}s")
         else:
-            print("❌ Single embedding failed")
+            logger.info("❌ Single embedding failed")
     except Exception as e:
-        print(f"❌ Single embedding error: {e}")
+        logger.info(f"❌ Single embedding error: {e}")
         single_time = 1.0  # Default fallback for calculation
 
     # Test parallel embeddings
-    print(f"\n⚡ Testing parallel embeddings...")
+    logger.info(f"\n⚡ Testing parallel embeddings...")
     test_texts = [
         "RNI 4.16 installation requirements",
         "security configuration setup",
@@ -326,30 +331,30 @@ def main():
         results = lb.get_embeddings_parallel(test_texts)
         parallel_time = time.time() - start_time
 
-        print(f"✅ Parallel embeddings: {len(results)} results in {parallel_time:.3f}s")
-        print(f"   Average per embedding: {parallel_time/len(results):.3f}s")
+        logger.info(f"✅ Parallel embeddings: {len(results)} results in {parallel_time:.3f}s")
+        logger.info(f"   Average per embedding: {parallel_time/len(results):.3f}s")
 
         # Performance comparison
         if len(results) > 0:
             estimated_sequential = single_time * len(test_texts)
             speedup = estimated_sequential / parallel_time
-            print(f"   Estimated speedup: {speedup:.1f}x")
+            logger.info(f"   Estimated speedup: {speedup:.1f}x")
 
     except Exception as e:
-        print(f"❌ Parallel embeddings error: {e}")
+        logger.info(f"❌ Parallel embeddings error: {e}")
 
     # Performance stats
-    print(f"\n📊 Performance Statistics:")
+    logger.info(f"\n📊 Performance Statistics:")
     stats = lb.get_performance_stats()
-    print(f"  Total Requests: {stats['total_requests']}")
-    print(f"  Average Response Time: {stats['average_response_time']:.3f}s")
-    print(f"  System Uptime: {stats['uptime_percentage']:.1f}%")
+    logger.info(f"  Total Requests: {stats['total_requests']}")
+    logger.info(f"  Average Response Time: {stats['average_response_time']:.3f}s")
+    logger.info(f"  System Uptime: {stats['uptime_percentage']:.1f}%")
 
-    print(f"\n💡 Load Balancing Benefits:")
-    print(f"  • Automatic failover between containers")
-    print(f"  • Parallel processing for better throughput")
-    print(f"  • Health monitoring and error recovery")
-    print(f"  • Specialized container utilization")
+    logger.info(f"\n💡 Load Balancing Benefits:")
+    logger.info(f"  • Automatic failover between containers")
+    logger.info(f"  • Parallel processing for better throughput")
+    logger.info(f"  • Health monitoring and error recovery")
+    logger.info(f"  • Specialized container utilization")
 
     # Save configuration
     config = {
@@ -365,8 +370,7 @@ def main():
     with open("ollama_load_balancer_config.json", "w") as f:
         json.dump(config, f, indent=2)
 
-    print(f"\n💾 Configuration saved to: ollama_load_balancer_config.json")
-
+    logger.info(f"\n💾 Configuration saved to: ollama_load_balancer_config.json")
 
 if __name__ == "__main__":
     main()

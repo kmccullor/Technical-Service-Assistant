@@ -46,25 +46,25 @@ def get_downloaded_models():
         models = [line.split()[0] for line in lines if line.strip() and not line.startswith("NAME")]  # skip header
         return set(models)
     except Exception as e:
-        print(f"Error running ollama list: {e}")
+        logger.info(f"Error running ollama list: {e}")
         return set()
 
 
 def pull_model(model):
-    print(f"Pulling model: {model}")
+    logger.info(f"Pulling model: {model}")
     try:
         subprocess.run(OLLAMA_PULL_CMD + [model], check=True)
-        print(f"Downloaded: {model}")
+        logger.info(f"Downloaded: {model}")
     except Exception as e:
-        print(f"Failed to download {model}: {e}")
+        logger.info(f"Failed to download {model}: {e}")
 
 
 def run_benchmark(model):
-    print(f"Benchmarking model: {model}")
+    logger.info(f"Benchmarking model: {model}")
     try:
         subprocess.run([PYTHON, TEST_SCRIPT, model], check=True)
     except Exception as e:
-        print(f"Benchmark failed for {model}: {e}")
+        logger.info(f"Benchmark failed for {model}: {e}")
 
 
 def update_docs(all_results):
@@ -72,9 +72,9 @@ def update_docs(all_results):
     try:
         with open(RESULTS_JSON, "w") as f:
             json.dump(all_results, f, indent=2)
-        print(f"All results saved to {RESULTS_JSON}")
+        logger.info(f"All results saved to {RESULTS_JSON}")
     except Exception as e:
-        print(f"Could not write combined JSON: {e}")
+        logger.info(f"Could not write combined JSON: {e}")
 
     # Overwrite and regenerate the markdown summary
     try:
@@ -88,9 +88,9 @@ def update_docs(all_results):
                         md.write(f"  - Embedding (first 5 dims): `{entry['embedding'][:5]}`\n")
                 else:
                     md.write("- No results generated for this model.\n")
-        print(f"Results summary updated in {RESULTS_MD}")
+        logger.info(f"Results summary updated in {RESULTS_MD}")
     except Exception as e:
-        print(f"Could not write results to markdown file: {e}")
+        logger.info(f"Could not write results to markdown file: {e}")
 
 
 def main():
@@ -105,7 +105,7 @@ def main():
                 single_model_result = json.load(f)
                 all_results.update(single_model_result)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Could not read results for {model}. Error: {e}")
+            logger.info(f"Could not read results for {model}. Error: {e}")
 
     update_docs(all_results)
 

@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='load_balancer',
+    log_level='INFO',
+    log_file=f'/app/logs/load_balancer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Advanced Ollama Instance Load Balancer
 
@@ -14,7 +25,6 @@ Features:
 """
 
 import asyncio
-import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -23,16 +33,12 @@ from typing import Dict, List, Optional
 
 import httpx
 
-logger = logging.getLogger(__name__)
-
-
 class RequestType(str, Enum):
     """Types of requests that may benefit from different routing strategies."""
 
     EMBEDDING = "embedding"
     INFERENCE = "inference"
     HYBRID_SEARCH = "hybrid_search"
-
 
 @dataclass
 class InstanceMetrics:
@@ -80,7 +86,6 @@ class InstanceMetrics:
         failure_penalty = (self.failed_requests / max(self.total_requests, 1)) * 100
 
         return base_score + failure_penalty
-
 
 class OllamaLoadBalancer:
     """Intelligent load balancer for Ollama instances."""
@@ -207,11 +212,9 @@ class OllamaLoadBalancer:
             }
         return summary
 
-
 # Global load balancer instance
 _load_balancer: Optional[OllamaLoadBalancer] = None
 _lb_lock = Lock()
-
 
 def get_load_balancer(instance_urls: Optional[List[str]] = None) -> OllamaLoadBalancer:
     """Get or create the global load balancer instance."""

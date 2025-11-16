@@ -222,12 +222,12 @@ services:
       - REDIS_URL=redis://redis-cache:6379/0
       - ENABLE_QUERY_RESPONSE_CACHE=true
       - OLLAMA_INSTANCES=http://ollama-server-1:11434,http://ollama-server-2:11434,http://ollama-server-3:11434,http://ollama-server-4:11434,http://ollama-server-5:11434,http://ollama-server-6:11434,http://ollama-server-7:11434,http://ollama-server-8:11434
-       - EMBEDDING_MODEL=llama3.2:3b
-       - CHAT_MODEL_NUM_CTX=32768
-       - REASONING_MODEL_NUM_CTX=131072
-       - LOG_LEVEL=info
+      - EMBEDDING_MODEL=llama3.2:3b
+      - CHAT_MODEL_NUM_CTX=32768
+      - REASONING_MODEL_NUM_CTX=131072
+      - LOG_LEVEL=info
       - ENABLE_QUESTION_DECOMPOSITION=true
-       - ENABLE_PYDANTIC_AGENT=false
+      - ENABLE_PYDANTIC_AGENT=false
       - PYDANTIC_AGENT_MODEL=${PYDANTIC_AGENT_MODEL}
       - ENABLE_A2A_AGENT=${ENABLE_A2A_AGENT}
       - A2A_BASE_URL=${A2A_BASE_URL}

@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='domain_corpus_analyzer',
+    log_level='INFO',
+    log_file=f'/app/logs/domain_corpus_analyzer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Domain Corpus Analyzer for RNI Documents
@@ -7,7 +18,6 @@ terminology, and characteristics for fine-tuning embedding models.
 """
 
 import json
-import logging
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -17,7 +27,7 @@ try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
 except ImportError:
-    print("psycopg2 not available. Install with: pip install psycopg2-binary")
+    logger.info("psycopg2 not available. Install with: pip install psycopg2-binary")
     psycopg2 = None
 
 try:
@@ -26,7 +36,7 @@ try:
     from nltk.stem import WordNetLemmatizer
     from nltk.tokenize import sent_tokenize, word_tokenize
 except ImportError:
-    print("NLTK not available. Install with: pip install nltk")
+    logger.info("NLTK not available. Install with: pip install nltk")
     nltk = None
 
 from config import get_settings
@@ -48,9 +58,7 @@ if nltk:
     except LookupError:
         nltk.download("wordnet")
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class DomainAnalysis:
@@ -65,7 +73,6 @@ class DomainAnalysis:
     acronym_expansions: Dict[str, str]
     section_structures: Dict[str, int]
     vocabulary_stats: Dict[str, int]
-
 
 class DomainCorpusAnalyzer:
     """Analyzes RNI document corpus for domain-specific characteristics."""
@@ -443,25 +450,24 @@ class DomainCorpusAnalyzer:
 
         return "\n".join(report)
 
-
 def main():
     """Run domain corpus analysis."""
-    print("🔍 RNI Domain Corpus Analyzer")
-    print("=" * 50)
+    logger.info("🔍 RNI Domain Corpus Analyzer")
+    logger.info("=" * 50)
 
     analyzer = DomainCorpusAnalyzer()
 
-    print("📊 Analyzing RNI document corpus...")
+    logger.info("📊 Analyzing RNI document corpus...")
     analysis = analyzer.analyze_corpus()
 
     if analysis.total_documents == 0:
-        print("❌ No documents found in corpus. Please ensure PDFs are processed.")
+        logger.info("❌ No documents found in corpus. Please ensure PDFs are processed.")
         return
 
-    print(f"✅ Analysis complete!")
-    print(f"📁 Analyzed {analysis.total_documents} documents ({analysis.total_chunks} chunks)")
-    print(f"🔤 Found {len(analysis.technical_terms)} technical terms")
-    print(f"🏷️ Identified {len(analysis.acronym_expansions)} acronym expansions")
+    logger.info(f"✅ Analysis complete!")
+    logger.info(f"📁 Analyzed {analysis.total_documents} documents ({analysis.total_chunks} chunks)")
+    logger.info(f"🔤 Found {len(analysis.technical_terms)} technical terms")
+    logger.info(f"🏷️ Identified {len(analysis.acronym_expansions)} acronym expansions")
 
     # Save results
     analyzer.save_analysis(analysis, "logs/domain_analysis.json")
@@ -471,29 +477,28 @@ def main():
     with open("logs/domain_analysis_report.md", "w") as f:
         f.write(report)
 
-    print(f"💾 Results saved to:")
-    print(f"  - logs/domain_analysis.json")
-    print(f"  - logs/domain_analysis_report.md")
+    logger.info(f"💾 Results saved to:")
+    logger.info(f"  - logs/domain_analysis.json")
+    logger.info(f"  - logs/domain_analysis_report.md")
 
     # Display key findings
-    print(f"\n🎯 Key Findings:")
+    logger.info(f"\n🎯 Key Findings:")
     if analysis.technical_terms:
         term, count = list(analysis.technical_terms.items())[0]
         top_term = f"{term} ({count})"
     else:
         top_term = "None"
-    print(f"  Most common technical term: {top_term}")
+    logger.info(f"  Most common technical term: {top_term}")
 
     if analysis.document_types:
         doc_type, occurrences = max(analysis.document_types.items(), key=lambda x: x[1])
         most_common_type = f"{doc_type} ({occurrences})"
     else:
         most_common_type = "None"
-    print(f"  Most frequent document type: {most_common_type}")
-    print(f"  Vocabulary richness: {analysis.vocabulary_stats.get('vocabulary_richness', 0):.3f}")
+    logger.info(f"  Most frequent document type: {most_common_type}")
+    logger.info(f"  Vocabulary richness: {analysis.vocabulary_stats.get('vocabulary_richness', 0):.3f}")
 
-    print(f"\n🚀 Ready for Phase 1 embedding fine-tuning!")
-
+    logger.info(f"\n🚀 Ready for Phase 1 embedding fine-tuning!")
 
 if __name__ == "__main__":
     main()

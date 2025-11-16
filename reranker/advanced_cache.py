@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='advanced_cache',
+    log_level='INFO',
+    log_file=f'/app/logs/advanced_cache_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Advanced Embedding and Inference Caching
 
@@ -12,7 +23,6 @@ Target: 92% cache hit rate → 98%+ cache hit rate (6% improvement).
 
 import hashlib
 import json
-import logging
 import os
 from typing import Any, Dict, List, Optional
 
@@ -20,9 +30,6 @@ try:
     import redis
 except ImportError:
     redis = None
-
-logger = logging.getLogger(__name__)
-
 
 class AdvancedCache:
     """
@@ -47,7 +54,7 @@ class AdvancedCache:
 
     def __init__(self):
         """Initialize advanced cache with Redis."""
-        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/1")
+        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379/1")
         self.enabled = os.getenv("ENABLE_ADVANCED_CACHE", "true").lower() in {"1", "true", "yes"}
         self.redis_client: Optional[redis.Redis] = None
 
@@ -376,10 +383,8 @@ class AdvancedCache:
             logger.warning(f"Cache clear error: {e}")
             return False
 
-
 # Global advanced cache instance
 _advanced_cache: Optional[AdvancedCache] = None
-
 
 def get_advanced_cache() -> AdvancedCache:
     """Get or create global advanced cache instance."""

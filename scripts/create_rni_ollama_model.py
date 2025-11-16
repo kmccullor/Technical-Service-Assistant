@@ -135,7 +135,7 @@ class RNIKnowledgeInjector:
                     if 'spec' in content or 'requirement' in content:
                         knowledge['specifications'].append(data['output'][:300])
         except FileNotFoundError:
-            print("Warning: Training data not found, using default knowledge")
+            logger.info("Warning: Training data not found, using default knowledge")
 
         return knowledge
 
@@ -179,11 +179,11 @@ def main():
     ]
 
     for query in test_queries:
-        print(f"Query: {query}")
+        logger.info(f"Query: {query}")
         # Simulate response enhancement
         enhanced = injector.inject_knowledge(query, "This is a sample response.")
-        print(f"Enhanced: {enhanced[:200]}...")
-        print("-" * 50)
+        logger.info(f"Enhanced: {enhanced[:200]}...")
+        logger.info("-" * 50)
 
 
 if __name__ == "__main__":

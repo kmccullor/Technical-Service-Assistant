@@ -1,3 +1,16 @@
+from __future__ import annotations
+
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='question_decomposer',
+    log_level='INFO',
+    log_file=f'/app/logs/question_decomposer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """Question decomposition and complexity classification for intelligent routing.
 
 This module analyzes user queries to:
@@ -9,10 +22,7 @@ This module analyzes user queries to:
 Used by chat endpoints to optimize response quality and performance.
 """
 
-from __future__ import annotations
-
 import hashlib
-import logging
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -22,16 +32,12 @@ from pydantic import BaseModel, Field
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
-
-
 class ComplexityLevel(str, Enum):
     """Query complexity classification for model routing."""
 
     SIMPLE = "simple"
     MODERATE = "moderate"
     COMPLEX = "complex"
-
 
 @dataclass
 class SubRequest:
@@ -56,7 +62,6 @@ class SubRequest:
             "topic": self.topic,
             "confidence": self.confidence,
         }
-
 
 class DecompositionResult(BaseModel):
     """Result of question decomposition."""
@@ -87,7 +92,6 @@ class DecompositionResult(BaseModel):
             "needs_decomposition": self.needs_decomposition,
             "decomposition_confidence": self.decomposition_confidence,
         }
-
 
 class QuestionDecomposer:
     """Decomposes questions into sub-requests and classifies complexity."""
@@ -455,7 +459,6 @@ class QuestionDecomposer:
 
         return min(1.0, max(0.5, avg_confidence))  # Clamp to [0.5, 1.0]
 
-
 def classify_and_decompose(query: str, user_id: int = 0) -> DecompositionResult:
     """Convenience function to decompose a question.
 
@@ -468,7 +471,6 @@ def classify_and_decompose(query: str, user_id: int = 0) -> DecompositionResult:
     """
     decomposer = QuestionDecomposer()
     return decomposer.decompose_question(query, user_id)
-
 
 def select_model_for_query(query: str) -> str:
     """Convenience function to select model for a query.

@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -10,10 +9,18 @@ import pytesseract
 from PIL import Image
 
 from config import get_settings
+from datetime import datetime
+from utils.logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='temp_document_processor',
+    log_level='INFO',
+    log_file=f'/app/logs/temp_document_processor_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 settings = get_settings()
-
 
 @dataclass
 class TempDocument:
@@ -24,7 +31,6 @@ class TempDocument:
     upload_time: datetime
     chunks: List[str]
     embeddings: Optional[List[List[float]]] = None
-
 
 class TempDocumentProcessor:
     """
@@ -355,7 +361,6 @@ class TempDocumentProcessor:
             logger.info(f"Manually cleaned up session: {session_id}")
             return True
         return False
-
 
 # Global instance
 temp_processor = TempDocumentProcessor()

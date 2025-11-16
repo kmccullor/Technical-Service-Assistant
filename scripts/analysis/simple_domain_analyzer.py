@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='simple_domain_analyzer',
+    log_level='INFO',
+    log_file=f'/app/logs/simple_domain_analyzer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Simple Domain Corpus Analyzer for RNI Documents
@@ -7,7 +18,6 @@ without external dependencies for quick analysis.
 """
 
 import json
-import logging
 import re
 import time
 from collections import Counter, defaultdict
@@ -19,9 +29,7 @@ from psycopg2.extras import RealDictCursor
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class DomainAnalysis:
@@ -34,7 +42,6 @@ class DomainAnalysis:
     document_types: Dict[str, int]
     acronym_expansions: Dict[str, str]
     vocabulary_stats: Dict[str, Any]
-
 
 class SimpleDomainAnalyzer:
     """Simple analyzer for RNI document corpus."""
@@ -384,25 +391,24 @@ class SimpleDomainAnalyzer:
 
         return "\\n".join(report)
 
-
 def main():
     """Run domain corpus analysis."""
-    print("🔍 RNI Domain Corpus Analyzer")
-    print("=" * 50)
+    logger.info("🔍 RNI Domain Corpus Analyzer")
+    logger.info("=" * 50)
 
     analyzer = SimpleDomainAnalyzer()
 
-    print("📊 Analyzing RNI document corpus...")
+    logger.info("📊 Analyzing RNI document corpus...")
     analysis = analyzer.analyze_corpus()
 
     if analysis.total_documents == 0:
-        print("❌ No documents found in corpus. Please ensure PDFs are processed.")
+        logger.info("❌ No documents found in corpus. Please ensure PDFs are processed.")
         return
 
-    print(f"✅ Analysis complete!")
-    print(f"📁 Analyzed {analysis.total_documents} documents ({analysis.total_chunks} chunks)")
-    print(f"🔤 Found {len(analysis.technical_terms)} technical terms")
-    print(f"🏷️ Identified {len(analysis.acronym_expansions)} acronym expansions")
+    logger.info(f"✅ Analysis complete!")
+    logger.info(f"📁 Analyzed {analysis.total_documents} documents ({analysis.total_chunks} chunks)")
+    logger.info(f"🔤 Found {len(analysis.technical_terms)} technical terms")
+    logger.info(f"🏷️ Identified {len(analysis.acronym_expansions)} acronym expansions")
 
     # Save results
     analyzer.save_analysis(analysis, "logs/domain_analysis.json")
@@ -412,25 +418,24 @@ def main():
     with open("logs/domain_analysis_report.md", "w") as f:
         f.write(report)
 
-    print(f"💾 Results saved to:")
-    print(f"  - logs/domain_analysis.json")
-    print(f"  - logs/domain_analysis_report.md")
+    logger.info(f"💾 Results saved to:")
+    logger.info(f"  - logs/domain_analysis.json")
+    logger.info(f"  - logs/domain_analysis_report.md")
 
     # Display key findings
-    print(f"\\n🎯 Key Findings:")
+    logger.info(f"\\n🎯 Key Findings:")
     if analysis.technical_terms:
         top_term = list(analysis.technical_terms.items())[0]
-        print(f"  Most common technical term: {top_term[0]} ({top_term[1]} occurrences)")
+        logger.info(f"  Most common technical term: {top_term[0]} ({top_term[1]} occurrences)")
 
     if analysis.document_types:
         top_doc_type = max(analysis.document_types.items(), key=lambda x: x[1])
-        print(f"  Most frequent document type: {top_doc_type[0]} ({top_doc_type[1]} chunks)")
+        logger.info(f"  Most frequent document type: {top_doc_type[0]} ({top_doc_type[1]} chunks)")
 
     vocab_richness = analysis.vocabulary_stats.get("vocabulary_richness", 0)
-    print(f"  Vocabulary richness: {vocab_richness:.3f}")
+    logger.info(f"  Vocabulary richness: {vocab_richness:.3f}")
 
-    print(f"\\n🚀 Ready for Phase 1 embedding fine-tuning!")
-
+    logger.info(f"\\n🚀 Ready for Phase 1 embedding fine-tuning!")
 
 if __name__ == "__main__":
     main()

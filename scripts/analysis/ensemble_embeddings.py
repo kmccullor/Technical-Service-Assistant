@@ -1,3 +1,15 @@
+from datetime import datetime
+
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name="ensemble_embeddings",
+    log_level="INFO",
+    log_file=f'/app/logs/ensemble_embeddings_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True,
+)
+
 #!/usr/bin/env python3
 """
 Ensemble Embeddings for 90% Accuracy
@@ -7,7 +19,6 @@ retrieval accuracy through diversity and specialized scoring.
 """
 
 import json
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -17,7 +28,6 @@ from ollama_load_balancer import OllamaLoadBalancer
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -200,16 +210,18 @@ class EnsembleEmbedder:
     def search_with_ensemble(self, query: str, top_k: int = 10) -> List[Dict]:
         """Search using ensemble embeddings."""
 
-        print(f"🎯 Ensemble search for: '{query}'")
+        logger.info(f"🎯 Ensemble search for: '{query}'")
 
         # Generate ensemble embedding
         ensemble_result = self.generate_ensemble_embedding(query)
 
         if not ensemble_result.ensemble_embedding:
-            print("❌ Failed to generate ensemble embedding")
+            logger.error("❌ Failed to generate ensemble embedding")
             return []
 
-        print(f"  Generated from {len(ensemble_result.embeddings)} models in {ensemble_result.generation_time:.3f}s")
+        logger.info(
+            f"  Generated from {len(ensemble_result.embeddings)} models in {ensemble_result.generation_time:.3f}s"
+        )
 
         # Search using ensemble embedding
         results = self._vector_search_with_embedding(ensemble_result.ensemble_embedding, top_k * 2)
@@ -333,7 +345,7 @@ class EnsembleEmbedder:
     def benchmark_ensemble_vs_single(self, test_queries: List[str]) -> Dict[str, Any]:
         """Benchmark ensemble vs single model performance."""
 
-        print("📊 Benchmarking ensemble vs single model...")
+        logger.info("📊 Benchmarking ensemble vs single model...")
 
         results = {
             "queries_tested": len(test_queries),
@@ -343,7 +355,7 @@ class EnsembleEmbedder:
         }
 
         for query in test_queries:
-            print(f"\n🔍 Testing: {query}")
+            logger.info(f"\n🔍 Testing: {query}")
 
             # Ensemble results
             start_time = time.time()
@@ -388,17 +400,17 @@ class EnsembleEmbedder:
                 "accuracy_estimate": min(score_improvement, 95),  # Cap at 95%
             }
 
-            print(f"  Ensemble: {len(ensemble_results)} results in {ensemble_time:.3f}s")
-            print(f"  Single: {len(single_results)} results in {single_time:.3f}s")
-            print(f"  Score improvement: {score_improvement:.1f}%")
+            logger.info(f"  Ensemble: {len(ensemble_results)} results in {ensemble_time:.3f}s")
+            logger.info(f"  Single: {len(single_results)} results in {single_time:.3f}s")
+            logger.info(f"  Score improvement: {score_improvement:.1f}%")
 
         return results
 
 
 def main():
     """Test ensemble embeddings for 90% accuracy."""
-    print("🎯 Ensemble Embeddings for 90% Accuracy")
-    print("=" * 60)
+    logger.info("🎯 Ensemble Embeddings for 90% Accuracy")
+    logger.info("=" * 60)
 
     # Initialize ensemble embedder
     embedder = EnsembleEmbedder()
@@ -412,20 +424,20 @@ def main():
         "RNI version 4.16.1 new features and improvements",
     ]
 
-    print(f"🧪 Testing ensemble embeddings...")
+    logger.info(f"🧪 Testing ensemble embeddings...")
 
     # Test individual ensemble search
     for query in test_queries[:2]:  # Test first 2
-        print(f"\n" + "=" * 50)
+        logger.info(f"\n" + "=" * 50)
         results = embedder.search_with_ensemble(query, top_k=3)
 
-        print(f"\n📋 Results for: '{query}'")
+        logger.info(f"\n📋 Results for: '{query}'")
         for i, result in enumerate(results, 1):
-            print(f"  {i}. {result['document_name']}")
-            print(f"     Similarity: {result['similarity_score']:.3f} | Ensemble: {result['ensemble_score']:.3f}")
+            logger.info(f"  {i}. {result['document_name']}")
+            logger.info(f"     Similarity: {result['similarity_score']:.3f} | Ensemble: {result['ensemble_score']:.3f}")
 
     # Benchmark ensemble vs single model
-    print(f"\n📊 Running ensemble vs single model benchmark...")
+    logger.info(f"\n📊 Running ensemble vs single model benchmark...")
     benchmark_results = embedder.benchmark_ensemble_vs_single(test_queries)
 
     # Save results
@@ -438,28 +450,28 @@ def main():
         avg_accuracy = sum(p["accuracy_estimate"] for p in performance_data) / len(performance_data)
         avg_time_ratio = sum(float(p["time_ratio"].rstrip("x")) for p in performance_data) / len(performance_data)
 
-        print(f"\n📈 Ensemble Performance Summary:")
-        print(f"  Queries tested: {benchmark_results['queries_tested']}")
-        print(f"  Average accuracy estimate: {avg_accuracy:.1f}%")
-        print(f"  Average time ratio: {avg_time_ratio:.2f}x")
+        logger.info(f"\n📈 Ensemble Performance Summary:")
+        logger.info(f"  Queries tested: {benchmark_results['queries_tested']}")
+        logger.info(f"  Average accuracy estimate: {avg_accuracy:.1f}%")
+        logger.info(f"  Average time ratio: {avg_time_ratio:.2f}x")
 
         # Project final accuracy
         current_baseline = 82  # Current enhanced system
         ensemble_improvement = (avg_accuracy - 82) if avg_accuracy > 82 else 8  # Minimum 8% boost
         projected_accuracy = min(current_baseline + ensemble_improvement, 99)  # Cap at 99%
 
-        print(f"\n🎯 Accuracy Projection:")
-        print(f"  Current baseline: {current_baseline}%")
-        print(f"  Ensemble improvement: +{ensemble_improvement:.1f}%")
-        print(f"  Projected accuracy: {projected_accuracy:.1f}%")
+        logger.info(f"\n🎯 Accuracy Projection:")
+        logger.info(f"  Current baseline: {current_baseline}%")
+        logger.info(f"  Ensemble improvement: +{ensemble_improvement:.1f}%")
+        logger.info(f"  Projected accuracy: {projected_accuracy:.1f}%")
 
         if projected_accuracy >= 90:
-            print(f"  ✅ 90% accuracy target achieved!")
+            logger.info(f"  ✅ 90% accuracy target achieved!")
         else:
-            print(f"  📈 Additional optimization needed for 90% target")
+            logger.info(f"  📈 Additional optimization needed for 90% target")
 
-    print(f"\n💾 Results saved to: logs/ensemble_benchmark.json")
-    print(f"🚀 Ensemble embeddings ready for integration!")
+    logger.info(f"\n💾 Results saved to: logs/ensemble_benchmark.json")
+    logger.info(f"🚀 Ensemble embeddings ready for integration!")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='query_classifier',
+    log_level='INFO',
+    log_file=f'/app/logs/query_classifier_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Query Classification System for Hybrid Search
 
@@ -5,15 +16,11 @@ This module analyzes incoming queries and classifies them into different categor
 to optimize search strategy selection and confidence thresholds.
 """
 
-import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List
-
-logger = logging.getLogger(__name__)
-
 
 class QueryType(str, Enum):
     """Query classification categories."""
@@ -27,7 +34,6 @@ class QueryType(str, Enum):
     TROUBLESHOOTING = "troubleshooting"  # Error fixing, debugging help
     UNKNOWN = "unknown"  # Unclear or mixed intent
 
-
 @dataclass
 class QueryClassification:
     """Results of query classification analysis."""
@@ -38,7 +44,6 @@ class QueryClassification:
     prefer_web_search: bool
     reasoning: str
     keywords_matched: List[str]
-
 
 class QueryClassifier:
     """
@@ -286,10 +291,8 @@ class QueryClassifier:
         else:
             return "adaptive_hybrid"
 
-
 # Global classifier instance
 query_classifier = QueryClassifier()
-
 
 def classify_and_optimize_query(query: str, base_confidence_threshold: float = 0.3) -> Dict:
     """

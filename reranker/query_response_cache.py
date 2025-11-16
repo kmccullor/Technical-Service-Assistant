@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='query_response_cache',
+    log_level='INFO',
+    log_file=f'/app/logs/query_response_cache_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Query-Response Caching Module
 
@@ -9,7 +20,6 @@ Pattern: Cache full RAG responses including context metadata and sources
 
 import hashlib
 import json
-import logging
 import os
 import re
 from datetime import datetime
@@ -20,9 +30,7 @@ from pydantic import BaseModel
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 class CachedRAGResponse(BaseModel):
     """Cached RAG response with metadata."""
@@ -36,7 +44,6 @@ class CachedRAGResponse(BaseModel):
     timestamp: str
     ttl_seconds: int
     query_hash: str
-
 
 class QueryResponseCache:
     """
@@ -60,7 +67,7 @@ class QueryResponseCache:
 
     def __init__(self):
         """Initialize Redis connection."""
-        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
         self.enabled = os.getenv("ENABLE_QUERY_RESPONSE_CACHE", "true").lower() in {
             "1",
             "true",
@@ -287,10 +294,8 @@ class QueryResponseCache:
             self.redis_client.close()
             logger.info("Redis cache connection closed")
 
-
 # Global cache instance
 _cache_instance: Optional[QueryResponseCache] = None
-
 
 def get_query_response_cache() -> QueryResponseCache:
     """Get or create global cache instance."""
@@ -299,24 +304,20 @@ def get_query_response_cache() -> QueryResponseCache:
         _cache_instance = QueryResponseCache()
     return _cache_instance
 
-
 def cache_rag_response(query: str, response: Dict[str, Any]) -> bool:
     """Cache a RAG response for future queries."""
     cache = get_query_response_cache()
     return cache.set(query, response)
-
 
 def get_cached_rag_response(query: str) -> Optional[Dict[str, Any]]:
     """Get cached RAG response if available."""
     cache = get_query_response_cache()
     return cache.get(query)
 
-
 def get_cache_stats() -> Dict[str, Any]:
     """Get cache statistics."""
     cache = get_query_response_cache()
     return cache.get_stats()
-
 
 def clear_cache() -> bool:
     """Clear all cache entries."""

@@ -1,14 +1,24 @@
+from __future__ import annotations
+
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='cache',
+    log_level='INFO',
+    log_file=f'/app/logs/cache_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """Web search caching utilities.
 
 Provides simple Postgres-backed caching for SearXNG web search results.
 Avoids repeated outbound queries for identical (normalized) queries within TTL.
 """
 
-from __future__ import annotations
-
 import hashlib
 import json
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -18,10 +28,8 @@ from pydantic import BaseModel
 from config import get_settings
 
 # Initialize logger
-logger = logging.getLogger(__name__)
 
 settings = get_settings()
-
 
 def get_db_connection():
     """Get database connection using centralized config."""
@@ -33,21 +41,17 @@ def get_db_connection():
         port=settings.db_port,
     )
 
-
 class CachedWebResult(BaseModel):
     title: str
     url: str
     content: str
     score: float
 
-
 def _normalize_query(q: str) -> str:
     return " ".join(q.lower().strip().split())
 
-
 def _hash_query(norm: str) -> str:
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()
-
 
 def get_cached_web_results(query: str) -> Optional[List[CachedWebResult]]:
     if not settings.web_cache_enabled:
@@ -92,7 +96,6 @@ def get_cached_web_results(query: str) -> Optional[List[CachedWebResult]]:
     except Exception as e:
         logger.warning(f"Cache read failed: {e}")
         return None
-
 
 def store_web_results(query: str, results: List[dict]):
     if not settings.web_cache_enabled:

@@ -657,7 +657,7 @@ class IntelligentRouter:
             context_length=context_length,
             fallback_options=fallback_options[:2],  # Limit to top 2 fallbacks
         )
-        print(f"DEBUG: Routing response - complexity: {response.complexity}")
+        logger.info(f"DEBUG: Routing response - complexity: {response.complexity}")
         return response
 
 
@@ -667,7 +667,7 @@ intelligent_router = IntelligentRouter()
 
 def add_intelligent_routing_endpoints(app):
     """Add intelligent routing endpoints to FastAPI app."""
-    print("Adding intelligent routing endpoints...")
+    logger.info("Adding intelligent routing endpoints...")
 
     async def intelligent_route(request: ModelSelectionRequest):
         """Get optimal model and instance selection for a query."""

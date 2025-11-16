@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='query_enhancement',
+    log_level='INFO',
+    log_file=f'/app/logs/query_enhancement_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Query Enhancement Implementation
@@ -7,13 +18,9 @@ retrieval accuracy beyond the current 82% target toward 90%+.
 """
 
 import json
-import logging
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List
-
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class QueryEnhancement:
@@ -25,7 +32,6 @@ class QueryEnhancement:
     query_type: str
     expansion_terms: List[str]
     confidence: float
-
 
 class QueryEnhancer:
     """Advanced query enhancement for better retrieval accuracy."""
@@ -248,11 +254,10 @@ class QueryEnhancer:
 
         return analysis
 
-
 def main():
     """Test query enhancement implementation."""
-    print("🔍 Query Enhancement for Higher Accuracy")
-    print("=" * 50)
+    logger.info("🔍 Query Enhancement for Higher Accuracy")
+    logger.info("=" * 50)
 
     enhancer = QueryEnhancer()
 
@@ -267,37 +272,36 @@ def main():
         "backup and restore procedures",
     ]
 
-    print("🧪 Testing Query Enhancement:")
-    print("-" * 40)
+    logger.info("🧪 Testing Query Enhancement:")
+    logger.info("-" * 40)
 
     for query in test_queries:
         enhancement = enhancer.enhance_query(query)
 
-        print(f"\nOriginal: {enhancement.original_query}")
-        print(f"Enhanced: {enhancement.enhanced_query}")
-        print(f"Type: {enhancement.query_type}")
-        print(f"Confidence: {enhancement.confidence:.2f}")
-        print(f"Technical Terms: {enhancement.technical_terms}")
-        print(f"Expansions: {enhancement.expansion_terms[:3]}...")  # Show first 3
+        logger.info(f"\nOriginal: {enhancement.original_query}")
+        logger.info(f"Enhanced: {enhancement.enhanced_query}")
+        logger.info(f"Type: {enhancement.query_type}")
+        logger.info(f"Confidence: {enhancement.confidence:.2f}")
+        logger.info(f"Technical Terms: {enhancement.technical_terms}")
+        logger.info(f"Expansions: {enhancement.expansion_terms[:3]}...")  # Show first 3
 
     # Analyze overall impact
-    print(f"\n📊 Enhancement Impact Analysis:")
+    logger.info(f"\n📊 Enhancement Impact Analysis:")
     analysis = enhancer.analyze_enhancement_impact(test_queries)
 
-    print(f"  Total Queries: {analysis['total_queries']}")
-    print(f"  Average Confidence: {analysis['average_confidence']:.2f}")
-    print(f"  Technical Terms Found: {analysis['technical_terms_found']}")
-    print(f"  Average Expansions: {analysis['average_expansions']:.1f}")
-    print(f"  Query Types: {analysis['query_types']}")
+    logger.info(f"  Total Queries: {analysis['total_queries']}")
+    logger.info(f"  Average Confidence: {analysis['average_confidence']:.2f}")
+    logger.info(f"  Technical Terms Found: {analysis['technical_terms_found']}")
+    logger.info(f"  Average Expansions: {analysis['average_expansions']:.1f}")
+    logger.info(f"  Query Types: {analysis['query_types']}")
 
     # Save analysis
     with open("query_enhancement_analysis.json", "w") as f:
         json.dump(analysis, f, indent=2)
 
-    print(f"\n💾 Detailed analysis saved to: query_enhancement_analysis.json")
-    print(f"\n💡 Expected Impact: +3-5% improvement in Recall@1")
-    print(f"   Target: 82% → 85-87% with query enhancement")
-
+    logger.info(f"\n💾 Detailed analysis saved to: query_enhancement_analysis.json")
+    logger.info(f"\n💡 Expected Impact: +3-5% improvement in Recall@1")
+    logger.info(f"   Target: 82% → 85-87% with query enhancement")
 
 if __name__ == "__main__":
     main()

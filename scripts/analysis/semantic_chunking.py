@@ -387,8 +387,8 @@ class SemanticChunker:
 
 def main():
     """Test semantic chunking implementation."""
-    print("📄 Testing Semantic Chunking Implementation")
-    print("=" * 50)
+    logger.info("📄 Testing Semantic Chunking Implementation")
+    logger.info("=" * 50)
 
     # Sample technical document text
     sample_text = """
@@ -443,33 +443,33 @@ Hardware Security Module configuration requires:
     # Test different chunking strategies
     chunker = SemanticChunker(max_chunk_size=300, overlap_size=50)
 
-    print("🧩 Analyzing Chunking Strategies")
+    logger.info("🧩 Analyzing Chunking Strategies")
     analysis = chunker.analyze_chunking_strategy(sample_text, "Sample RNI Guide")
 
-    print(f"Document Stats:")
-    print(f"  Total Length: {analysis['document_stats']['total_length']} chars")
-    print(f"  Word Count: {analysis['document_stats']['word_count']}")
-    print(f"  Sentences: {analysis['document_stats']['sentence_count']}")
+    logger.info(f"Document Stats:")
+    logger.info(f"  Total Length: {analysis['document_stats']['total_length']} chars")
+    logger.info(f"  Word Count: {analysis['document_stats']['word_count']}")
+    logger.info(f"  Sentences: {analysis['document_stats']['sentence_count']}")
 
     for strategy, stats in analysis["strategies"].items():
-        print(f"\n{strategy.upper()} Strategy:")
-        print(f"  Chunks: {stats['chunk_count']}")
-        print(f"  Avg Length: {stats['avg_chunk_length']:.1f} chars")
-        print(f"  Avg Words: {stats['avg_word_count']:.1f}")
-        print(f"  Technical Chunks: {stats['technical_chunks']}")
-        print(f"  Chunk Types: {stats['chunk_types']}")
+        logger.info(f"\n{strategy.upper()} Strategy:")
+        logger.info(f"  Chunks: {stats['chunk_count']}")
+        logger.info(f"  Avg Length: {stats['avg_chunk_length']:.1f} chars")
+        logger.info(f"  Avg Words: {stats['avg_word_count']:.1f}")
+        logger.info(f"  Technical Chunks: {stats['technical_chunks']}")
+        logger.info(f"  Chunk Types: {stats['chunk_types']}")
 
     # Show sample chunks
-    print(f"\n📖 Sample Hierarchical Chunks:")
+    logger.info(f"\n📖 Sample Hierarchical Chunks:")
     hierarchical_chunks = chunker._hierarchical_chunking(sample_text, "Sample RNI Guide")
 
     for i, chunk in enumerate(hierarchical_chunks[:3]):
-        print(f"\nChunk {i+1} ({chunk['metadata']['chunk_type']}):")
-        print(f"  Section: {chunk['metadata'].get('section_title', 'N/A')}")
-        print(f"  Technical Terms: {chunk['metadata']['has_technical_terms']}")
-        print(f"  Text: {chunk['text'][:100]}...")
+        logger.info(f"\nChunk {i+1} ({chunk['metadata']['chunk_type']}):")
+        logger.info(f"  Section: {chunk['metadata'].get('section_title', 'N/A')}")
+        logger.info(f"  Technical Terms: {chunk['metadata']['has_technical_terms']}")
+        logger.info(f"  Text: {chunk['text'][:100]}...")
 
-    print(f"\n✅ Semantic chunking system ready for integration!")
+    logger.info(f"\n✅ Semantic chunking system ready for integration!")
 
 
 if __name__ == "__main__":

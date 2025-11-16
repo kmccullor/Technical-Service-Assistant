@@ -1,19 +1,26 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='auth_endpoints',
+    log_level='INFO',
+    log_file=f'/app/logs/auth_endpoints_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Authentication endpoints for JWT token management and user authentication.
 """
 
-import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 
 from reranker.jwt_auth import JWTAuthenticator, User, validate_authentication
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
-
 
 # Request/Response Models
 class LoginRequest(BaseModel):
@@ -21,7 +28,6 @@ class LoginRequest(BaseModel):
 
     email: str = Field(..., description="User email")
     password: str = Field(..., description="User password")
-
 
 class LoginResponse(BaseModel):
     """Login response model."""
@@ -32,12 +38,10 @@ class LoginResponse(BaseModel):
     expires_in: int = Field(..., description="Token expiration in seconds")
     token_type: str = Field(default="Bearer", description="Token type")
 
-
 class RefreshTokenRequest(BaseModel):
     """Refresh token request model."""
 
     refresh_token: str = Field(..., description="Refresh token")
-
 
 class RefreshTokenResponse(BaseModel):
     """Refresh token response model."""
@@ -45,7 +49,6 @@ class RefreshTokenResponse(BaseModel):
     access_token: str = Field(..., description="New JWT access token")
     expires_in: int = Field(..., description="Token expiration in seconds")
     token_type: str = Field(default="Bearer", description="Token type")
-
 
 class UserResponse(BaseModel):
     """User information response model."""
@@ -55,7 +58,6 @@ class UserResponse(BaseModel):
     role: str = Field(..., description="User role (admin, user, viewer)")
     is_active: bool = Field(..., description="User active status")
 
-
 class TokenValidationResponse(BaseModel):
     """Token validation response model."""
 
@@ -63,6 +65,15 @@ class TokenValidationResponse(BaseModel):
     user: Optional[UserResponse] = Field(None, description="User info if valid")
     expires_in: Optional[int] = Field(None, description="Seconds until expiration")
 
+async def get_authenticated_user(authorization: str = Header(..., alias="Authorization")) -> User:
+    """Dependency to get current authenticated user from Authorization header."""
+    user, error = validate_authentication(authorization)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=error or "Authentication failed",
+        )
+    return user
 
 # Mock database for demo - replace with real database queries
 USERS_DB = {
@@ -82,7 +93,6 @@ USERS_DB = {
     },
 }
 
-
 def verify_password(password: str, password_hash: str) -> bool:
     """Verify password against hash.
 
@@ -100,7 +110,6 @@ def verify_password(password: str, password_hash: str) -> bool:
     except ImportError:
         # Fallback for demo
         return password == password_hash
-
 
 def get_user_from_db(email: str) -> Optional[dict]:
     """Get user from database by email.
@@ -120,9 +129,13 @@ def get_user_from_db(email: str) -> Optional[dict]:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             """
-            SELECT id, email, name, first_name, last_name, password_hash, role_id, status, verified, is_active
-            FROM users
-            WHERE email = %s AND status = 'active'
+            SELECT u.id, u.email, u.name, u.first_name, u.last_name, u.password_hash, u.status, u.verified,
+                   r.name as role_name
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            WHERE u.email = %s AND u.status = 'active'
+            LIMIT 1
         """,
             [email.lower()],
         )
@@ -135,14 +148,13 @@ def get_user_from_db(email: str) -> Optional[dict]:
                 "id": user_row["id"],
                 "email": user_row["email"],
                 "password_hash": user_row.get("password_hash", ""),
-                "role": "admin" if user_row.get("role_id") == 1 else "employee",
+                "role": user_row.get("role_name", "employee"),
                 "is_active": user_row.get("status") == "active" and user_row.get("verified", False),
             }
     except Exception as e:
         logger.error(f"Error querying user {email}: {e}")
 
     return None
-
 
 @router.post("/login", response_model=LoginResponse, operation_id="auth_login")
 async def login(request: LoginRequest) -> LoginResponse:
@@ -182,6 +194,7 @@ async def login(request: LoginRequest) -> LoginResponse:
     refresh_token = JWTAuthenticator.generate_refresh_token(
         user_id=user_data["id"],
         email=user_data["email"],
+        role=user_data["role"],
     )
 
     logger.info(f"User logged in: {request.email}")
@@ -196,7 +209,6 @@ async def login(request: LoginRequest) -> LoginResponse:
         },
         expires_in=24 * 60 * 60,  # 24 hours
     )
-
 
 @router.post("/refresh", response_model=RefreshTokenResponse, operation_id="auth_refresh_token")
 async def refresh_token(request: RefreshTokenRequest) -> RefreshTokenResponse:
@@ -226,7 +238,6 @@ async def refresh_token(request: RefreshTokenRequest) -> RefreshTokenResponse:
         access_token=new_token,
         expires_in=24 * 60 * 60,  # 24 hours
     )
-
 
 @router.post("/validate", response_model=TokenValidationResponse)
 async def validate_token(authorization: Optional[str] = None) -> TokenValidationResponse:
@@ -266,9 +277,8 @@ async def validate_token(authorization: Optional[str] = None) -> TokenValidation
         expires_in=24 * 60 * 60,  # TODO: Calculate actual expiration
     )
 
-
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(user: User = Depends(validate_authentication)) -> UserResponse:
+async def get_current_user(user: User = Depends(get_authenticated_user)) -> UserResponse:
     """Get current authenticated user information.
 
     Args:

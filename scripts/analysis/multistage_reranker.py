@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='multistage_reranker',
+    log_level='INFO',
+    log_file=f'/app/logs/multistage_reranker_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Multi-Stage Reranker for 90% Accuracy
@@ -7,7 +18,6 @@ retrieval accuracy from 82% to 90%+ target.
 """
 
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass
@@ -17,9 +27,7 @@ import requests
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class RankedResult:
@@ -33,7 +41,6 @@ class RankedResult:
     domain_score: float
     final_score: float
     rank_stage: str
-
 
 class MultiStageReranker:
     """Multi-stage reranking for maximum accuracy."""
@@ -69,26 +76,26 @@ class MultiStageReranker:
         Stage 3: Domain scoring (top 20)
         Stage 4: Final ranking (top k)
         """
-        print(f"🎯 Multi-stage search for: '{query}'")
+        logger.info(f"🎯 Multi-stage search for: '{query}'")
 
         # Stage 1: Vector similarity search (cast wide net)
         stage1_results = self._vector_search(query, limit=100)
-        print(f"  Stage 1 (Vector): {len(stage1_results)} candidates")
+        logger.info(f"  Stage 1 (Vector): {len(stage1_results)} candidates")
 
         if not stage1_results:
             return []
 
         # Stage 2: BGE reranking (first refinement)
         stage2_results = self._bge_rerank(query, stage1_results, top_k=50)
-        print(f"  Stage 2 (BGE): {len(stage2_results)} refined")
+        logger.info(f"  Stage 2 (BGE): {len(stage2_results)} refined")
 
         # Stage 3: Domain-specific scoring (domain relevance)
         stage3_results = self._domain_scoring(query, stage2_results, top_k=20)
-        print(f"  Stage 3 (Domain): {len(stage3_results)} domain-scored")
+        logger.info(f"  Stage 3 (Domain): {len(stage3_results)} domain-scored")
 
         # Stage 4: Final hybrid ranking (best results)
         final_results = self._final_ranking(query, stage3_results, top_k=top_k)
-        print(f"  Stage 4 (Final): {len(final_results)} results")
+        logger.info(f"  Stage 4 (Final): {len(final_results)} results")
 
         return final_results
 
@@ -247,7 +254,7 @@ class MultiStageReranker:
     def compare_with_baseline(self, queries: List[str]) -> Dict[str, Any]:
         """Compare multi-stage results with baseline."""
 
-        print("📊 Comparing multi-stage vs baseline retrieval...")
+        logger.info("📊 Comparing multi-stage vs baseline retrieval...")
 
         comparison_results = {
             "queries_tested": len(queries),
@@ -266,7 +273,7 @@ class MultiStageReranker:
             return comparison_results
 
         for query in queries:
-            print(f"\n🔍 Testing: {query}")
+            logger.info(f"\n🔍 Testing: {query}")
 
             # Multi-stage results
             start_time = time.time()
@@ -301,17 +308,16 @@ class MultiStageReranker:
                 "time_delta": f"{time_diff:+.3f}s",
             }
 
-            print(f"  Multi-stage: {len(multi_results)} results in {multi_time:.3f}s")
-            print(f"  Baseline: {len(baseline_result.documents)} results in {baseline_time:.3f}s")
-            print(f"  Improvement estimate: {score_improvement:.1f}%")
+            logger.info(f"  Multi-stage: {len(multi_results)} results in {multi_time:.3f}s")
+            logger.info(f"  Baseline: {len(baseline_result.documents)} results in {baseline_time:.3f}s")
+            logger.info(f"  Improvement estimate: {score_improvement:.1f}%")
 
         return comparison_results
 
-
 def main():
     """Test multi-stage reranking for 90% accuracy."""
-    print("🎯 Multi-Stage Reranking for 90% Accuracy")
-    print("=" * 60)
+    logger.info("🎯 Multi-Stage Reranking for 90% Accuracy")
+    logger.info("=" * 60)
 
     # Initialize multi-stage reranker
     reranker = MultiStageReranker()
@@ -325,59 +331,58 @@ def main():
         "RNI version 4.16.1 release features",
     ]
 
-    print(f"🧪 Testing multi-stage reranking...")
+    logger.info(f"🧪 Testing multi-stage reranking...")
 
     # Test individual queries
     for query in test_queries[:2]:  # Test first 2 for speed
-        print(f"\n" + "=" * 50)
+        logger.info(f"\n" + "=" * 50)
         results = reranker.multi_stage_search(query, top_k=3)
 
-        print(f"\n📋 Results for: '{query}'")
+        logger.info(f"\n📋 Results for: '{query}'")
         for i, result in enumerate(results, 1):
-            print(f"  {i}. {result.document_name}")
-            print(
+            logger.info(f"  {i}. {result.document_name}")
+            logger.info(
                 "     Vector: {vector:.3f} | Rerank: {rerank:.3f} | Domain: {domain:.3f}".format(
                     vector=result.vector_score,
                     rerank=result.rerank_score,
                     domain=result.domain_score,
                 )
             )
-            print(f"     Final Score: {result.final_score:.3f}")
+            logger.info(f"     Final Score: {result.final_score:.3f}")
 
     # Compare with baseline
-    print(f"\n📊 Running comparison with baseline...")
+    logger.info(f"\n📊 Running comparison with baseline...")
     comparison = reranker.compare_with_baseline(test_queries)
 
     # Save results
     with open("logs/multistage_results.json", "w") as f:
         json.dump(comparison, f, indent=2, default=str)
 
-    print(f"\n📈 Multi-Stage Reranking Summary:")
-    print(f"  Queries tested: {comparison['queries_tested']}")
+    logger.info(f"\n📈 Multi-Stage Reranking Summary:")
+    logger.info(f"  Queries tested: {comparison['queries_tested']}")
 
     improvements = list(comparison["improvements"].values())
     if improvements:
         avg_score = sum(float(imp["score_estimate"].rstrip("%")) for imp in improvements) / len(improvements)
-        print(f"  Average score improvement estimate: {avg_score:.1f}%")
+        logger.info(f"  Average score improvement estimate: {avg_score:.1f}%")
 
-    print(f"\n💾 Results saved to: logs/multistage_results.json")
+    logger.info(f"\n💾 Results saved to: logs/multistage_results.json")
 
     # Project accuracy improvement
     current_accuracy = 82  # Current baseline
     improvement_factor = avg_score / 100 if "avg_score" in locals() else 0.08
     projected_accuracy = current_accuracy + (improvement_factor * 10)  # Conservative scaling
 
-    print(f"\n🎯 Accuracy Projection:")
-    print(f"  Current accuracy: {current_accuracy}%")
-    print(f"  Multi-stage improvement: +{improvement_factor*10:.1f}%")
-    print(f"  Projected accuracy: {projected_accuracy:.1f}%")
+    logger.info(f"\n🎯 Accuracy Projection:")
+    logger.info(f"  Current accuracy: {current_accuracy}%")
+    logger.info(f"  Multi-stage improvement: +{improvement_factor*10:.1f}%")
+    logger.info(f"  Projected accuracy: {projected_accuracy:.1f}%")
 
     if projected_accuracy >= 90:
-        print(f"  ✅ 90% accuracy target achievable!")
+        logger.info(f"  ✅ 90% accuracy target achievable!")
     else:
-        print(f"  📈 Additional improvements needed for 90% target")
-        print(f"     Consider: ensemble embeddings, query enhancement")
-
+        logger.info(f"  📈 Additional improvements needed for 90% target")
+        logger.info(f"     Consider: ensemble embeddings, query enhancement")
 
 if __name__ == "__main__":
     main()

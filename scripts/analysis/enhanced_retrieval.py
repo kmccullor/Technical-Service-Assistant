@@ -422,24 +422,24 @@ def main():
         "What are the installation requirements?",
     ]
 
-    print("🔍 Testing Enhanced Retrieval Pipeline")
-    print("=" * 50)
+    logger.info("🔍 Testing Enhanced Retrieval Pipeline")
+    logger.info("=" * 50)
 
     for query in test_queries:
-        print(f"\nQuery: {query}")
+        logger.info(f"\nQuery: {query}")
         result = retrieval.search(query, top_k=5)
 
-        print(f"Results: {len(result.documents)}")
-        print(f"Total time: {result.total_time:.3f}s")
-        print(f"Metrics: {json.dumps(result.metrics, indent=2)}")
+        logger.info(f"Results: {len(result.documents)}")
+        logger.info(f"Total time: {result.total_time:.3f}s")
+        logger.info(f"Metrics: {json.dumps(result.metrics, indent=2)}")
 
         if result.documents:
-            print(f"Top result: {result.documents[0]['content'][:100]}...")
+            logger.info(f"Top result: {result.documents[0]['content'][:100]}...")
 
     # Health check
-    print(f"\n🏥 Health Check:")
+    logger.info(f"\n🏥 Health Check:")
     health = retrieval.health_check()
-    print(json.dumps(health, indent=2))
+    logger.info(json.dumps(health, indent=2))
 
 
 if __name__ == "__main__":

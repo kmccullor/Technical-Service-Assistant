@@ -7,12 +7,13 @@ from this module instead of reading os.environ directly to ensure consistency.
 
 from __future__ import annotations
 
-import logging
 import os
 from functools import lru_cache
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Load .env file early if present (local development convenience)
 try:  # pragma: no cover - simple optional side-effect
@@ -240,15 +241,16 @@ def get_settings() -> Settings:
     s.verification_email_subject = os.getenv(
         "VERIFICATION_EMAIL_SUBJECT", "Verify your Technical Service Assistant account"
     )
+    app_url = os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net")
     s.verification_email_link_base = os.getenv(
-        "VERIFICATION_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/verify-email"
+        "VERIFICATION_EMAIL_LINK_BASE", f"{app_url}/verify-email"
     )
     s.password_reset_email_sender = os.getenv("PASSWORD_RESET_EMAIL_SENDER", s.verification_email_sender)
     s.password_reset_email_subject = os.getenv(
         "PASSWORD_RESET_EMAIL_SUBJECT", "Reset your Technical Service Assistant password"
     )
     s.password_reset_email_link_base = os.getenv(
-        "PASSWORD_RESET_EMAIL_LINK_BASE", "https://rni-llm-01.lab.sensus.net/reset-password"
+        "PASSWORD_RESET_EMAIL_LINK_BASE", f"{app_url}/reset-password"
     )
 
     # Feature Flags
@@ -415,7 +417,6 @@ def select_embedding_model(document_type: str = "", content: str = "", size_kb: 
 
 if __name__ == "__main__":
     # Simple debug output
-    logging.basicConfig(level=logging.INFO)
     cfg = get_settings()
     for k, v in cfg.as_dict().items():
         logger.info(f"{k}={v}")

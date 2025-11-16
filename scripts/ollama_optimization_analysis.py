@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='ollama_optimization_analysis',
+    log_level='INFO',
+    log_file=f'/app/logs/ollama_optimization_analysis_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Ollama Container Optimization Analysis
@@ -9,14 +20,10 @@ and specialized model deployment patterns.
 
 import asyncio
 import json
-import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import aiohttp
-
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class ContainerStrategy:
@@ -31,7 +38,6 @@ class ContainerStrategy:
     performance_impact: str
     complexity: str
 
-
 @dataclass
 class LoadBalancingConfig:
     """Configuration for load balancing across containers."""
@@ -41,7 +47,6 @@ class LoadBalancingConfig:
     retry_attempts: int
     timeout_seconds: int
     fallback_enabled: bool
-
 
 class OllamaContainerOptimizer:
     """Analyzes and implements optimal Ollama container utilization."""
@@ -291,7 +296,6 @@ class OllamaContainerOptimizer:
             },
         }
 
-
 class OllamaLoadBalancer:
     """Implements intelligent load balancing across Ollama containers."""
 
@@ -374,64 +378,62 @@ class OllamaLoadBalancer:
         else:  # Default to round_robin
             return available[0]
 
-
 def main():
     """Run Ollama container optimization analysis."""
-    print("🔄 Ollama Container Optimization Analysis")
-    print("=" * 60)
+    logger.info("🔄 Ollama Container Optimization Analysis")
+    logger.info("=" * 60)
 
     optimizer = OllamaContainerOptimizer()
     analysis = optimizer.analyze_utilization_strategies()
 
     # Current State
-    print("📊 Current Container State:")
+    logger.info("📊 Current Container State:")
     current = analysis["current_state"]
-    print(f"  Strategy: {current['current_strategy']}")
-    print(f"  Containers: {current['container_count']}")
-    print(f"  Model Distribution: {len(current['model_distribution'])} specialized containers")
+    logger.info(f"  Strategy: {current['current_strategy']}")
+    logger.info(f"  Containers: {current['container_count']}")
+    logger.info(f"  Model Distribution: {len(current['model_distribution'])} specialized containers")
 
     # Recommended Strategy
-    print(f"\n🎯 Recommended Strategy: {analysis['recommendations']['recommended_strategy']}")
-    print("Rationale:")
+    logger.info(f"\n🎯 Recommended Strategy: {analysis['recommendations']['recommended_strategy']}")
+    logger.info("Rationale:")
     for reason in analysis["recommendations"]["rationale"]:
-        print(f"  • {reason}")
+        logger.info(f"  • {reason}")
 
     # Implementation Phases
-    print(f"\n🚀 Implementation Roadmap:")
+    logger.info(f"\n🚀 Implementation Roadmap:")
     for phase in analysis["recommendations"]["implementation_phases"]:
-        print(f"  {phase['phase']} ({phase['timeframe']}):")
+        logger.info(f"  {phase['phase']} ({phase['timeframe']}):")
         for action in phase["actions"]:
-            print(f"    - {action}")
+            logger.info(f"    - {action}")
 
     # Specific Configuration
-    print(f"\n🔧 Recommended Container Configuration:")
+    logger.info(f"\n🔧 Recommended Container Configuration:")
     config = analysis["recommendations"]["specific_configurations"]["recommended_setup"]
     for port, setup in config.items():
-        print(f"  Container {port} ({setup['role']}):")
-        print(f"    Models: {setup['models']}")
-        print(f"    Purpose: {setup['purpose']}")
-        print(f"    Backup for: {setup['backup_for']}")
+        logger.info(f"  Container {port} ({setup['role']}):")
+        logger.info(f"    Models: {setup['models']}")
+        logger.info(f"    Purpose: {setup['purpose']}")
+        logger.info(f"    Backup for: {setup['backup_for']}")
 
     # Load Balancing Benefits
-    print(f"\n⚖️ Load Balancing Benefits:")
-    print("  • Parallel embedding generation across containers")
-    print("  • Automatic failover for high availability")
-    print("  • Optimal resource utilization")
-    print("  • Reduced bottlenecks during peak loads")
+    logger.info(f"\n⚖️ Load Balancing Benefits:")
+    logger.info("  • Parallel embedding generation across containers")
+    logger.info("  • Automatic failover for high availability")
+    logger.info("  • Optimal resource utilization")
+    logger.info("  • Reduced bottlenecks during peak loads")
 
     # Performance Expectations
-    print(f"\n📈 Expected Performance Improvements:")
-    print("  • 2-4x faster embedding generation (parallel processing)")
-    print("  • 99%+ uptime with container failover")
-    print("  • 50-70% better resource utilization")
-    print("  • Scalable to additional containers as needed")
+    logger.info(f"\n📈 Expected Performance Improvements:")
+    logger.info("  • 2-4x faster embedding generation (parallel processing)")
+    logger.info("  • 99%+ uptime with container failover")
+    logger.info("  • 50-70% better resource utilization")
+    logger.info("  • Scalable to additional containers as needed")
 
     # Save analysis
     with open("ollama_optimization_analysis.json", "w") as f:
         json.dump(analysis, f, indent=2)
 
-    print(f"\n💾 Detailed analysis saved to: ollama_optimization_analysis.json")
-
+    logger.info(f"\n💾 Detailed analysis saved to: ollama_optimization_analysis.json")
 
 if __name__ == "__main__":
     main()

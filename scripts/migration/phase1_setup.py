@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='phase1_setup',
+    log_level='INFO',
+    log_file=f'/app/logs/phase1_setup_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Phase 1 Implementation Plan - Start Domain-Specific Fine-tuning
@@ -7,7 +18,6 @@ by creating domain-specific training data from the RNI corpus.
 """
 
 import json
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -18,9 +28,7 @@ from psycopg2.extras import RealDictCursor
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class TrainingPair:
@@ -30,7 +38,6 @@ class TrainingPair:
     positive_passage: str
     negative_passages: List[str]
     domain_category: str
-
 
 class Phase1Setup:
     """Set up Phase 1 implementation for domain-specific improvements."""
@@ -50,13 +57,13 @@ class Phase1Setup:
 
     def create_training_data(self) -> List[TrainingPair]:
         """Create training pairs from the corpus for fine-tuning."""
-        print("🎯 Creating training data for embedding fine-tuning...")
+        logger.info("🎯 Creating training data for embedding fine-tuning...")
 
         # Get chunks from database
         chunks = self._get_chunks_with_metadata()
 
         if not chunks:
-            print("❌ No chunks found. Ensure database is populated.")
+            logger.info("❌ No chunks found. Ensure database is populated.")
             return []
 
         training_pairs = []
@@ -68,7 +75,7 @@ class Phase1Setup:
         training_pairs.extend(self._create_security_pairs(chunks))
         training_pairs.extend(self._create_troubleshooting_pairs(chunks))
 
-        print(f"✅ Created {len(training_pairs)} training pairs")
+        logger.info(f"✅ Created {len(training_pairs)} training pairs")
         return training_pairs
 
     def _get_chunks_with_metadata(self) -> List[Dict]:
@@ -317,11 +324,11 @@ class Phase1Setup:
         with open(filename, "w") as f:
             json.dump(training_data, f, indent=2, ensure_ascii=False)
 
-        print(f"💾 Training data saved to {filename}")
+        logger.info(f"💾 Training data saved to {filename}")
 
     def test_current_embeddings(self, queries: List[str]) -> Dict[str, Any]:
         """Test current embedding quality on domain-specific queries."""
-        print("🧪 Testing current embedding performance...")
+        logger.info("🧪 Testing current embedding performance...")
 
         results = {}
 
@@ -427,26 +434,25 @@ class Phase1Setup:
 
         return "\n".join(report)
 
-
 def main():
     """Run Phase 1 setup."""
-    print("🚀 Phase 1: Domain-Specific Embedding Setup")
-    print("=" * 60)
+    logger.info("🚀 Phase 1: Domain-Specific Embedding Setup")
+    logger.info("=" * 60)
 
     # Initialize Phase 1 setup
     phase1 = Phase1Setup()
 
     if not phase1.domain_analysis:
-        print("❌ Domain analysis required. Run: python simple_domain_analyzer.py")
+        logger.info("❌ Domain analysis required. Run: python simple_domain_analyzer.py")
         return
 
-    print(f"📊 Domain analysis loaded: {phase1.domain_analysis['total_documents']} documents")
+    logger.info(f"📊 Domain analysis loaded: {phase1.domain_analysis['total_documents']} documents")
 
     # Create training data
     training_pairs = phase1.create_training_data()
 
     if not training_pairs:
-        print("❌ No training pairs created. Check database connection.")
+        logger.info("❌ No training pairs created. Check database connection.")
         return
 
     # Save training data
@@ -469,20 +475,19 @@ def main():
     with open("logs/phase1_setup_report.md", "w") as f:
         f.write(report)
 
-    print(f"\n📈 Phase 1 Results:")
-    print(f"  Training pairs created: {len(training_pairs)}")
+    logger.info(f"\n📈 Phase 1 Results:")
+    logger.info(f"  Training pairs created: {len(training_pairs)}")
 
     successful_tests = sum(1 for r in embedding_results.values() if r.get("success", False))
-    print(f"  Embedding tests: {successful_tests}/{len(embedding_results)} successful")
+    logger.info(f"  Embedding tests: {successful_tests}/{len(embedding_results)} successful")
 
-    print(f"\n💾 Files generated:")
-    print(f"  - logs/training_data.json")
-    print(f"  - logs/phase1_setup_report.md")
+    logger.info(f"\n💾 Files generated:")
+    logger.info(f"  - logs/training_data.json")
+    logger.info(f"  - logs/phase1_setup_report.md")
 
-    print(f"\n🎯 Next Action:")
-    print(f"  Ready to implement embedding fine-tuning!")
-    print(f"  Run: python embedding_fine_tuner.py")
-
+    logger.info(f"\n🎯 Next Action:")
+    logger.info(f"  Ready to implement embedding fine-tuning!")
+    logger.info(f"  Run: python embedding_fine_tuner.py")
 
 if __name__ == "__main__":
     main()

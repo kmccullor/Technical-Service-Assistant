@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='query_optimizer',
+    log_level='INFO',
+    log_file=f'/app/logs/query_optimizer_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Query Optimization Module
 
@@ -10,12 +21,9 @@ Implements query preprocessing techniques to improve accuracy and reduce latency
 Expected improvements: 3-5% latency reduction, 5% accuracy improvement
 """
 
-import logging
 import re
 from functools import lru_cache
 from typing import Any, Dict, List
-
-logger = logging.getLogger(__name__)
 
 # Common stop words for technical queries (broader than traditional NLP)
 # We keep technical terms even if they appear frequently
@@ -148,7 +156,6 @@ PRESERVE_TERMS = {
     "confidence",
 }
 
-
 def normalize_query(query: str) -> str:
     """
     Normalize query text for consistent processing.
@@ -172,7 +179,6 @@ def normalize_query(query: str) -> str:
 
     return normalized
 
-
 def remove_stop_words(query: str) -> str:
     """
     Remove common stop words while preserving technical terms.
@@ -188,7 +194,6 @@ def remove_stop_words(query: str) -> str:
             filtered.append(word)
 
     return " ".join(filtered) if filtered else query
-
 
 def extract_keywords(query: str) -> List[str]:
     """
@@ -209,7 +214,6 @@ def extract_keywords(query: str) -> List[str]:
                 keywords.append(word_clean)
 
     return keywords
-
 
 def extract_entities(query: str) -> List[str]:
     """
@@ -245,7 +249,6 @@ def extract_entities(query: str) -> List[str]:
     entities.extend(errors)
 
     return list(set(entities))  # deduplicate
-
 
 def suggest_expansions(query: str) -> List[str]:
     """
@@ -403,7 +406,6 @@ def suggest_expansions(query: str) -> List[str]:
 
     return expansions
 
-
 class QueryOptimizer:
     """
     Comprehensive query optimization for improved retrieval and reduced latency.
@@ -460,21 +462,17 @@ class QueryOptimizer:
         self.optimize.cache_clear()
         logger.info("Query optimization cache cleared")
 
-
 # Global optimizer instance
 _optimizer: QueryOptimizer = QueryOptimizer()
-
 
 def get_query_optimizer() -> QueryOptimizer:
     """Get or create global query optimizer."""
     return _optimizer
 
-
 def optimize_query(query: str) -> Dict[str, Any]:
     """Optimize a query using the global optimizer."""
     optimizer = get_query_optimizer()
     return optimizer.optimize(query)
-
 
 def get_optimization_stats() -> Dict[str, Any]:
     """Get query optimization cache statistics."""

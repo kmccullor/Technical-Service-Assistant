@@ -213,42 +213,45 @@ class HybridSearch:
         alpha = vector_weight if vector_weight is not None else self.alpha
         start_time = time.time()
 
-        # Get BM25 scores
-        bm25_scores = self.bm25.get_scores(query)
+        # Get top results from vector and BM25 search
+        vector_results = self._get_top_vector_results(query, top_k * 2)
+        bm25_results = self._get_top_bm25_results(query, top_k * 2)
 
-        # Get vector similarity scores
-        vector_scores = self._get_vector_scores(query)
+        # Combine candidates
+        candidate_map = {}
+        for result in vector_results + bm25_results:
+            chunk_id = result["chunk_id"]
+            if chunk_id not in candidate_map:
+                candidate_map[chunk_id] = result
+            else:
+                # Merge scores if both have them
+                existing = candidate_map[chunk_id]
+                if "vector_score" in result and "vector_score" not in existing:
+                    existing["vector_score"] = result["vector_score"]
+                if "bm25_score" in result and "bm25_score" not in existing:
+                    existing["bm25_score"] = result["bm25_score"]
 
-        if len(vector_scores) != len(bm25_scores):
-            logger.warning(f"Mismatch in score lengths: vector={len(vector_scores)}, bm25={len(bm25_scores)}")
-            min_len = min(len(vector_scores), len(bm25_scores))
-            vector_scores = vector_scores[:min_len]
-            bm25_scores = bm25_scores[:min_len]
-
-        # Normalize scores
-        vector_scores_norm = self._normalize_scores(vector_scores)
-        bm25_scores_norm = self._normalize_scores(bm25_scores)
-
-        # Combine scores
+        # Calculate combined scores
         combined_results = []
-        for i, (vec_score, bm25_score) in enumerate(zip(vector_scores_norm, bm25_scores_norm)):
-            if i >= len(self.document_metadata):
-                break
+        for chunk_id, result in candidate_map.items():
+            vec_score = result.get("vector_score", 0.0)
+            bm25_score = result.get("bm25_score", 0.0)
 
-            combined_score = alpha * vec_score + (1 - alpha) * bm25_score
+            # Normalize scores within the candidate set
+            all_vec_scores = [r.get("vector_score", 0.0) for r in candidate_map.values()]
+            all_bm25_scores = [r.get("bm25_score", 0.0) for r in candidate_map.values()]
 
-            result = {
-                "text": self.document_texts[i],
-                "document_name": self.document_metadata[i]["document_name"],
-                "metadata": self.document_metadata[i]["metadata"],
-                "vector_score": vec_score,
-                "bm25_score": bm25_score,
-                "combined_score": combined_score,
-                "chunk_id": self.document_metadata[i]["id"],
-            }
+            vec_score_norm = self._normalize_score(vec_score, all_vec_scores)
+            bm25_score_norm = self._normalize_score(bm25_score, all_bm25_scores)
+
+            combined_score = alpha * vec_score_norm + (1 - alpha) * bm25_score_norm
+
+            result["vector_score"] = vec_score_norm
+            result["bm25_score"] = bm25_score_norm
+            result["combined_score"] = combined_score
             combined_results.append(result)
 
-        # Sort by combined score and return top-k
+        # Sort by combined score
         combined_results.sort(key=lambda x: x["combined_score"], reverse=True)
 
         search_time = time.time() - start_time
@@ -256,14 +259,12 @@ class HybridSearch:
 
         return combined_results[:top_k]
 
-    def _get_vector_scores(self, query: str) -> List[float]:
-        """Get vector similarity scores for query."""
+    def _get_top_vector_results(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        """Get top vector similarity results from PostgreSQL."""
         try:
             import ollama
 
             # Try primary Ollama instance first
-            # Inside Docker, use ollama-server-1:11434 directly
-            # On host, fallback to config value
             try:
                 ollama_client = ollama.Client(host="http://ollama-server-1:11434")
                 logger.debug("Connected to ollama-server-1 (Docker container)")
@@ -276,36 +277,87 @@ class HybridSearch:
                 logger.debug(f"Connected to {base_url} (config fallback)")
 
             # Generate query embedding
-            # Use the full model name (e.g., "nomic-embed-text:v1.5")
             query_embedding = ollama_client.embeddings(model=self.embedding_model, prompt=query)["embedding"]
 
-            # Calculate cosine similarity with all document embeddings
-            scores = []
-            for metadata in self.document_metadata:
-                doc_embedding = metadata["embedding"]
-                if doc_embedding:
-                    # Convert to lists if they're not already
-                    if isinstance(query_embedding, str):
-                        query_embedding = json.loads(query_embedding)
-                    if isinstance(doc_embedding, str):
-                        doc_embedding = json.loads(doc_embedding)
+            conn = psycopg2.connect(
+                host=settings.db_host,
+                database=settings.db_name,
+                user=settings.db_user,
+                password=settings.db_password,
+                port=settings.db_port,
+            )
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-                    # Cosine similarity
-                    dot_product = sum(a * b for a, b in zip(query_embedding, doc_embedding))
-                    norm_a = math.sqrt(sum(a * a for a in query_embedding))
-                    norm_b = math.sqrt(sum(b * b for b in doc_embedding))
+            # Convert embedding to PostgreSQL vector format
+            embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
 
-                    similarity = dot_product / (norm_a * norm_b) if norm_a * norm_b > 0 else 0
-                    scores.append(similarity)
-                else:
-                    scores.append(0.0)
+            cursor.execute(
+                """
+                SELECT
+                    dc.id,
+                    dc.content,
+                    dc.embedding <=> %s::vector as distance,
+                    d.file_name,
+                    d.document_type
+                FROM document_chunks dc
+                JOIN documents d ON dc.document_id = d.id
+                 WHERE dc.embedding IS NOT NULL
+                  AND d.processing_status = 'processed'
+                  AND d.privacy_level = 'public'
+                 ORDER BY dc.embedding <=> %s::vector
+                 LIMIT %s
+                """,
+                (embedding_str, embedding_str, top_k),
+            )
 
-            return scores
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            # Convert to result format
+            vector_results = []
+            for row in results:
+                vector_results.append({
+                    "chunk_id": row["id"],
+                    "text": row["content"],
+                    "document_name": row["file_name"],
+                    "metadata": {"type": row["document_type"]},
+                    "vector_score": 1.0 - row["distance"],  # Convert distance to similarity
+                })
+
+            logger.debug(f"Got {len(vector_results)} vector results")
+            return vector_results
 
         except Exception as e:
-            logger.error(f"Vector scoring failed: {e}")
-            # Fallback to zero scores
-            return [0.0] * len(self.document_metadata)
+            logger.error(f"Vector search failed: {e}")
+            return []
+
+    def _get_top_bm25_results(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        """Get top BM25 results."""
+        try:
+            bm25_scores = self.bm25.get_scores(query)
+
+            # Get top scoring documents
+            scored_docs = [(i, score) for i, score in enumerate(bm25_scores)]
+            scored_docs.sort(key=lambda x: x[1], reverse=True)
+
+            bm25_results = []
+            for chunk_id, score in scored_docs[:top_k]:
+                if chunk_id < len(self.document_metadata):
+                    bm25_results.append({
+                        "chunk_id": chunk_id,
+                        "text": self.document_texts[chunk_id],
+                        "document_name": self.document_metadata[chunk_id]["document_name"],
+                        "metadata": self.document_metadata[chunk_id]["metadata"],
+                        "bm25_score": score,
+                    })
+
+            logger.debug(f"Got {len(bm25_results)} BM25 results")
+            return bm25_results
+
+        except Exception as e:
+            logger.error(f"BM25 search failed: {e}")
+            return []
 
     def _normalize_scores(self, scores: List[float]) -> List[float]:
         """Normalize scores to 0-1 range."""
@@ -319,6 +371,19 @@ class HybridSearch:
             return [0.5] * len(scores)  # All scores are the same
 
         return [(score - min_score) / (max_score - min_score) for score in scores]
+
+    def _normalize_score(self, score: float, all_scores: List[float]) -> float:
+        """Normalize a single score within a list of scores."""
+        if not all_scores:
+            return 0.5
+
+        min_score = min(all_scores)
+        max_score = max(all_scores)
+
+        if max_score == min_score:
+            return 0.5
+
+        return (score - min_score) / (max_score - min_score)
 
     def compare_methods(self, query: str, top_k: int = 5) -> Dict[str, Any]:
         """
@@ -354,8 +419,8 @@ class HybridSearch:
 
 def main():
     """Test hybrid search implementation."""
-    print("🔍 Testing Hybrid Search Implementation")
-    print("=" * 50)
+    logger.info("🔍 Testing Hybrid Search Implementation")
+    logger.info("=" * 50)
 
     # Initialize hybrid search
     hybrid_search = HybridSearch(alpha=0.7)  # 70% vector, 30% BM25
@@ -370,25 +435,25 @@ def main():
     ]
 
     for query in test_queries:
-        print(f"\nQuery: {query}")
-        print("-" * 30)
+        logger.info(f"\nQuery: {query}")
+        logger.info("-" * 30)
 
         # Compare all methods
         comparison = hybrid_search.compare_methods(query, top_k=3)
 
-        print("🎯 Vector Only (Top 3):")
+        logger.info("🎯 Vector Only (Top 3):")
         for i, result in enumerate(comparison["vector_only"][:3], 1):
-            print(f"  {i}. {result['text'][:60]}... (score: {result['vector_score']:.3f})")
+            logger.info(f"  {i}. {result['text'][:60]}... (score: {result['vector_score']:.3f})")
 
-        print("\n🔤 BM25 Only (Top 3):")
+        logger.info("\n🔤 BM25 Only (Top 3):")
         for i, result in enumerate(comparison["bm25_only"][:3], 1):
-            print(f"  {i}. {result['text'][:60]}... (score: {result['bm25_score']:.3f})")
+            logger.info(f"  {i}. {result['text'][:60]}... (score: {result['bm25_score']:.3f})")
 
-        print("\n🚀 Hybrid (Top 3):")
+        logger.info("\n🚀 Hybrid (Top 3):")
         for i, result in enumerate(comparison["hybrid"][:3], 1):
-            print(f"  {i}. {result['text'][:60]}... (combined: {result['combined_score']:.3f})")
+            logger.info(f"  {i}. {result['text'][:60]}... (combined: {result['combined_score']:.3f})")
 
-    print(f"\n💾 Hybrid search system ready for integration!")
+    logger.info(f"\n💾 Hybrid search system ready for integration!")
 
 
 if __name__ == "__main__":

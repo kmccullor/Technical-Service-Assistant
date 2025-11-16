@@ -124,15 +124,35 @@ groups:
           summary: "Nginx reverse proxy is down"
           description: "Nginx exporter has not returned data for more than 1 minute."
 
-      - alert: FrontendProbeFailed
-        expr: probe_success{job="frontend-probe", instance="http://frontend:3000/api/status"} == 0
-        for: 2m
-        labels:
-          severity: critical
-          service: frontend
-        annotations:
-          summary: "Frontend availability probe failing"
-          description: "Blackbox probe to http://frontend:3000/api/status has failed for at least 2 minutes."
+       - alert: FrontendProbeFailed
+         expr: probe_success{job="frontend-probe", instance="http://frontend:3000/api/status"} == 0
+         for: 2m
+         labels:
+           severity: critical
+           service: frontend
+         annotations:
+           summary: "Frontend availability probe failing"
+           description: "Blackbox probe to http://frontend:3000/api/status has failed for at least 2 minutes."
+
+       - alert: NginxHigh4xxRate
+         expr: rate(nginx_http_requests_total{status=~"4.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.1
+         for: 2m
+         labels:
+           severity: warning
+           service: nginx
+         annotations:
+           summary: "High 4xx error rate in Nginx"
+           description: "4xx error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+       - alert: NginxHigh5xxRate
+         expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.1
+         for: 1m
+         labels:
+           severity: critical
+           service: nginx
+         annotations:
+           summary: "High 5xx error rate in Nginx"
+           description: "5xx error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
 
       # Routing Intelligence Alerts
       - alert: RoutingAccuracyDrop

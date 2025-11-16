@@ -190,7 +190,7 @@ def create_admin_user(email: str = None, password: str = None):
     if email is None:
         email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@technical-service.local")
     if password is None:
-        password = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123!")
+        password = os.getenv("DEFAULT_ADMIN_PASSWORD", "H+Z5QZ736Kyp4aFF")
 
     conn = get_db_connection()
     cursor = conn.cursor()

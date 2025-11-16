@@ -6,7 +6,7 @@ Follows Pydantic AI best practices from https://ai.pydantic.dev/
 """
 
 import asyncio
-import logging
+import json
 import os
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
@@ -36,17 +36,12 @@ from reranker.query_optimizer import optimize_query
 # Query-Response caching for 15-20% latency reduction
 from reranker.query_response_cache import cache_rag_response, get_query_response_cache
 from scripts.analysis.hybrid_search import HybridSearch
+from utils.logging_config import get_logger
 from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
 
 from .reranker_config import get_settings
 
-# Setup basic logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
-    logger.addHandler(handler)
+logger = get_logger(__name__)
 
 
 settings = get_settings()
@@ -784,23 +779,41 @@ Sources: [list documentation sources]"""
         web_sources = []
         cache_hit = False
 
-        # Check cache first for non-streaming requests (streaming uses cache for context only)
-        if request.use_context and not request.stream:
+        # Check cache first for all requests
+        if request.use_context:
             cache = get_query_response_cache()
             cached_response = cache.get(request.query)
             if cached_response:
                 logger.info(f"Cache HIT for query: {request.query[:50]}...")
                 cache_hit = True
-                return RAGChatResponse(
-                    response=cached_response.get("response", ""),
-                    context_used=cached_response.get("context_used", []),
-                    context_metadata=cached_response.get("context_metadata", []),
-                    web_sources=cached_response.get("web_sources", []),
-                    model=cached_response.get("model", "cached"),
-                    context_retrieved=cached_response.get("context_retrieved", False),
-                    confidence=cached_response.get("confidence", 0.8),
-                    fallback_used=False,
-                )
+                if request.stream:
+                    # For streaming cache hit, stream the cached response
+                    async def stream_cached_response():
+                        # Send metadata first
+                        yield f"data: {json.dumps({'type': 'sources', 'sources': cached_response.get('context_metadata', []), 'method': 'cached', 'confidence': cached_response.get('confidence', 0.8)})}\n\n"
+                        yield f"data: {json.dumps({'type': 'model', 'model': cached_response.get('model', 'cached')})}\n\n"
+
+                        # Stream the cached response token by token
+                        response_text = cached_response.get("response", "")
+                        for token in response_text.split():  # Simple tokenization by words
+                            yield f"data: {json.dumps({'type': 'token', 'token': token + ' '})}\n\n"
+
+                        # Send completion
+                        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+                    return StreamingResponse(content=stream_cached_response(), media_type="text/event-stream")
+                else:
+                    # For non-streaming cache hit, return JSON
+                    return RAGChatResponse(
+                        response=cached_response.get("response", ""),
+                        context_used=cached_response.get("context_used", []),
+                        context_metadata=cached_response.get("context_metadata", []),
+                        web_sources=cached_response.get("web_sources", []),
+                        model=cached_response.get("model", "cached"),
+                        context_retrieved=cached_response.get("context_retrieved", False),
+                        confidence=cached_response.get("confidence", 0.8),
+                        fallback_used=False,
+                    )
 
         model_value = (request.model or "").lower()
         preferred_instance: Optional[str] = None
@@ -854,6 +867,7 @@ Sources: [list documentation sources]"""
             logger.info(f"Retrieved {len(context_chunks)} context chunks ({len(web_sources)} from web) for query")
 
         prompt_dict = self.build_rag_prompt(request.query, context_chunks, complexity)
+        user_prompt = prompt_dict.get("user", "")
 
         logger.info(
             "Selected model %s for query: %s (question_type=%s, preferred_instance=%s, context_length=%d)",
@@ -878,8 +892,9 @@ Sources: [list documentation sources]"""
                     f"Streaming request retrieved {len(context_chunks)} chunks but model {selected_model} "
                     f"({context_length} tokens) should only use {optimal_max_chunks} chunks"
                 )
-            # For streaming, return the response object
-            return cast(
+
+            # Create streaming response with metadata
+            response = cast(
                 Response,
                 await self.generate_response(
                     prompt_dict,
@@ -890,6 +905,54 @@ Sources: [list documentation sources]"""
                     preferred_instance,
                 ),
             )  # type: ignore
+
+            # Calculate confidence for streaming response
+            confidence = self._calculate_response_confidence("", context_chunks, request.query, selected_model)
+
+            # Create a new streaming response that includes metadata
+            async def generate_with_metadata():
+                # Send metadata first
+                yield f"data: {json.dumps({'type': 'sources', 'sources': context_metadata, 'method': 'rag', 'confidence': confidence})}\n\n"
+                yield f"data: {json.dumps({'type': 'model', 'model': selected_model})}\n\n"
+
+                # Then stream the response, parsing Ollama's format
+                full_response = ""
+                async for line in response.aiter_lines():
+                    if line.strip():
+                        try:
+                            data = json.loads(line)
+                            if 'response' in data:
+                                token = data['response']
+                                full_response += token
+                                yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                            if data.get('done', False):
+                                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                        except json.JSONDecodeError:
+                            # If not JSON, skip
+                            continue
+
+                # Cache the response after streaming completes
+                if not cache_hit and request.use_context:
+                    try:
+                        cache_rag_response(
+                            request.query,
+                            {
+                                "response": full_response,
+                                "context_used": context_chunks,
+                                "context_metadata": context_metadata,
+                                "web_sources": web_sources,
+                                "model": selected_model,
+                                "context_retrieved": len(context_chunks) > 0,
+                                "confidence": confidence,
+                            },
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to cache streaming response: {e}")
+
+                # Send completion
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            return StreamingResponse(content=generate_with_metadata(), media_type="text/event-stream")
         else:
             # For non-streaming, return the response text
             response_text = cast(
@@ -915,6 +978,9 @@ Sources: [list documentation sources]"""
                 logger.info(f"Low confidence ({confidence:.2f}) detected, attempting fallback strategy")
                 fallback_used = True
 
+                # Define fallback options (can be made configurable later)
+                fallback_options = [{"model": "mistral:7b", "url": preferred_instance or self.ollama_urls[0]}]
+
                 # Try different model from fallback options
                 if fallback_options:
                     fallback_model = fallback_options[0].get("model", "mistral:7b")
@@ -927,7 +993,7 @@ Sources: [list documentation sources]"""
                                 f"{fallback_url}/api/generate",
                                 json={
                                     "model": fallback_model,
-                                    "prompt": prompt,
+                                    "prompt": user_prompt,
                                     "stream": False,
                                     "options": {
                                         "temperature": request.temperature,

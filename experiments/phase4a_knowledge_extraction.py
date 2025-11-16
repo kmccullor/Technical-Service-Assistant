@@ -517,10 +517,10 @@ def _quick_demo():  # pragma: no cover - demo harness
     text = _demo_text()
     snap = ke.extract_all("doc_demo", text)
     ke.persist_snapshot(snap)
-    print("Entities:", [e.text for e in snap.entities])
-    print("Specs:", [(s.name, s.raw_value, s.unit) for s in snap.specifications])
-    print("Relations:", len(snap.relations))
-    print("Steps:", [(st.index, st.action[:25]) for st in snap.process_steps])
+    logger.info("Entities:", [e.text for e in snap.entities])
+    logger.info("Specs:", [(s.name, s.raw_value, s.unit) for s in snap.specifications])
+    logger.info("Relations:", len(snap.relations))
+    logger.info("Steps:", [(st.index, st.action[:25]) for st in snap.process_steps])
 
 
 if __name__ == "__main__":  # pragma: no cover

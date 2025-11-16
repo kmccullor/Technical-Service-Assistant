@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='integrated_retrieval_system',
+    log_level='INFO',
+    log_file=f'/app/logs/integrated_retrieval_system_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Integrated Enhanced Retrieval with Load Balancing
@@ -7,7 +18,6 @@ load balancing across 4 Ollama containers for optimal performance.
 """
 
 import json
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -18,9 +28,6 @@ from hybrid_search import HybridSearch
 from ollama_load_balancer import OllamaLoadBalancer
 from query_enhancement import QueryEnhancer
 from semantic_chunking import SemanticChunker
-
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class IntegratedResult:
@@ -33,7 +40,6 @@ class IntegratedResult:
     retrieval_method: str
     performance_metrics: Dict[str, Any]
     container_stats: Dict[str, Any]
-
 
 class IntegratedRetrievalSystem:
     """Production-ready integrated retrieval system with all enhancements."""
@@ -229,7 +235,7 @@ class IntegratedRetrievalSystem:
             method_results = []
             total_time = 0
 
-            print(f"\n🧪 Testing {method.upper()} method...")
+            logger.info(f"\n🧪 Testing {method.upper()} method...")
 
             for query in test_queries:
                 start_time = time.time()
@@ -247,10 +253,10 @@ class IntegratedRetrievalSystem:
                         }
                     )
 
-                    print(f"  ✅ {query}: {len(result.documents)} results in {query_time:.3f}s")
+                    logger.info(f"  ✅ {query}: {len(result.documents)} results in {query_time:.3f}s")
 
                 except Exception as e:
-                    print(f"  ❌ {query}: Error - {e}")
+                    logger.info(f"  ❌ {query}: Error - {e}")
                     method_results.append({"query": query, "error": str(e), "response_time": 0})
 
             avg_time = total_time / len(test_queries) if test_queries else 0
@@ -260,7 +266,7 @@ class IntegratedRetrievalSystem:
                 "total_time": total_time,
             }
 
-            print(f"  📊 Average response time: {avg_time:.3f}s")
+            logger.info(f"  📊 Average response time: {avg_time:.3f}s")
 
         # Generate summary
         results["summary"] = self._generate_benchmark_summary(results["methods"])
@@ -313,11 +319,10 @@ class IntegratedRetrievalSystem:
 
         return status
 
-
 def main():
     """Test the integrated retrieval system."""
-    print("🚀 Integrated Enhanced Retrieval System")
-    print("=" * 60)
+    logger.info("🚀 Integrated Enhanced Retrieval System")
+    logger.info("=" * 60)
 
     # Initialize integrated system with all enhancements
     system = IntegratedRetrievalSystem(
@@ -333,52 +338,51 @@ def main():
         "backup and restore procedures",
     ]
 
-    print("🎯 System Status:")
+    logger.info("🎯 System Status:")
     status = system.get_system_status()
     for component, state in status["components"].items():
-        print(f"  {component}: {state}")
+        logger.info(f"  {component}: {state}")
 
-    print(f"\n📊 Container Status:")
+    logger.info(f"\n📊 Container Status:")
     container_stats = status["container_status"]
     if container_stats["load_balancer_enabled"]:
-        print(f"  Healthy containers: {container_stats['healthy_containers']}/{container_stats['total_containers']}")
-        print(f"  System uptime: {container_stats['uptime_percentage']:.1f}%")
+        logger.info(f"  Healthy containers: {container_stats['healthy_containers']}/{container_stats['total_containers']}")
+        logger.info(f"  System uptime: {container_stats['uptime_percentage']:.1f}%")
     else:
-        print("  Single container mode")
+        logger.info("  Single container mode")
 
     # Test individual queries
-    print(f"\n🔍 Testing Individual Queries:")
+    logger.info(f"\n🔍 Testing Individual Queries:")
     for query in test_queries[:3]:  # Test first 3
-        print(f"\nQuery: {query}")
+        logger.info(f"\nQuery: {query}")
         result = system.search(query, top_k=3, method="auto")
 
-        print(f"  Method: {result.retrieval_method}")
-        print(f"  Results: {len(result.documents)}")
-        print(f"  Time: {result.performance_metrics['total_time']:.3f}s")
+        logger.info(f"  Method: {result.retrieval_method}")
+        logger.info(f"  Results: {len(result.documents)}")
+        logger.info(f"  Time: {result.performance_metrics['total_time']:.3f}s")
         if result.documents:
-            print(f"  Top result: {result.documents[0]['document_name']}")
+            logger.info(f"  Top result: {result.documents[0]['document_name']}")
 
     # Run comprehensive benchmark
-    print(f"\n🏁 Running Comprehensive Benchmark:")
+    logger.info(f"\n🏁 Running Comprehensive Benchmark:")
     benchmark_results = system.benchmark_methods(test_queries)
 
-    print(f"\n📈 Benchmark Summary:")
+    logger.info(f"\n📈 Benchmark Summary:")
     summary = benchmark_results["summary"]
-    print(f"  Fastest method: {summary['fastest_method']}")
-    print(f"  Most reliable: {summary['most_reliable']}")
+    logger.info(f"  Fastest method: {summary['fastest_method']}")
+    logger.info(f"  Most reliable: {summary['most_reliable']}")
 
     if summary["recommendations"]:
-        print(f"  Recommendations:")
+        logger.info(f"  Recommendations:")
         for rec in summary["recommendations"]:
-            print(f"    • {rec}")
+            logger.info(f"    • {rec}")
 
     # Save results
     with open("integrated_system_benchmark.json", "w") as f:
         json.dump(benchmark_results, f, indent=2)
 
-    print(f"\n💾 Benchmark results saved to: integrated_system_benchmark.json")
-    print(f"\n✅ Integrated system ready for production deployment!")
-
+    logger.info(f"\n💾 Benchmark results saved to: integrated_system_benchmark.json")
+    logger.info(f"\n✅ Integrated system ready for production deployment!")
 
 if __name__ == "__main__":
     main()

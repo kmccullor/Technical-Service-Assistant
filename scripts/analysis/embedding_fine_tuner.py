@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='embedding_fine_tuner',
+    log_level='INFO',
+    log_file=f'/app/logs/embedding_fine_tuner_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 Embedding Fine-Tuner for RNI Domain
@@ -7,7 +18,6 @@ to improve technical term matching and domain relevance.
 """
 
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass
@@ -21,15 +31,13 @@ try:
 
     FINETUNING_AVAILABLE = True
 except ImportError:
-    print("⚠️  Fine-tuning libraries not available. Install with:")
-    print("pip install sentence-transformers torch")
+    logger.info("⚠️  Fine-tuning libraries not available. Install with:")
+    logger.info("pip install sentence-transformers torch")
     FINETUNING_AVAILABLE = False
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class FineTuningResult:
@@ -42,7 +50,6 @@ class FineTuningResult:
     final_score: float
     improvement: float
     training_time: float
-
 
 class EmbeddingFineTuner:
     """Fine-tune embeddings for RNI domain specificity."""
@@ -134,7 +141,7 @@ class EmbeddingFineTuner:
                 training_time=0.0,
             )
 
-        print(f"🔧 Fine-tuning {self.base_model} on RNI domain data...")
+        logger.info(f"🔧 Fine-tuning {self.base_model} on RNI domain data...")
         start_time = time.time()
 
         # Prepare training data
@@ -166,7 +173,7 @@ class EmbeddingFineTuner:
             evaluator = EmbeddingSimilarityEvaluator.from_input_examples(eval_examples, name="rni_domain_eval")
             initial_score = evaluator(self.model, output_path=None)
 
-        print(f"📊 Initial evaluation score: {initial_score:.4f}")
+        logger.info(f"📊 Initial evaluation score: {initial_score:.4f}")
 
         # Fine-tune the model
         warmup_steps = int(len(train_dataloader) * epochs * 0.1)
@@ -189,10 +196,10 @@ class EmbeddingFineTuner:
         training_time = time.time() - start_time
         improvement = final_score - initial_score
 
-        print(f"✅ Fine-tuning complete!")
-        print(f"📈 Final evaluation score: {final_score:.4f}")
-        print(f"🚀 Improvement: +{improvement:.4f}")
-        print(f"⏱️  Training time: {training_time:.1f}s")
+        logger.info(f"✅ Fine-tuning complete!")
+        logger.info(f"📈 Final evaluation score: {final_score:.4f}")
+        logger.info(f"🚀 Improvement: +{improvement:.4f}")
+        logger.info(f"⏱️  Training time: {training_time:.1f}s")
 
         return FineTuningResult(
             model_name=self.base_model,
@@ -210,7 +217,7 @@ class EmbeddingFineTuner:
         if not FINETUNING_AVAILABLE or not self.model:
             return {"error": "Fine-tuning not available"}
 
-        print("🧪 Testing domain-specific improvements...")
+        logger.info("🧪 Testing domain-specific improvements...")
 
         # Test queries from different categories
         test_queries = {
@@ -265,18 +272,17 @@ class EmbeddingFineTuner:
 
             self.model.save(model_path)
 
-            print(f"💾 Model saved to: {model_path}")
-            print(f"📝 To use with Ollama:")
-            print(f"   1. Create Modelfile with sentence-transformers base")
-            print(f"   2. Copy model files to Ollama models directory")
-            print(f"   3. Use: ollama create {model_name} -f Modelfile")
+            logger.info(f"💾 Model saved to: {model_path}")
+            logger.info(f"📝 To use with Ollama:")
+            logger.info(f"   1. Create Modelfile with sentence-transformers base")
+            logger.info(f"   2. Copy model files to Ollama models directory")
+            logger.info(f"   3. Use: ollama create {model_name} -f Modelfile")
 
             return True
 
         except Exception as e:
             logger.error(f"Failed to save model: {e}")
             return False
-
 
 class SimpleDomainImprover:
     """Simple improvements without complex dependencies."""
@@ -296,7 +302,7 @@ class SimpleDomainImprover:
     def create_domain_term_glossary(self) -> Dict[str, List[str]]:
         """Create a glossary of domain-specific terms for query expansion."""
 
-        print("📚 Creating domain term glossary...")
+        logger.info("📚 Creating domain term glossary...")
 
         glossary = {
             "rni_versions": ["4.16", "4.16.1", "4.15", "4.14"],
@@ -350,7 +356,7 @@ class SimpleDomainImprover:
         with open("logs/domain_glossary.json", "w") as f:
             json.dump(glossary, f, indent=2)
 
-        print(f"✅ Domain glossary created with {sum(len(terms) for terms in glossary.values())} terms")
+        logger.info(f"✅ Domain glossary created with {sum(len(terms) for terms in glossary.values())} terms")
         return glossary
 
     def enhance_query_expansion(self, query: str, glossary: Dict[str, List[str]]) -> str:
@@ -370,38 +376,37 @@ class SimpleDomainImprover:
 
         return enhanced_query
 
-
 def main():
     """Run embedding fine-tuning for 90% accuracy target."""
-    print("🎯 Embedding Fine-Tuning for 90% Accuracy")
-    print("=" * 60)
+    logger.info("🎯 Embedding Fine-Tuning for 90% Accuracy")
+    logger.info("=" * 60)
 
     # Check if fine-tuning is available
     if FINETUNING_AVAILABLE:
-        print("✅ Fine-tuning libraries available")
+        logger.info("✅ Fine-tuning libraries available")
 
         # Initialize fine-tuner
         fine_tuner = EmbeddingFineTuner("all-MiniLM-L6-v2")
 
         if not fine_tuner.training_data:
-            print("❌ No training data found. Run: DB_HOST=localhost python phase1_setup.py")
+            logger.info("❌ No training data found. Run: DB_HOST=localhost python phase1_setup.py")
             return
 
-        print(f"📊 Training data loaded: {len(fine_tuner.training_data)} pairs")
+        logger.info(f"📊 Training data loaded: {len(fine_tuner.training_data)} pairs")
 
         # Fine-tune the model
         result = fine_tuner.fine_tune_model(epochs=3, batch_size=8)
 
         if result.improvement > 0:
-            print(f"\n🎉 Fine-tuning successful!")
-            print(f"📈 Improvement: +{result.improvement:.4f}")
+            logger.info(f"\n🎉 Fine-tuning successful!")
+            logger.info(f"📈 Improvement: +{result.improvement:.4f}")
 
             # Test domain improvements
             domain_results = fine_tuner.test_domain_improvements()
 
-            print(f"\n🧪 Domain Testing Results:")
+            logger.info(f"\n🧪 Domain Testing Results:")
             for category, data in domain_results.items():
-                print(f"  {category}: max_sim={data['max_similarity']:.3f}, avg_sim={data['avg_similarity']:.3f}")
+                logger.info(f"  {category}: max_sim={data['max_similarity']:.3f}, avg_sim={data['avg_similarity']:.3f}")
 
             # Save model
             fine_tuner.save_model_for_ollama("rni-embed-text")
@@ -411,26 +416,26 @@ def main():
             expected_improvement = result.improvement * 0.1  # Conservative estimate
             projected_accuracy = base_accuracy + expected_improvement
 
-            print(f"\n📊 Projected Impact:")
-            print(f"  Current accuracy: {base_accuracy:.1%}")
-            print(f"  Expected improvement: +{expected_improvement:.1%}")
-            print(f"  Projected accuracy: {projected_accuracy:.1%}")
+            logger.info(f"\n📊 Projected Impact:")
+            logger.info(f"  Current accuracy: {base_accuracy:.1%}")
+            logger.info(f"  Expected improvement: +{expected_improvement:.1%}")
+            logger.info(f"  Projected accuracy: {projected_accuracy:.1%}")
 
         else:
-            print("⚠️  Fine-tuning did not show improvement. Consider:")
-            print("  - More training data")
-            print("  - Different base model")
-            print("  - Adjusted hyperparameters")
+            logger.info("⚠️  Fine-tuning did not show improvement. Consider:")
+            logger.info("  - More training data")
+            logger.info("  - Different base model")
+            logger.info("  - Adjusted hyperparameters")
 
     else:
-        print("⚠️  Fine-tuning libraries not available")
-        print("📚 Creating domain improvements without fine-tuning...")
+        logger.info("⚠️  Fine-tuning libraries not available")
+        logger.info("📚 Creating domain improvements without fine-tuning...")
 
         # Use simple improvements
         improver = SimpleDomainImprover()
 
         if not improver.training_data:
-            print("❌ No training data found. Run: DB_HOST=localhost python phase1_setup.py")
+            logger.info("❌ No training data found. Run: DB_HOST=localhost python phase1_setup.py")
             return
 
         # Create domain glossary
@@ -439,19 +444,18 @@ def main():
         # Test query expansion
         test_queries = ["RNI installation", "Active Directory setup", "security configuration", "troubleshoot errors"]
 
-        print(f"\n🔍 Query Enhancement Examples:")
+        logger.info(f"\n🔍 Query Enhancement Examples:")
         for query in test_queries:
             enhanced = improver.enhance_query_expansion(query, glossary)
-            print(f"  '{query}' → '{enhanced}'")
+            logger.info(f"  '{query}' → '{enhanced}'")
 
-        print(f"\n📈 Simple improvements ready for integration!")
+        logger.info(f"\n📈 Simple improvements ready for integration!")
 
-    print(f"\n🎯 Next Steps:")
-    print(f"  1. Integrate improved embeddings with enhanced_retrieval.py")
-    print(f"  2. Implement multi-stage reranking")
-    print(f"  3. Test accuracy improvements")
-    print(f"  4. Deploy ensemble approach")
-
+    logger.info(f"\n🎯 Next Steps:")
+    logger.info(f"  1. Integrate improved embeddings with enhanced_retrieval.py")
+    logger.info(f"  2. Implement multi-stage reranking")
+    logger.info(f"  3. Test accuracy improvements")
+    logger.info(f"  4. Deploy ensemble approach")
 
 if __name__ == "__main__":
     main()

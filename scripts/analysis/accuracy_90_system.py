@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='accuracy_90_system',
+    log_level='INFO',
+    log_file=f'/app/logs/accuracy_90_system_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 #!/usr/bin/env python3
 """
 90% Accuracy System - Complete Integration
@@ -10,7 +21,6 @@ Integrates all accuracy improvements into a unified system:
 """
 
 import json
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -23,9 +33,7 @@ from multistage_reranker import MultiStageReranker
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class AccuracyResult:
@@ -39,13 +47,12 @@ class AccuracyResult:
     confidence_score: float
     query_analysis: Dict[str, Any]
 
-
 class NinetyPercentAccuracySystem:
     """Complete 90% accuracy retrieval system."""
 
     def __init__(self):
         """Initialize the 90% accuracy system."""
-        print("🚀 Initializing 90% Accuracy System...")
+        logger.info("🚀 Initializing 90% Accuracy System...")
 
         # Initialize all components
         self.query_processor = EnhancedQueryProcessor()
@@ -53,7 +60,7 @@ class NinetyPercentAccuracySystem:
         self.multistage_reranker = MultiStageReranker()
         self.baseline_retriever = EnhancedRetrieval(enable_reranking=True)
 
-        print("✅ All components initialized")
+        logger.info("✅ All components initialized")
 
     def search(self, query: str, top_k: int = 10, accuracy_mode: str = "maximum") -> AccuracyResult:
         """
@@ -66,14 +73,14 @@ class NinetyPercentAccuracySystem:
         """
         start_time = time.time()
 
-        print(f"🎯 90% Accuracy Search: '{query}'")
+        logger.info(f"🎯 90% Accuracy Search: '{query}'")
 
         # Step 1: Enhanced query processing
         query_enhancement = self.query_processor.enhance_for_search_system(query, "hybrid")
         analysis = query_enhancement["analysis"]
 
-        print(f"  Query Type: {analysis.query_type} (confidence: {analysis.intent_confidence:.2f})")
-        print(f"  Enhanced: {analysis.enhanced_query}")
+        logger.info(f"  Query Type: {analysis.query_type} (confidence: {analysis.intent_confidence:.2f})")
+        logger.info(f"  Enhanced: {analysis.enhanced_query}")
 
         components_used = ["query_enhancement"]
 
@@ -96,9 +103,9 @@ class NinetyPercentAccuracySystem:
 
         processing_time = time.time() - start_time
 
-        print(f"  Results: {len(results)} in {processing_time:.3f}s")
-        print(f"  Accuracy Score: {accuracy_score:.1f}%")
-        print(f"  Confidence: {confidence_score:.2f}")
+        logger.info(f"  Results: {len(results)} in {processing_time:.3f}s")
+        logger.info(f"  Accuracy Score: {accuracy_score:.1f}%")
+        logger.info(f"  Confidence: {confidence_score:.2f}")
 
         return AccuracyResult(
             query=query,
@@ -281,7 +288,7 @@ class NinetyPercentAccuracySystem:
     def comprehensive_benchmark(self, test_queries: List[str]) -> Dict[str, Any]:
         """Run comprehensive benchmark against baseline."""
 
-        print("📊 Running comprehensive 90% accuracy benchmark...")
+        logger.info("📊 Running comprehensive 90% accuracy benchmark...")
 
         benchmark_results = {
             "test_info": {
@@ -295,7 +302,7 @@ class NinetyPercentAccuracySystem:
         }
 
         for query in test_queries:
-            print(f"\n🔍 Testing: {query}")
+            logger.info(f"\n🔍 Testing: {query}")
 
             # Test 90% accuracy system
             accuracy_result = self.search(query, top_k=5, accuracy_mode="maximum")
@@ -341,14 +348,14 @@ class NinetyPercentAccuracySystem:
                 "target_achieved": accuracy_result.accuracy_score >= 90,
             }
 
-            print(
+            logger.info(
                 "  90% System: {score:.1f}% accuracy in {time:.3f}s".format(
                     score=accuracy_result.accuracy_score,
                     time=accuracy_result.processing_time,
                 )
             )
-            print(f"  Baseline: {baseline_docs} results in {baseline_time:.3f}s")
-            print(f"  Improvement: +{accuracy_improvement:.1f}% accuracy")
+            logger.info(f"  Baseline: {baseline_docs} results in {baseline_time:.3f}s")
+            logger.info(f"  Improvement: +{accuracy_improvement:.1f}% accuracy")
 
         # Calculate summary statistics
         comparisons = list(benchmark_results["comparison"].values())
@@ -376,11 +383,10 @@ class NinetyPercentAccuracySystem:
 
         return benchmark_results
 
-
 def main():
     """Test the complete 90% accuracy system."""
-    print("🎯 90% Accuracy System - Complete Integration Test")
-    print("=" * 70)
+    logger.info("🎯 90% Accuracy System - Complete Integration Test")
+    logger.info("=" * 70)
 
     # Initialize 90% accuracy system
     accuracy_system = NinetyPercentAccuracySystem()
@@ -396,22 +402,22 @@ def main():
         "RNI hardware security module installation guide",
     ]
 
-    print(f"🧪 Testing 90% accuracy system...")
+    logger.info(f"🧪 Testing 90% accuracy system...")
 
     # Test individual queries in different modes
-    print(f"\n🎯 Individual Query Tests:")
+    logger.info(f"\n🎯 Individual Query Tests:")
     for i, query in enumerate(test_queries[:3]):
-        print(f"\n{'='*60}")
+        logger.info(f"\n{'='*60}")
         result = accuracy_system.search(query, top_k=3, accuracy_mode="maximum")
 
-        print(f"Query {i+1}: {query}")
-        print(f"Accuracy: {result.accuracy_score:.1f}% | Confidence: {result.confidence_score:.2f}")
-        print(f"Top Results:")
+        logger.info(f"Query {i+1}: {query}")
+        logger.info(f"Accuracy: {result.accuracy_score:.1f}% | Confidence: {result.confidence_score:.2f}")
+        logger.info(f"Top Results:")
         for j, res in enumerate(result.results, 1):
-            print(f"  {j}. {res['document_name']} (score: {res['score']:.3f})")
+            logger.info(f"  {j}. {res['document_name']} (score: {res['score']:.3f})")
 
     # Run comprehensive benchmark
-    print(f"\n📊 Running Comprehensive Benchmark...")
+    logger.info(f"\n📊 Running Comprehensive Benchmark...")
     benchmark_results = accuracy_system.comprehensive_benchmark(test_queries)
 
     # Save results
@@ -420,39 +426,38 @@ def main():
 
     # Display summary
     summary = benchmark_results["summary"]
-    print(f"\n🎉 90% Accuracy System Results:")
-    print(f"  Average Accuracy: {summary['average_accuracy']}")
-    print(f"  Average Confidence: {summary['average_confidence']}")
-    print(f"  Queries ≥90% Accuracy: {summary['queries_above_90']}/{len(test_queries)}")
-    print(f"  Target Achievement Rate: {summary['target_achievement_rate']}")
-    print(f"  System Performance: {summary['system_performance']}")
+    logger.info(f"\n🎉 90% Accuracy System Results:")
+    logger.info(f"  Average Accuracy: {summary['average_accuracy']}")
+    logger.info(f"  Average Confidence: {summary['average_confidence']}")
+    logger.info(f"  Queries ≥90% Accuracy: {summary['queries_above_90']}/{len(test_queries)}")
+    logger.info(f"  Target Achievement Rate: {summary['target_achievement_rate']}")
+    logger.info(f"  System Performance: {summary['system_performance']}")
 
     if summary["system_performance"] == "EXCELLENT":
-        print(f"\n✅ 90% ACCURACY TARGET ACHIEVED!")
-        print(f"🎊 System ready for production deployment!")
+        logger.info(f"\n✅ 90% ACCURACY TARGET ACHIEVED!")
+        logger.info(f"🎊 System ready for production deployment!")
     elif summary["system_performance"] == "GOOD":
-        print(f"\n📈 Close to 90% target - additional optimization recommended")
+        logger.info(f"\n📈 Close to 90% target - additional optimization recommended")
     else:
-        print(f"\n🔧 System needs further optimization")
+        logger.info(f"\n🔧 System needs further optimization")
 
-    print(f"\n💾 Complete results saved to: logs/90_percent_accuracy_benchmark.json")
+    logger.info(f"\n💾 Complete results saved to: logs/90_percent_accuracy_benchmark.json")
 
     # Show improvement over baseline
     avg_improvement = sum(
         float(c["accuracy_improvement"].rstrip("%").lstrip("+")) for c in benchmark_results["comparison"].values()
     ) / len(benchmark_results["comparison"])
 
-    print(f"\n📈 Improvement Summary:")
-    print(f"  Average improvement over baseline: +{avg_improvement:.1f}%")
-    print(f"  Baseline accuracy: 82%")
-    print(f"  Achieved accuracy: {summary['average_accuracy']}")
+    logger.info(f"\n📈 Improvement Summary:")
+    logger.info(f"  Average improvement over baseline: +{avg_improvement:.1f}%")
+    logger.info(f"  Baseline accuracy: 82%")
+    logger.info(f"  Achieved accuracy: {summary['average_accuracy']}")
 
     final_accuracy = float(summary["average_accuracy"].rstrip("%"))
     if final_accuracy >= 90:
-        print(f"  🎯 TARGET ACHIEVED: {final_accuracy:.1f}% ≥ 90%")
+        logger.info(f"  🎯 TARGET ACHIEVED: {final_accuracy:.1f}% ≥ 90%")
     else:
-        print(f"  📊 Progress: {final_accuracy:.1f}% towards 90% target")
-
+        logger.info(f"  📊 Progress: {final_accuracy:.1f}% towards 90% target")
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,18 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='auth_middleware',
+    log_level='INFO',
+    log_file=f'/app/logs/auth_middleware_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 FastAPI authentication middleware and decorators for JWT and API key authentication.
 """
 
-import logging
 from typing import Callable
 
 from fastapi import Depends, HTTPException, Request, status
@@ -14,9 +24,6 @@ from reranker.jwt_auth import (
     User,
     validate_authentication,
 )
-
-logger = logging.getLogger(__name__)
-
 
 async def verify_jwt_token(request: Request) -> User:
     """Dependency to verify JWT token in request.
@@ -41,7 +48,6 @@ async def verify_jwt_token(request: Request) -> User:
         )
 
     return user
-
 
 async def require_role(*allowed_roles: str) -> Callable:
     """Dependency factory to require specific roles.
@@ -73,7 +79,6 @@ async def require_role(*allowed_roles: str) -> Callable:
 
     return check_role
 
-
 async def verify_rate_limit(request: Request, user: User) -> None:
     """Check rate limit for user.
 
@@ -104,7 +109,6 @@ async def verify_rate_limit(request: Request, user: User) -> None:
             },
         )
 
-
 async def check_endpoint_permission(request: Request, user: User) -> None:
     """Check if user has permission to access endpoint.
 
@@ -124,7 +128,6 @@ async def check_endpoint_permission(request: Request, user: User) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this endpoint",
         )
-
 
 class JWTAuthMiddleware:
     """Middleware to add JWT authentication to FastAPI app."""

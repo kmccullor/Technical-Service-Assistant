@@ -5,6 +5,7 @@ Tests multiple endpoints under concurrent load
 """
 
 import json
+import os
 import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -13,7 +14,7 @@ from typing import Any, Dict, List
 import requests
 
 # Test configuration
-TARGET_URL = "https://rni-llm-01.lab.sensus.net"
+TARGET_URL = os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net")
 ENDPOINTS = ["/health", "/api/ollama-health", "/api/auth/health"]
 
 CONCURRENT_USERS = 50

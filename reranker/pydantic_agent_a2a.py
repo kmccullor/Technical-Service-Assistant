@@ -1,8 +1,7 @@
-"""FastA2A server exposure for the Technical Service Assistant agent."""
-
 from __future__ import annotations
 
-import logging
+"""FastA2A server exposure for the Technical Service Assistant agent."""
+
 import os
 import time
 import uuid
@@ -17,9 +16,16 @@ from fasta2a.worker import Worker
 from pydantic_agent import ChatAgentDeps, initialize_pydantic_agent, is_pydantic_agent_enabled, run_pydantic_agent_chat
 
 from reranker.rag_chat import RAGChatResponse, RAGChatService
+from datetime import datetime
+from utils.logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
-
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='pydantic_agent_a2a',
+    log_level='INFO',
+    log_file=f'/app/logs/pydantic_agent_a2a_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
 
 class TSAWorker(Worker[Dict[str, Any]]):
     """Worker that delegates execution to the feature-flagged Pydantic AI agent."""
@@ -125,7 +131,6 @@ class TSAWorker(Worker[Dict[str, Any]]):
                 return part.get("text", "")
         return ""
 
-
 @dataclass
 class A2AService:
     """Wrapper that owns the FastA2A app and its worker lifecycle."""
@@ -177,7 +182,6 @@ class A2AService:
             await self._app_cm.__aexit__(None, None, None)
             self._app_cm = None
         logger.info("A2A worker stopped")
-
 
 def create_a2a_service(rag_service: RAGChatService) -> A2AService:
     if not is_pydantic_agent_enabled():

@@ -1,9 +1,8 @@
-"""Feature-flagged Pydantic AI agent wrapper for the Technical Service Assistant."""
-
 from __future__ import annotations
 
+"""Feature-flagged Pydantic AI agent wrapper for the Technical Service Assistant."""
+
 import json
-import logging
 import os
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional, Sequence
@@ -11,6 +10,17 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Sequence
 from pydantic_ai import Agent, RunContext
 from pydantic_ai import exceptions as pydantic_ai_exceptions
 from pydantic_ai.messages import (
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='pydantic_agent',
+    log_level='INFO',
+    log_file=f'/app/logs/pydantic_agent_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
     FinalResultEvent,
     ModelMessage,
     ModelRequest,
@@ -24,14 +34,11 @@ from pydantic_ai.models import Model, ModelRequestParameters, ModelResponse, Mod
 from pydantic_ai.usage import RequestUsage
 from rag_chat import RAGChatRequest, RAGChatResponse, RAGChatService
 
-logger = logging.getLogger(__name__)
-
 ENABLE_PYDANTIC_AGENT = os.getenv("ENABLE_PYDANTIC_AGENT", "false").lower() in {"1", "true", "yes"}
 AGENT_MODEL_NAME = os.getenv("PYDANTIC_AGENT_MODEL", "rag-proxy")
 
 _agent: Agent | None = None
 _agent_ready: bool = False
-
 
 @dataclass
 class ChatAgentDeps:
@@ -42,14 +49,12 @@ class ChatAgentDeps:
     rag_service: RAGChatService
     context_messages: int = 0
 
-
 class ChatAgentOutput(RAGChatResponse):
     """Structured agent output reused across the FastAPI surface."""
 
     @classmethod
     def from_rag_response(cls, response: RAGChatResponse) -> "ChatAgentOutput":
         return cls(**response.model_dump())
-
 
 class RagProxyModel(Model):
     """Custom Pydantic AI model that proxies responses from the existing RAG pipeline."""
@@ -141,7 +146,6 @@ class RagProxyModel(Model):
                                     return item
         return ""
 
-
 def initialize_pydantic_agent(rag_service: RAGChatService) -> None:
     """Bootstrap the agent when the feature flag is enabled."""
 
@@ -179,12 +183,10 @@ def initialize_pydantic_agent(rag_service: RAGChatService) -> None:
         _agent = None
         _agent_ready = False
 
-
 def is_pydantic_agent_enabled() -> bool:
     """Return True when the agent is both enabled and initialized."""
 
     return ENABLE_PYDANTIC_AGENT and _agent_ready and _agent is not None
-
 
 async def run_pydantic_agent_chat(user_prompt: str, deps: ChatAgentDeps) -> RAGChatResponse:
     """Execute the agent and return the structured output."""
@@ -208,7 +210,6 @@ async def run_pydantic_agent_chat(user_prompt: str, deps: ChatAgentDeps) -> RAGC
         )
         return await deps.rag_service.chat(fallback_request)
 
-
 async def _dynamic_instruction(ctx: RunContext[ChatAgentDeps]) -> str:
     """Add lightweight context derived from dependencies."""
 
@@ -220,7 +221,6 @@ async def _dynamic_instruction(ctx: RunContext[ChatAgentDeps]) -> str:
         parts.append(f"conversation_id={deps.conversation_id}")
     parts.append(f"context_messages={deps.context_messages}")
     return f"Conversation metadata: {', '.join(parts)}."
-
 
 def _register_agent_tools(agent: Agent, rag_service: RAGChatService) -> None:
     """Register retrieval and search helpers as agent tools."""

@@ -1,3 +1,14 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='jwt_auth',
+    log_level='INFO',
+    log_file=f'/app/logs/jwt_auth_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 JWT-based authentication and authorization system for Technical Service Assistant API.
 
@@ -11,7 +22,6 @@ Features:
 
 import hashlib
 import hmac
-import logging
 import os
 import time
 from dataclasses import asdict, dataclass
@@ -27,8 +37,6 @@ try:
     import redis
 except ImportError:
     redis = None  # type: ignore
-
-logger = logging.getLogger(__name__)
 
 # Configuration
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
@@ -46,7 +54,6 @@ RATE_LIMITS = {
 
 # Redis for rate limiting (optional - falls back to in-memory if unavailable)
 _redis_client: Optional["redis.Redis"] = None
-
 
 def get_redis_client() -> Optional["redis.Redis"]:
     """Get or create Redis client for rate limiting."""
@@ -67,10 +74,8 @@ def get_redis_client() -> Optional["redis.Redis"]:
             _redis_client = None
     return _redis_client
 
-
 # In-memory rate limiting (fallback)
 _rate_limit_buckets: Dict[str, List[float]] = {}
-
 
 @dataclass
 class User:
@@ -86,7 +91,6 @@ class User:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return asdict(self)
-
 
 @dataclass
 class APIKey:
@@ -104,7 +108,6 @@ class APIKey:
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return asdict(self)
-
 
 class JWTAuthenticator:
     """JWT token generation and validation."""
@@ -147,7 +150,7 @@ class JWTAuthenticator:
         return token
 
     @staticmethod
-    def generate_refresh_token(user_id: int, email: str) -> str:
+    def generate_refresh_token(user_id: int, email: str, role: str = "user") -> str:
         """Generate refresh token for user.
 
         Args:
@@ -166,6 +169,7 @@ class JWTAuthenticator:
         payload = {
             "user_id": user_id,
             "email": email,
+            "role": role,
             "iat": int(now.timestamp()),
             "exp": int(expire.timestamp()),
             "type": "refresh",
@@ -225,7 +229,6 @@ class JWTAuthenticator:
             role=payload.get("role", "user"),
         )
 
-
 class APIKeyManager:
     """Manage API keys for service-to-service authentication."""
 
@@ -272,7 +275,6 @@ class APIKeyManager:
         """
         key_hash = hashlib.sha256(api_key.encode()).hexdigest()
         return hmac.compare_digest(key_hash, stored_key_hash)
-
 
 class RateLimiter:
     """Rate limiting using Redis or in-memory storage."""
@@ -351,7 +353,6 @@ class RateLimiter:
                 "current": len(bucket),
             }
 
-
 class RoleBasedAccessControl:
     """Role-based access control for endpoints."""
 
@@ -411,7 +412,6 @@ class RoleBasedAccessControl:
         """
         return RoleBasedAccessControl.PERMISSIONS.get(role, set())
 
-
 class AuthenticationMiddleware:
     """FastAPI middleware for JWT authentication and rate limiting."""
 
@@ -456,7 +456,6 @@ class AuthenticationMiddleware:
             return None
 
         return parts[1]
-
 
 def validate_authentication(
     authorization_header: Optional[str],

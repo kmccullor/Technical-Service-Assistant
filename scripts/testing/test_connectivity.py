@@ -74,45 +74,45 @@ def test_http(host, port, path="/"):
 
 
 def main():
-    print("Testing local connectivity:")
+    logger.info("Testing local connectivity:")
     for svc in SERVICES:
-        print(f"- {svc['name']} ({svc['host']}:{svc['port']}): ", end="")
+        logger.info(f"- {svc['name']} ({svc['host']}:{svc['port']}): ", end="")
         if test_tcp(svc["host"], svc["port"]):
-            print("TCP OK", end=", ")
+            logger.info("TCP OK", end=", ")
             if svc["name"].startswith("Supabase") or svc["name"].startswith("PGVector"):
                 if test_postgres(svc["host"], svc["port"]):
-                    print("Postgres OK", end=", ")
+                    logger.info("Postgres OK", end=", ")
                 else:
-                    print("Postgres FAIL", end=", ")
+                    logger.info("Postgres FAIL", end=", ")
             else:
                 if test_http(svc["host"], svc["port"]):
-                    print("HTTP OK", end=", ")
+                    logger.info("HTTP OK", end=", ")
                 else:
-                    print("HTTP FAIL", end=", ")
+                    logger.info("HTTP FAIL", end=", ")
         else:
-            print("TCP FAIL", end=", ")
-        print()
+            logger.info("TCP FAIL", end=", ")
+        logger.info()
 
-    print("\nTesting Docker hostname connectivity:")
+    logger.info("\nTesting Docker hostname connectivity:")
     for svc in DOCKER_HOSTNAMES:
-        print(f"- {svc['name']} ({svc['host']}:{svc['port']}): ", end="")
+        logger.info(f"- {svc['name']} ({svc['host']}:{svc['port']}): ", end="")
         if test_tcp(svc["host"], svc["port"]):
-            print("TCP OK", end=", ")
+            logger.info("TCP OK", end=", ")
             if svc["name"].startswith("PGVector") or "Postgres" in svc["name"]:
                 if test_postgres(svc["host"], svc["port"]):
-                    print("Postgres OK", end=", ")
+                    logger.info("Postgres OK", end=", ")
                 else:
-                    print("Postgres FAIL", end=", ")
+                    logger.info("Postgres FAIL", end=", ")
             else:
                 if test_http(svc["host"], svc["port"]):
-                    print("HTTP OK", end=", ")
+                    logger.info("HTTP OK", end=", ")
                 else:
-                    print("HTTP FAIL", end=", ")
+                    logger.info("HTTP FAIL", end=", ")
         else:
-            print("TCP FAIL", end=", ")
-        print()
+            logger.info("TCP FAIL", end=", ")
+        logger.info()
 
-    print("\nDone. If any tests failed, check Docker Compose logs and network settings.")
+    logger.info("\nDone. If any tests failed, check Docker Compose logs and network settings.")
 
 
 if __name__ == "__main__":

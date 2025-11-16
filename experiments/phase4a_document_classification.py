@@ -436,7 +436,7 @@ async def _quick_test():  # pragma: no cover - demo harness
 if __name__ == "__main__":  # pragma: no cover - manual demo execution
     res, st = asyncio.run(_quick_test())  # pragma: no cover
     for r in res:  # pragma: no cover
-        print(
+        logger.info(
             f"{r.document_id}: type={r.predicted_type.value} domain={r.predicted_domain.value} priority={r.priority_score} quality={r.quality_score} conf={r.confidence}"
         )  # pragma: no cover
-    print("Stats:", st)  # pragma: no cover
+    logger.info("Stats:", st)  # pragma: no cover

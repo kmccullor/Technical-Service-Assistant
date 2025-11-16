@@ -403,17 +403,17 @@ def main():
         backup_info = backup_current_database()
 
         # Step 3: Ask for user confirmation
-        print(f"\n📋 Found {len(pdf_files)} PDF documents to reprocess")
-        print("🔄 This will:")
-        print("   - Copy archived PDFs back to uploads directory")
-        print("   - Trigger automatic reprocessing with privacy classification")
-        print("   - Generate new privacy-classified database entries")
+        logger.info(f"\n📋 Found {len(pdf_files)} PDF documents to reprocess")
+        logger.info("🔄 This will:")
+        logger.info("   - Copy archived PDFs back to uploads directory")
+        logger.info("   - Trigger automatic reprocessing with privacy classification")
+        logger.info("   - Generate new privacy-classified database entries")
 
         if backup_info:
-            print(f"\n📊 Current database state:")
-            print(f"   - Documents: {backup_info['document_count']}")
-            print(f"   - Chunks: {backup_info['chunk_count']}")
-            print(f"   - Privacy distribution: {backup_info['privacy_distribution']}")
+            logger.info(f"\n📊 Current database state:")
+            logger.info(f"   - Documents: {backup_info['document_count']}")
+            logger.info(f"   - Chunks: {backup_info['chunk_count']}")
+            logger.info(f"   - Privacy distribution: {backup_info['privacy_distribution']}")
 
         response = input("\n❓ Proceed with reprocessing? (y/N): ")
         if not response.lower().startswith("y"):

@@ -1,9 +1,19 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='database_schema_extractor',
+    log_level='INFO',
+    log_file=f'/app/logs/database_schema_extractor_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Database Connection Service for Schema Extraction
 Connects to MSSQL and PostgreSQL databases to extract schema information
 """
 
-import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -21,9 +31,7 @@ except ImportError:
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
-
 
 @dataclass
 class DatabaseConnection:
@@ -38,7 +46,6 @@ class DatabaseConnection:
     schema: Optional[str] = None
     connection_timeout: int = 30
 
-
 @dataclass
 class TableInfo:
     """Table information structure."""
@@ -52,7 +59,6 @@ class TableInfo:
     owner: Optional[str] = None
     created_date: Optional[datetime] = None
     modified_date: Optional[datetime] = None
-
 
 @dataclass
 class ColumnInfo:
@@ -71,7 +77,6 @@ class ColumnInfo:
     default_value: Optional[str] = None
     description: Optional[str] = None
 
-
 @dataclass
 class ConstraintInfo:
     """Constraint information structure."""
@@ -84,7 +89,6 @@ class ConstraintInfo:
     referenced_columns: Optional[List[str]] = None
     check_clause: Optional[str] = None
 
-
 @dataclass
 class IndexInfo:
     """Index information structure."""
@@ -96,7 +100,6 @@ class IndexInfo:
     is_primary: bool = False
     filter_condition: Optional[str] = None
     size_bytes: Optional[int] = None
-
 
 class DatabaseSchemaExtractor:
     """Extracts schema information from databases."""
@@ -583,7 +586,6 @@ class DatabaseSchemaExtractor:
         """Get MSSQL index information (simplified)."""
         # This would need more complex queries for full index information
         return []
-
 
 # Global extractor instance
 schema_extractor = DatabaseSchemaExtractor()

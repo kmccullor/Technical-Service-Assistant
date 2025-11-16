@@ -74,7 +74,7 @@ def main() -> int:
         return 1
     dataset = json.loads(dataset_path.read_text())
 
-    base_url = os.getenv("ACCURACY_BASE_URL", os.getenv("PLAYWRIGHT_BASE_URL", "https://rni-llm-01.lab.sensus.net"))
+    base_url = os.getenv("ACCURACY_BASE_URL", os.getenv("PLAYWRIGHT_BASE_URL", os.getenv("APP_URL", "https://rni-llm-01.lab.sensus.net")))
     api_key = os.getenv("ACCURACY_API_KEY", os.getenv("API_KEY", ""))
     bearer_token = os.getenv("ACCURACY_BEARER_TOKEN", "")
 

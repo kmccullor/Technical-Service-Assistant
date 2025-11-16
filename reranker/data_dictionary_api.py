@@ -1,10 +1,20 @@
+from datetime import datetime
+from utils.logging_config import setup_logging
+
+# Setup standardized Log4 logging
+logger = setup_logging(
+    program_name='data_dictionary_api',
+    log_level='INFO',
+    log_file=f'/app/logs/data_dictionary_api_{datetime.now().strftime("%Y%m%d")}.log',
+    console_output=True
+)
+
 """
 Data Dictionary API Endpoints
 Manages database schema information for MSSQL and PostgreSQL databases by RNI version
 """
 
 import csv
-import logging
 from datetime import date, datetime
 from io import StringIO
 from typing import Any, Dict, List, Optional
@@ -17,11 +27,9 @@ from schema_extraction_utils import extract_and_import_schema
 
 from config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/api/data-dictionary", tags=["data-dictionary"])
-
 
 # Pydantic models for API requests/responses
 class RNIVersion(BaseModel):
@@ -31,7 +39,6 @@ class RNIVersion(BaseModel):
     description: Optional[str] = None
     release_date: Optional[date] = None
     is_active: bool = True
-
 
 class DatabaseInstance(BaseModel):
     id: Optional[int] = None
@@ -44,14 +51,12 @@ class DatabaseInstance(BaseModel):
     connection_string_template: Optional[str] = None
     is_active: bool = True
 
-
 class DatabaseSchema(BaseModel):
     id: Optional[int] = None
     database_instance_id: int
     schema_name: str
     description: Optional[str] = None
     owner_name: Optional[str] = None
-
 
 class DatabaseTable(BaseModel):
     id: Optional[int] = None
@@ -65,7 +70,6 @@ class DatabaseTable(BaseModel):
     created_date: Optional[datetime] = None
     modified_date: Optional[datetime] = None
     is_active: bool = True
-
 
 class DatabaseColumn(BaseModel):
     id: Optional[int] = None
@@ -83,7 +87,6 @@ class DatabaseColumn(BaseModel):
     default_value: Optional[str] = None
     description: Optional[str] = None
 
-
 class TableConstraint(BaseModel):
     id: Optional[int] = None
     table_id: int
@@ -94,7 +97,6 @@ class TableConstraint(BaseModel):
     referenced_column_names: Optional[List[str]] = None
     check_clause: Optional[str] = None
     is_active: bool = True
-
 
 class TableIndex(BaseModel):
     id: Optional[int] = None
@@ -107,7 +109,6 @@ class TableIndex(BaseModel):
     filter_condition: Optional[str] = None
     size_bytes: Optional[int] = None
 
-
 class DatabaseObject(BaseModel):
     id: Optional[int] = None
     schema_id: int
@@ -118,7 +119,6 @@ class DatabaseObject(BaseModel):
     return_type: Optional[str] = None
     description: Optional[str] = None
     is_active: bool = True
-
 
 class SchemaChangeLog(BaseModel):
     id: Optional[int] = None
@@ -133,7 +133,6 @@ class SchemaChangeLog(BaseModel):
     impact_level: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
     created_by: Optional[str] = None
 
-
 class SchemaOverview(BaseModel):
     version_number: str
     version_name: Optional[str]
@@ -146,7 +145,6 @@ class SchemaOverview(BaseModel):
     row_count: Optional[int]
     column_count: int
     table_created_at: Optional[datetime]
-
 
 class ColumnDetails(BaseModel):
     version_number: str
@@ -167,7 +165,6 @@ class ColumnDetails(BaseModel):
     default_value: Optional[str]
     description: Optional[str]
 
-
 def get_db_connection():
     """Get database connection with proper error handling."""
     try:
@@ -182,7 +179,6 @@ def get_db_connection():
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         raise HTTPException(status_code=500, detail="Database connection failed")
-
 
 # RNI Version Management
 @router.get("/rni-versions", response_model=List[RNIVersion])
@@ -201,7 +197,6 @@ async def get_rni_versions(active_only: bool = Query(False, description="Filter 
             return [RNIVersion(**row) for row in results]
     finally:
         conn.close()
-
 
 @router.post("/rni-versions", response_model=RNIVersion)
 async def create_rni_version(version: RNIVersion):
@@ -225,7 +220,6 @@ async def create_rni_version(version: RNIVersion):
         raise HTTPException(status_code=400, detail="Version number already exists")
     finally:
         conn.close()
-
 
 @router.put("/rni-versions/{version_id}", response_model=RNIVersion)
 async def update_rni_version(version_id: int, version: RNIVersion):
@@ -252,7 +246,6 @@ async def update_rni_version(version_id: int, version: RNIVersion):
     finally:
         conn.close()
 
-
 # Database Instance Management
 @router.get("/database-instances", response_model=List[DatabaseInstance])
 async def get_database_instances(rni_version_id: Optional[int] = Query(None, description="Filter by RNI version")):
@@ -274,7 +267,6 @@ async def get_database_instances(rni_version_id: Optional[int] = Query(None, des
             return [DatabaseInstance(**row) for row in results]
     finally:
         conn.close()
-
 
 @router.post("/database-instances", response_model=DatabaseInstance)
 async def create_database_instance(instance: DatabaseInstance):
@@ -300,7 +292,6 @@ async def create_database_instance(instance: DatabaseInstance):
         raise HTTPException(status_code=400, detail="Database instance already exists for this RNI version")
     finally:
         conn.close()
-
 
 # Schema Overview Endpoints
 @router.get("/schema-overview", response_model=List[SchemaOverview])
@@ -331,7 +322,6 @@ async def get_schema_overview(
             return [SchemaOverview(**row) for row in results]
     finally:
         conn.close()
-
 
 @router.get("/column-details", response_model=List[ColumnDetails])
 async def get_column_details(
@@ -366,7 +356,6 @@ async def get_column_details(
     finally:
         conn.close()
 
-
 # Database Tables Management
 @router.get("/tables", response_model=List[DatabaseTable])
 async def get_tables(schema_id: Optional[int] = Query(None, description="Filter by schema ID")):
@@ -388,7 +377,6 @@ async def get_tables(schema_id: Optional[int] = Query(None, description="Filter 
             return [DatabaseTable(**row) for row in results]
     finally:
         conn.close()
-
 
 @router.post("/tables", response_model=DatabaseTable)
 async def create_table(table: DatabaseTable):
@@ -417,7 +405,6 @@ async def create_table(table: DatabaseTable):
     finally:
         conn.close()
 
-
 # Columns Management
 @router.get("/columns", response_model=List[DatabaseColumn])
 async def get_columns(table_id: int = Query(..., description="Table ID to get columns for")):
@@ -430,7 +417,6 @@ async def get_columns(table_id: int = Query(..., description="Table ID to get co
             return [DatabaseColumn(**row) for row in results]
     finally:
         conn.close()
-
 
 @router.post("/columns", response_model=DatabaseColumn)
 async def create_column(column: DatabaseColumn):
@@ -461,7 +447,6 @@ async def create_column(column: DatabaseColumn):
     finally:
         conn.close()
 
-
 # Schema Change Log
 @router.get("/change-log", response_model=List[SchemaChangeLog])
 async def get_change_log(
@@ -488,7 +473,6 @@ async def get_change_log(
     finally:
         conn.close()
 
-
 @router.post("/change-log", response_model=SchemaChangeLog)
 async def create_change_log_entry(log_entry: SchemaChangeLog):
     """Create a new schema change log entry."""
@@ -512,7 +496,6 @@ async def create_change_log_entry(log_entry: SchemaChangeLog):
             return SchemaChangeLog(**result)
     finally:
         conn.close()
-
 
 # Schema Comparison
 @router.get("/compare-schemas")
@@ -577,7 +560,6 @@ async def compare_schemas(
     finally:
         conn.close()
 
-
 # Schema Extraction Endpoints
 class SchemaExtractionRequest(BaseModel):
     rni_version_id: int
@@ -589,7 +571,6 @@ class SchemaExtractionRequest(BaseModel):
     password: str
     schema_name: Optional[str] = None
     created_by: Optional[str] = None
-
 
 @router.post("/extract-schema")
 async def extract_schema(extraction_request: SchemaExtractionRequest):
@@ -622,7 +603,6 @@ async def extract_schema(extraction_request: SchemaExtractionRequest):
     except Exception as e:
         logger.error(f"Schema extraction failed: {e}")
         raise HTTPException(status_code=500, detail=f"Schema extraction failed: {str(e)}")
-
 
 @router.get("/extraction-status/{rni_version_id}")
 async def get_extraction_status(rni_version_id: int):
@@ -675,7 +655,6 @@ async def get_extraction_status(rni_version_id: int):
     finally:
         conn.close()
 
-
 # Bulk Operations
 @router.post("/bulk-extract")
 async def bulk_extract_schemas(extraction_requests: List[SchemaExtractionRequest]):
@@ -715,7 +694,6 @@ async def bulk_extract_schemas(extraction_requests: List[SchemaExtractionRequest
         "results": results,
     }
 
-
 # Health check for data dictionary
 @router.get("/health")
 async def health_check():
@@ -728,7 +706,6 @@ async def health_check():
             return {"status": "healthy", "rni_versions_count": result["version_count"], "timestamp": datetime.now()}
     finally:
         conn.close()
-
 
 # Query assistance endpoints for Sensus AMI
 @router.post("/query-assistance")
@@ -828,7 +805,6 @@ async def query_assistance(request: dict):
     finally:
         conn.close()
 
-
 def generate_extraction_query(database_type: str, database_name: str) -> str:
     """Generate appropriate extraction query based on database type."""
 
@@ -905,7 +881,6 @@ WHERE c.relkind = 'r'  -- Regular tables only
   AND a.attnum > 0     -- Exclude system columns
   AND NOT a.attisdropped
 ORDER BY n.nspname, c.relname, a.attnum;"""
-
 
 # Schema upload endpoint
 @router.post("/upload-schema")
