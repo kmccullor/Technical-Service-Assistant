@@ -113,16 +113,16 @@ groups:
           summary: "Redis cache is down"
           description: "Redis has been down for more than 30 seconds"
 
-      # Nginx & Frontend Alerts
-      - alert: NginxDown
-        expr: up{job="nginx"} == 0
-        for: 1m
-        labels:
-          severity: critical
-          service: nginx
-        annotations:
-          summary: "Nginx reverse proxy is down"
-          description: "Nginx exporter has not returned data for more than 1 minute."
+       # Nginx & Frontend Alerts
+       - alert: NginxDown
+         expr: up{job="nginx"} == 0
+         for: 1m
+         labels:
+           severity: critical
+           service: nginx
+         annotations:
+           summary: "Nginx reverse proxy is down"
+           description: "Nginx exporter has not returned data for more than 1 minute."
 
        - alert: FrontendProbeFailed
          expr: probe_success{job="frontend-probe", instance="http://frontend:3000/api/status"} == 0
