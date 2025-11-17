@@ -40,6 +40,7 @@ from reranker.question_decomposer import QuestionDecomposer
 from reranker.rag_chat import (
     BatchRAGChatRequest,
     BatchRAGChatResponse,
+    RAGChatRequest,
     RAGChatResponse,
     RAGChatService,
     add_rag_endpoints,
@@ -633,12 +634,10 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                     "UPDATE conversations SET updated_at = NOW() WHERE id = %s",
                     [conversation_id],
                 )
-                conn.commit()
-            finally:
+            conn.commit()
+            </finally>
                 cursor.close()
                 conn.close()
-
-            from rag_chat import RAGChatRequest
 
             rag_response: RAGChatResponse
             use_pydantic_agent = _HAS_PYDANTIC_AGENT and is_pydantic_agent_enabled() and ChatAgentDeps is not None
@@ -787,7 +786,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                         query=request.message,
                         use_context=True,
                         max_context_chunks=5,
-                        model="rni-mistral",
+                        model="mistral:7b",
                         temperature=0.2,
                         max_tokens=500,
                     )

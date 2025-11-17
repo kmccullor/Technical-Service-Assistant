@@ -133,12 +133,13 @@ class HybridSearch:
 
     def _get_db_connection(self):
         """Get database connection."""
+        # Force pgvector for now due to environment issue
         return psycopg2.connect(
-            host=settings.db_host,
-            database=settings.db_name,
-            user=settings.db_user,
-            password=settings.db_password,
-            port=settings.db_port,
+            host="pgvector",
+            database="vector_db",
+            user="postgres",
+            password="postgres",
+            port=5432,
         )
 
     def build_index(self) -> None:

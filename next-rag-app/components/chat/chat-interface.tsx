@@ -423,10 +423,11 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       }
 
       // Regular chat without uploaded file - use streaming RAG endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_RERANKER_BASE_URL || 'http://localhost:8008'}/api/rag-chat`, {
+      const response = await fetch('/api/rag-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           query: currentInput,

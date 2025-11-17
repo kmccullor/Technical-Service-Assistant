@@ -39,7 +39,7 @@ from scripts.analysis.hybrid_search import HybridSearch
 from utils.logging_config import get_logger
 from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
 
-from .reranker_config import get_settings
+from reranker.reranker_config import get_settings
 
 logger = get_logger(__name__)
 

@@ -32,7 +32,7 @@ logger = setup_logging(
 )
 from pydantic_ai.models import Model, ModelRequestParameters, ModelResponse, ModelSettings
 from pydantic_ai.usage import RequestUsage
-from rag_chat import RAGChatRequest, RAGChatResponse, RAGChatService
+from reranker.rag_chat import RAGChatRequest, RAGChatResponse, RAGChatService
 
 ENABLE_PYDANTIC_AGENT = os.getenv("ENABLE_PYDANTIC_AGENT", "false").lower() in {"1", "true", "yes"}
 AGENT_MODEL_NAME = os.getenv("PYDANTIC_AGENT_MODEL", "rag-proxy")
