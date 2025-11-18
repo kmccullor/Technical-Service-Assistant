@@ -1,5 +1,3 @@
-import os
-
 from utils.logging_config import setup_logging
 
 # Setup standardized Log4 logging
@@ -8,6 +6,11 @@ logger = setup_logging(
     log_level="INFO",
     console_output=True,
 )
+if logger is None:
+    # Tests may stub setup_logging to a noop; fall back to standard logging
+    import logging
+
+    logger = logging.getLogger("intelligent_router")
 
 """
 Dynamic Ollama Instance Router
@@ -29,6 +32,8 @@ from typing import Dict, List, Tuple
 
 import httpx
 from pydantic import BaseModel, Field
+
+from reranker.reranker_config import get_settings
 
 
 class QuestionType(str, Enum):
@@ -95,8 +100,10 @@ class IntelligentRouter:
     """Dynamic Ollama router with model intelligence."""
 
     def __init__(self):
+        settings = get_settings()
+
         # Use OLLAMA_INSTANCES environment variable if available, otherwise fallback to defaults
-        instances_str = os.getenv("OLLAMA_INSTANCES")
+        instances_str = settings.ollama_instances
         if instances_str:
             # Parse comma-separated URLs like "http://host1:port1,http://host2:port2"
             instance_urls = [url.strip() for url in instances_str.split(",")]
@@ -146,10 +153,10 @@ class IntelligentRouter:
         self.health_check_cache_duration = 30  # seconds
 
         # Model capability definitions - Updated for specialized instances
-        chat_model = os.getenv("CHAT_MODEL", "mistral:7b")
-        coding_model = os.getenv("CODING_MODEL", "codellama:7b")
-        reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
-        vision_model = os.getenv("VISION_MODEL", "llava:7b")
+        chat_model = settings.chat_model
+        coding_model = settings.coding_model
+        reasoning_model = settings.reasoning_model
+        vision_model = settings.vision_model
 
         self.model_profiles = {
             chat_model: ModelCapability(
@@ -228,7 +235,7 @@ class IntelligentRouter:
         code_models = _unique_models([coding_model, "mistral:7b", "gemma2:2b", "phi3:mini"])
         reasoning_models = _unique_models([reasoning_model, "llama3.1:8b", "llama3.2:3b", "mistral:latest"])
         embedding_models = _unique_models(
-            [os.getenv("EMBEDDING_MODEL", "nomic-embed-text:v1.5"), "nomic-embed-text:v1.5", "nomic-embed-text:latest"]
+            [settings.embedding_model, "nomic-embed-text:v1.5", "nomic-embed-text:latest"]
         )
 
         # Instance specialization mapping

@@ -20,7 +20,6 @@ Pattern: Cache full RAG responses including context metadata and sources
 
 import hashlib
 import json
-import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -28,9 +27,7 @@ from typing import Any, Dict, List, Optional
 import redis
 from pydantic import BaseModel
 
-from config import get_settings
-
-settings = get_settings()
+from reranker.reranker_config import get_settings
 
 class CachedRAGResponse(BaseModel):
     """Cached RAG response with metadata."""
@@ -67,12 +64,9 @@ class QueryResponseCache:
 
     def __init__(self):
         """Initialize Redis connection."""
-        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-        self.enabled = os.getenv("ENABLE_QUERY_RESPONSE_CACHE", "true").lower() in {
-            "1",
-            "true",
-            "yes",
-        }
+        settings = get_settings()
+        self.redis_url = settings.redis_url or "redis://redis:6379/0"
+        self.enabled = settings.enable_query_response_cache
         self.redis_client: Optional[redis.Redis] = None
 
         if self.enabled:

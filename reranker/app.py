@@ -92,6 +92,9 @@ try:
 except ImportError as e:
     logger.warning(f"Tier 2 authentication modules not available: {e}")
     _HAS_TIER2_AUTH = False
+    from fastapi import APIRouter
+
+    auth_router = APIRouter()
 
 app = FastAPI(
     title="Technical Service Assistant API",
@@ -227,6 +230,9 @@ class UserResponse(BaseModel):
     password_change_required: bool
     created_at: str
     updated_at: str
+
+
+ADMIN_EMAILS = {"kevin.mccullor@xylem.com", "admin@employee.com"}
 
 
 def _deterministic_user_id(email: str) -> int:
@@ -391,8 +397,8 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                         is_active=True,
                         is_locked=False,
                         password_change_required=user_row.get("password_change_required", False),
-                        created_at=_serialize_timestamp(created_at_value, "2024-01-01T00:00:00Z"),
-                        updated_at=_serialize_timestamp(updated_at_value, "2024-01-01T00:00:00Z"),
+                        created_at=_serialize_timestamp(created_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
+                        updated_at=_serialize_timestamp(updated_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
                     )
             except Exception as e:
                 logger.error(f"Error looking up user {user_id}: {e}")
@@ -465,9 +471,7 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         if not user_row:
             # User doesn't exist, create them
             user_id = _deterministic_user_id(email)
-            role_id = (
-                1 if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower() else 2
-            )
+            role_id = 1 if email in ADMIN_EMAILS else 2
 
             logger.info(
                 f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}"
@@ -634,15 +638,25 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                     "UPDATE conversations SET updated_at = NOW() WHERE id = %s",
                     [conversation_id],
                 )
-            conn.commit()
-            </finally>
+                conn.commit()
+            finally:
                 cursor.close()
                 conn.close()
 
-            rag_response: RAGChatResponse
+            # Ensure rag_response is always defined to avoid "possibly unbound" warnings
+            rag_response = RAGChatResponse(
+                response="",
+                context_used=[],
+                context_metadata=[],
+                web_sources=[],
+                model="",
+                confidence=0.0,
+                fallback_used=False,
+                context_retrieved=False,
+            )
             use_pydantic_agent = _HAS_PYDANTIC_AGENT and is_pydantic_agent_enabled() and ChatAgentDeps is not None
 
-            if use_pydantic_agent:
+            if use_pydantic_agent and ChatAgentDeps is not None:
                 try:
                     agent_deps = ChatAgentDeps(
                         user_email=user.email,
@@ -687,6 +701,8 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                             context_metadata=[],
                             web_sources=[],
                             model="cached",
+                            confidence=float(cached_final.get("final_relevance", 0.0)) if isinstance(cached_final, dict) else 0.0,
+                            fallback_used=not bool(resp_text),
                             context_retrieved=False,
                         )
                     else:
@@ -708,6 +724,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                                 model=model_to_use,
                                 temperature=0.2,
                                 max_tokens=300,
+                                stream=False,
                             )
                             try:
                                 sub_resp = cast(RAGChatResponse, await rag_service.chat(rag_req))
@@ -779,9 +796,12 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                             model=",".join({r.get("model") or "" for r in final_result.get("reranked_components", [])})
                             if final_result.get("reranked_components")
                             else "",
+                            confidence=float(final_result.get("final_relevance", 0.0)) if isinstance(final_result, dict) else 0.0,
+                            fallback_used=not bool(resp_text),
                             context_retrieved=True,
                         )
                 else:
+                    # Use streaming RAG response - pass stream=True so rag_service.chat returns StreamingResponse
                     rag_request = RAGChatRequest(
                         query=request.message,
                         use_context=True,
@@ -789,8 +809,20 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                         model="mistral:7b",
                         temperature=0.2,
                         max_tokens=500,
+                        stream=True,  # Enable streaming for token-by-token generation
                     )
-                    rag_response = cast(RAGChatResponse, await rag_service.chat(rag_request))
+                    # For streaming requests, rag_service.chat returns a StreamingResponse
+                    rag_response_result = await rag_service.chat(rag_request)
+                    
+                    # If it's a StreamingResponse, extract its body_iterator and stream it
+                    if isinstance(rag_response_result, StreamingResponse):
+                        # Proxy the streaming response directly through our generator
+                        async for line in rag_response_result.body_iterator:
+                            yield line
+                        return
+                    
+                    # Otherwise, handle as regular RAGChatResponse (shouldn't reach here with stream=True)
+                    rag_response = cast(RAGChatResponse, rag_response_result)
 
             # Calculate response time
             end_time = time.time()

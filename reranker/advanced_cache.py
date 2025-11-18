@@ -8,6 +8,11 @@ logger = setup_logging(
     log_file=f'/app/logs/advanced_cache_{datetime.now().strftime("%Y%m%d")}.log',
     console_output=True
 )
+if logger is None:
+    # Tests may stub setup_logging to a noop; fall back to standard logging to avoid None logger
+    import logging
+
+    logger = logging.getLogger("advanced_cache")
 
 """
 Advanced Embedding and Inference Caching
@@ -23,8 +28,9 @@ Target: 92% cache hit rate → 98%+ cache hit rate (6% improvement).
 
 import hashlib
 import json
-import os
 from typing import Any, Dict, List, Optional
+
+from reranker.reranker_config import get_settings
 
 try:
     import redis
@@ -54,8 +60,9 @@ class AdvancedCache:
 
     def __init__(self):
         """Initialize advanced cache with Redis."""
-        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379/1")
-        self.enabled = os.getenv("ENABLE_ADVANCED_CACHE", "true").lower() in {"1", "true", "yes"}
+        settings = get_settings()
+        self.redis_url = settings.redis_url or "redis://redis:6379/1"
+        self.enabled = settings.enable_advanced_cache
         self.redis_client: Optional[redis.Redis] = None
 
         if not redis:

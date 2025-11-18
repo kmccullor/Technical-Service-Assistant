@@ -6,8 +6,13 @@ FlagEmbedding
 --extra-index-url https://download.pytorch.org/whl/cpu
 psycopg2-binary
 ollama
-httpx==0.27.2
-pydantic-ai-slim[a2a]==0.8.1
+# Use httpx compatible with ollama (<0.26) and avoid pulling a2a extras which
+# require newer httpx. If A2A agent is needed, update ollama or pydantic-ai-slim
+# versions to compatible releases.
+httpx==0.25.2
+# pydantic-ai-slim removed from reranker requirements due to httpx version
+# conflict with ollama. If pydantic-ai features are needed, install them
+# in a separate service or upgrade ollama to a compatible release.
 beautifulsoup4
 prometheus-client
 psutil

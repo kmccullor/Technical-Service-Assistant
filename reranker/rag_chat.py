@@ -36,7 +36,15 @@ from reranker.query_optimizer import optimize_query
 # Query-Response caching for 15-20% latency reduction
 from reranker.query_response_cache import cache_rag_response, get_query_response_cache
 from scripts.analysis.hybrid_search import HybridSearch
-from utils.logging_config import get_logger
+try:
+    # Prefer local logging helper if available; tests may stub "utils.logging_config" with limited attrs.
+    from utils.logging_config import get_logger
+except Exception:
+    # Fallback simple logger for environments where the helper isn't available (tests/mock environments)
+    import logging
+
+    def get_logger(name: str = None):
+        return logging.getLogger(name or __name__)
 from utils.redis_cache import track_instance_usage, track_model_usage, track_question_type
 
 from reranker.reranker_config import get_settings
@@ -105,7 +113,7 @@ class RAGChatService:
         if ollama_urls:
             self.ollama_urls = ollama_urls
         else:
-            instances_str = os.getenv("OLLAMA_INSTANCES")
+            instances_str = settings.ollama_instances
             if instances_str:
                 self.ollama_urls = [url.strip() for url in instances_str.split(",")]
             else:
@@ -128,9 +136,8 @@ class RAGChatService:
         # Initialize advanced caching (embeddings, inference, chunks)
         self.advanced_cache = get_advanced_cache()
 
-        self.reranker_url = (
-            reranker_url if reranker_url is not None else os.getenv("RERANKER_URL", "http://reranker:8008")
-        )
+        self.reranker_url = reranker_url if reranker_url is not None else settings.reranker_url
+        self.settings = settings
         # Hybrid search instance (lazy)
         self._hybrid_search_instance: Optional[HybridSearch] = None
 
@@ -408,6 +415,8 @@ class RAGChatService:
         self, query_embedding: List[float], max_chunks: int
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Perform vector similarity search in the database."""
+        conn = None
+        cursor = None
         try:
             conn = psycopg2.connect(
                 host=self.db_host,
@@ -440,8 +449,6 @@ class RAGChatService:
             )
 
             results = cursor.fetchall()
-            cursor.close()
-            conn.close()
 
             # Extract content and metadata from results
             context_chunks = [row["content"] for row in results]
@@ -459,6 +466,17 @@ class RAGChatService:
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
             return [], []
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except Exception:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     async def _hybrid_search(self, query: str, max_chunks: int) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Perform hybrid search (vector + BM25) using the HybridSearch module.
@@ -469,8 +487,7 @@ class RAGChatService:
         try:
             # Initialize lazy hybrid search instance
             if not self._hybrid_search_instance:
-                # Use default vector weight; can be overridden via env var
-                alpha = float(os.getenv("HYBRID_VECTOR_WEIGHT", "0.7"))
+                alpha = self.settings.hybrid_vector_weight
                 self._hybrid_search_instance = HybridSearch(embedding_model=self.embedding_model, alpha=alpha)
 
             # Run search in threadpool to avoid blocking
@@ -534,7 +551,7 @@ class RAGChatService:
     async def _search_sensus_training(self, query: str) -> List[Dict[str, Any]]:
         """Search sensus-training.com for relevant content using SearXNG."""
         try:
-            searxng_url = os.getenv("SEARXNG_BASE_URL", "http://localhost:8888/")
+            searxng_url = self.settings.searxng_base_url
             search_url = f"{searxng_url.rstrip('/')}/search"
 
             params = {
@@ -577,7 +594,7 @@ class RAGChatService:
     async def _search_broad_web(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         """Perform broad web search using SearXNG."""
         try:
-            searxng_url = os.getenv("SEARXNG_BASE_URL", "http://localhost:8888/")
+            searxng_url = self.settings.searxng_base_url
             search_url = f"{searxng_url.rstrip('/')}/search"
 
             params = {
@@ -738,7 +755,9 @@ Sources: [list documentation sources]"""
                             return response
                         data = response.json()
                         message = data.get("message", {})
-                        return message.get("content", "No response generated")
+                        content = message.get("content", "No response generated")
+                        logger.debug(f"[DEBUG] Ollama response (non-streaming): status={response.status_code}, content_length={len(content)}, content_preview={content[:100]}")
+                        return content
 
                     logger.warning(
                         "Generation failure status=%s on %s; trying next instance.",
@@ -774,6 +793,7 @@ Sources: [list documentation sources]"""
         logger.info(
             f"Processing chat request: query='{request.query[:50]}...', use_context={request.use_context}, stream={request.stream}"
         )
+        logger.debug(f"[DEBUG] RAGChatRequest details: stream={request.stream}, model={request.model}")
         context_chunks = []
         context_metadata = []
         web_sources = []
@@ -795,8 +815,8 @@ Sources: [list documentation sources]"""
 
                         # Stream the cached response token by token
                         response_text = cached_response.get("response", "")
-                        for token in response_text.split():  # Simple tokenization by words
-                            yield f"data: {json.dumps({'type': 'token', 'token': token + ' '})}\n\n"
+                        if response_text:
+                            yield f"data: {json.dumps({'type': 'token', 'token': response_text})}\n\n"
 
                         # Send completion
                         yield f"data: {json.dumps({'type': 'done'})}\n\n"
@@ -918,18 +938,31 @@ Sources: [list documentation sources]"""
                 # Then stream the response, parsing Ollama's format
                 full_response = ""
                 async for line in response.aiter_lines():
-                    if line.strip():
-                        try:
-                            data = json.loads(line)
-                            if 'response' in data:
-                                token = data['response']
-                                full_response += token
-                                yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
-                            if data.get('done', False):
-                                yield f"data: {json.dumps({'type': 'done'})}\n\n"
-                        except json.JSONDecodeError:
-                            # If not JSON, skip
-                            continue
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    token = (
+                        data.get("response")
+                        or data.get("token")
+                        or data.get("content")
+                        or (data.get("message") or {}).get("content")
+                        or (
+                            (data.get("choices") or [])[0].get("delta", {}).get("content")
+                            if (data.get("choices") or [])
+                            else None
+                        )
+                    )
+
+                    if token:
+                        full_response += token
+                        yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+
+                    if data.get("done") or data.get("final") or data.get("status") == "completed":
+                        yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
                 # Cache the response after streaming completes
                 if not cache_hit and request.use_context:
@@ -966,6 +999,7 @@ Sources: [list documentation sources]"""
                     preferred_instance,
                 ),
             )  # type: ignore
+            logger.debug(f"[DEBUG] Non-streaming response_text: length={len(response_text)}, preview={response_text[:100] if response_text else 'EMPTY'}")
 
             # Calculate confidence score
             confidence = self._calculate_response_confidence(
@@ -1125,7 +1159,12 @@ def add_rag_endpoints(app: FastAPI):
         """RAG-enhanced chat endpoint combining retrieval and generation."""
         if request.stream:
             # For streaming, return StreamingResponse
-            response = cast(Response, await rag_service.chat(request))
+            response = await rag_service.chat(request)
+
+            if isinstance(response, StreamingResponse):
+                return response
+
+            response = cast(Response, response)
 
             async def generate():
                 async for line in response.aiter_lines():  # type: ignore

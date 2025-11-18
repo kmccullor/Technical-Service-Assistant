@@ -226,7 +226,7 @@ services:
       - CHAT_MODEL_NUM_CTX=32768
       - REASONING_MODEL_NUM_CTX=131072
       - LOG_LEVEL=info
-      - ENABLE_QUESTION_DECOMPOSITION=true
+      - ENABLE_QUESTION_DECOMPOSITION=false
       - ENABLE_PYDANTIC_AGENT=false
       - PYDANTIC_AGENT_MODEL=${PYDANTIC_AGENT_MODEL}
       - ENABLE_A2A_AGENT=${ENABLE_A2A_AGENT}
@@ -296,7 +296,8 @@ services:
       - CACHE_TTL=3600
       - OLLAMA_TIMEOUT=30000
       - REQUEST_TIMEOUT=45000
-       - NEXT_PUBLIC_RERANKER_BASE_URL=http://reranker:8008
+      - RERANKER_URL=http://reranker:8008
+      - NEXT_PUBLIC_RERANKER_BASE_URL=http://reranker:8008
       - USE_RERANKER_WEBSEARCH=true
       - REDIS_URL=redis://redis:6379
       - COHERE_API_KEY=disabled-using-local
@@ -311,6 +312,10 @@ services:
       - ollama-server-2
       - ollama-server-3
       - ollama-server-4
+      - ollama-server-5
+      - ollama-server-6
+      - ollama-server-7
+      - ollama-server-8
       - reranker
     volumes:
       - ./uploads:/app/uploads

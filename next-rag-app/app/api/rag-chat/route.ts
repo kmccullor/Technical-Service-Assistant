@@ -1,12 +1,17 @@
 import { NextRequest } from 'next/server'
+import { buildRerankerUrl } from '@/lib/rerankerConfig'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    const rerankerUrl = 'http://reranker:8008'
+    console.log('[RAG PROXY] incoming request body:', body)
 
-    const response = await fetch(`${rerankerUrl}/api/rag-chat`, {
+    const rerankerUrl = buildRerankerUrl('/api/rag-chat')
+
+    console.log('[RAG PROXY] proxying to', rerankerUrl)
+
+    const response = await fetch(rerankerUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16,6 +21,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!response.ok) {
+      console.error('[RAG PROXY] reranker response status:', response.status)
       throw new Error(`Reranker error: ${response.status}`)
     }
 

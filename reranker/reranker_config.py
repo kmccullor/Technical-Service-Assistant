@@ -15,9 +15,15 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.logging_config import get_logger
+try:
+    from utils.logging_config import get_logger
 
-logger = get_logger(__name__)
+    logger = get_logger(__name__)
+except Exception:
+    # Tests may stub utils.logging_config with a limited namespace; provide a fallback logger
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 # Load .env automatically if present to mirror top-level config behavior
 try:  # pragma: no cover - optional convenience
@@ -117,6 +123,14 @@ class Settings:
 
     poll_interval_seconds: int
 
+    # Environment overrides
+    ollama_instances: str | None
+    enable_advanced_cache: bool
+    enable_query_response_cache: bool
+    reranker_url: str
+    searxng_base_url: str
+    hybrid_vector_weight: float
+
     # Web Cache
     web_cache_ttl_seconds: int
     web_cache_enabled: bool
@@ -177,6 +191,7 @@ def get_settings() -> Settings:
     s.reasoning_model = os.getenv("REASONING_MODEL", "llama3.2:3b")
     s.vision_model = os.getenv("VISION_MODEL", "llava:7b")
     s.ollama_url = os.getenv("OLLAMA_URL", "http://ollama:11434/api/embeddings")
+    s.ollama_instances = os.getenv("OLLAMA_INSTANCES")
 
     # Chunking
     s.chunk_strategy = os.getenv("CHUNK_STRATEGY", "sent_overlap")
@@ -186,6 +201,15 @@ def get_settings() -> Settings:
     s.log_level = os.getenv("LOG_LEVEL", "INFO")
     s.uploads_dir = os.getenv("UPLOADS_DIR", "/app/uploads")
     s.archive_dir = os.getenv("ARCHIVE_DIR", os.path.join(s.uploads_dir, "archive"))
+    s.redis_url = os.getenv("REDIS_URL")
+    s.enable_advanced_cache = _get_bool("ENABLE_ADVANCED_CACHE", True)
+    s.enable_query_response_cache = _get_bool("ENABLE_QUERY_RESPONSE_CACHE", True)
+    s.reranker_url = os.getenv("RERANKER_URL", "http://reranker:8008")
+    s.searxng_base_url = os.getenv("SEARXNG_BASE_URL", "http://localhost:8888/")
+    try:
+        s.hybrid_vector_weight = float(os.getenv("HYBRID_VECTOR_WEIGHT", "0.7"))
+    except ValueError:
+        s.hybrid_vector_weight = 0.7
 
     # Performance & Reasoning
     s.max_reasoning_time_seconds = _get_int("MAX_REASONING_TIME_SECONDS", 15)
