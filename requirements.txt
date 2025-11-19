@@ -53,7 +53,7 @@ spacy==3.8.2
 
 # Phase 3A Multimodal Enhancement
 opencv-python==4.10.0.84
-torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+torch==2.7.1+cpu --index-url https://download.pytorch.org/whl/cpu
 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
 transformers==4.53.0
 ollama==0.6.1
