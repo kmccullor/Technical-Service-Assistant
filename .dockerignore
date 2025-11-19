@@ -48,6 +48,8 @@ pdf_processor/__pycache__/
 docling_processor/__pycache__/
 next-rag-app/
 monitoring/
+!monitoring/performance_monitor/
+!monitoring/performance_monitor/**
 eval/
 experiments/
 archive_qa_test.json

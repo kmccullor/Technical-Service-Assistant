@@ -232,9 +232,6 @@ class UserResponse(BaseModel):
     updated_at: str
 
 
-ADMIN_EMAILS = {"kevin.mccullor@xylem.com", "admin@employee.com"}
-
-
 def _deterministic_user_id(email: str) -> int:
     normalized = email.strip().lower()
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -414,44 +411,6 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         if "@" in token:
             email = token
 
-    # Hardcoded mapping for known users
-    known_users = {
-        "jim.hitchcock@xylem.com": 8,
-        "admin@example.com": 1,
-        "jason.kelly@xylem.com": 13,
-        "brad.lee@xylem.com": 12,
-        "karen.zeher@xylem.com": 11,
-        "brian.ekelman@xylem.com": 21,
-        "joseph.davis@xylem.com": 37,
-        "katie.king@xylem.com": 39,
-        "charlie.burtyk@xylem.com": 20,
-        "terrence.blacknell@xylem.com": 19,
-    }
-
-    logger.debug(f"DEBUG: Email extracted: {email}")
-    if email in known_users:
-        logger.debug(f"DEBUG: Using hardcoded user ID: {known_users[email]}")
-        user_id = known_users[email]
-        # Mock response for known users
-        is_admin = email in ["jim.hitchcock@xylem.com", "admin@example.com"]
-        return UserResponse(
-            id=user_id,
-            email=email,
-            first_name="Test",
-            last_name="User",
-            full_name="Test User",
-            role_id=1 if is_admin else 2,
-            role_name="admin" if is_admin else "employee",
-            status="active",
-            verified=True,
-            last_login=None,
-            is_active=True,
-            is_locked=False,
-            password_change_required=False,
-            created_at="2024-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z",
-        )
-
     # Look up user from database, create if doesn't exist
     try:
         # Extract name parts for user creation
@@ -471,7 +430,7 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         if not user_row:
             # User doesn't exist, create them
             user_id = _deterministic_user_id(email)
-            role_id = 1 if email in ADMIN_EMAILS else 2
+            role_id = 2
 
             logger.info(
                 f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}"

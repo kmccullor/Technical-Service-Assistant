@@ -13,7 +13,7 @@ logger = setup_logging(
 Authentication endpoints for JWT token management and user authentication.
 """
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
@@ -49,6 +49,7 @@ class RefreshTokenResponse(BaseModel):
     access_token: str = Field(..., description="New JWT access token")
     expires_in: int = Field(..., description="Token expiration in seconds")
     token_type: str = Field(default="Bearer", description="Token type")
+    user: dict = Field(..., description="Current user information")
 
 class UserResponse(BaseModel):
     """User information response model."""
@@ -56,7 +57,10 @@ class UserResponse(BaseModel):
     id: int = Field(..., description="User ID")
     email: str = Field(..., description="User email")
     role: str = Field(..., description="User role (admin, user, viewer)")
+    role_id: int = Field(..., description="Numeric role ID")
+    role_name: str = Field(..., description="Normalized role name")
     is_active: bool = Field(..., description="User active status")
+    password_change_required: bool = Field(..., description="Password change required flag")
 
 class TokenValidationResponse(BaseModel):
     """Token validation response model."""
@@ -129,11 +133,22 @@ def get_user_from_db(email: str) -> Optional[dict]:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             """
-            SELECT u.id, u.email, u.name, u.first_name, u.last_name, u.password_hash, u.status, u.verified,
-                   r.name as role_name
+            SELECT 
+                u.id,
+                u.email,
+                u.name,
+                u.first_name,
+                u.last_name,
+                u.password_hash,
+                u.status,
+                u.verified,
+                u.password_change_required,
+                COALESCE(ur.role_id, u.role_id) as role_id,
+                COALESCE(r.name, ro.name) as role_name
             FROM users u
             LEFT JOIN user_roles ur ON u.id = ur.user_id
             LEFT JOIN roles r ON ur.role_id = r.id
+            LEFT JOIN roles ro ON u.role_id = ro.id
             WHERE u.email = %s AND u.status = 'active'
             LIMIT 1
         """,
@@ -144,17 +159,45 @@ def get_user_from_db(email: str) -> Optional[dict]:
         conn.close()
 
         if user_row:
+            role_id = user_row.get("role_id")
+            role_name = user_row.get("role_name")
+            if not role_id or not role_name:
+                logger.warning("User %s missing role assignment", email)
+                return None
             return {
                 "id": user_row["id"],
                 "email": user_row["email"],
                 "password_hash": user_row.get("password_hash", ""),
-                "role": user_row.get("role_name", "employee"),
+                "role": role_name,
+                "role_id": role_id,
+                "role_name": role_name,
                 "is_active": user_row.get("status") == "active" and user_row.get("verified", False),
+                "password_change_required": user_row.get("password_change_required", False),
             }
     except Exception as e:
         logger.error(f"Error querying user {email}: {e}")
 
-    return None
+        return None
+
+
+def _normalize_user_payload(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    role_name = (user_data.get("role_name") or user_data.get("role") or "employee").lower()
+    role_id = user_data.get("role_id")
+    if not isinstance(role_id, int):
+        role_id = 1 if role_name == "admin" else 2
+    return {
+        "id": user_data["id"],
+        "email": user_data["email"],
+        "role": user_data.get("role") or role_name,
+        "role_id": role_id,
+        "role_name": role_name,
+        "is_active": user_data.get("is_active", True),
+        "password_change_required": bool(user_data.get("password_change_required", False)),
+    }
+
+
+def _user_response_from_data(user_data: Dict[str, Any]) -> UserResponse:
+    return UserResponse(**_normalize_user_payload(user_data))
 
 @router.post("/login", response_model=LoginResponse, operation_id="auth_login")
 async def login(request: LoginRequest) -> LoginResponse:
@@ -198,15 +241,12 @@ async def login(request: LoginRequest) -> LoginResponse:
     )
 
     logger.info(f"User logged in: {request.email}")
+    user_payload = _normalize_user_payload(user_data)
 
     return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user={
-            "id": user_data["id"],
-            "email": user_data["email"],
-            "role": user_data["role"],
-        },
+        user=user_payload,
         expires_in=24 * 60 * 60,  # 24 hours
     )
 
@@ -223,20 +263,35 @@ async def refresh_token(request: RefreshTokenRequest) -> RefreshTokenResponse:
     Raises:
         HTTPException: If refresh token invalid
     """
-    new_token = JWTAuthenticator.refresh_access_token(request.refresh_token)
-
-    if not new_token:
+    payload = JWTAuthenticator.validate_token(request.refresh_token)
+    if not payload or payload.get("type") != "refresh":
         logger.warning("Failed refresh token attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
         )
 
+    user_data = get_user_from_db(payload["email"])
+    if not user_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    new_token = JWTAuthenticator.generate_token(
+        user_id=user_data["id"],
+        email=user_data["email"],
+        role=user_data["role"],
+    )
+
     logger.debug("Token refreshed successfully")
+
+    user_payload = _normalize_user_payload(user_data)
 
     return RefreshTokenResponse(
         access_token=new_token,
         expires_in=24 * 60 * 60,  # 24 hours
+        user=user_payload,
     )
 
 @router.post("/validate", response_model=TokenValidationResponse)
@@ -266,14 +321,18 @@ async def validate_token(authorization: Optional[str] = None) -> TokenValidation
             expires_in=None,
         )
 
+    user_data = get_user_from_db(user.email)
+    if not user_data:
+        user_data = {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active,
+        }
+
     return TokenValidationResponse(
         valid=True,
-        user=UserResponse(
-            id=user.id,
-            email=user.email,
-            role=user.role,
-            is_active=user.is_active,
-        ),
+        user=_user_response_from_data(user_data),
         expires_in=24 * 60 * 60,  # TODO: Calculate actual expiration
     )
 
@@ -290,9 +349,14 @@ async def get_current_user(user: User = Depends(get_authenticated_user)) -> User
     Raises:
         HTTPException: If not authenticated
     """
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        role=user.role,
-        is_active=user.is_active,
-    )
+    user_data = get_user_from_db(user.email)
+    if not user_data:
+        user_data = {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active,
+            "password_change_required": False,
+        }
+
+    return _user_response_from_data(user_data)

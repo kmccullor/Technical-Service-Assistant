@@ -18,8 +18,12 @@ venv: ## Create virtual environment (.venv)
 	@test -d .venv || $(PYTHON) -m venv .venv
 	@echo "Activate with: source .venv/bin/activate"
 
-install: venv ## Install base + dev dependencies
-	. .venv/bin/activate && $(PIP) install -r requirements.txt -r requirements-dev.txt
+install: venv ## Install base dependencies
+	@rm -rf /tmp/pip-* /tmp/pip-build-env-* /tmp/pip-ephem-wheel-cache-* /tmp/pip-install-* /tmp/pip-modern-metadata-* /tmp/pip-req-tracker-* /tmp/pip-standalone-pip-* /tmp/pip-unpack-* /tmp/pip-wheel-*
+	. .venv/bin/activate && $(PIP) install --prefer-binary thinc==8.3.9 && $(PIP) install -r requirements.txt
+
+dev-install: install ## Install dev-only tooling (runs after base install)
+	. .venv/bin/activate && $(PIP) install -r requirements-dev.txt
 
 up: ## Start docker stack
 	docker compose up -d --build
