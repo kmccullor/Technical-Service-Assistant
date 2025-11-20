@@ -37,7 +37,7 @@ except ImportError:
     # Default paths for local execution
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     UPLOADS_DIR = os.path.join(project_root, "uploads")
-    ARCHIVE_DIR = os.path.join(project_root, "uploads", "archive")
+    ARCHIVE_DIR = os.path.join(project_root, "archive")
 
 
 def get_archived_documents():

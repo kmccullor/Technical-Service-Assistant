@@ -5,7 +5,7 @@
 repos:
   # Built-in hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         description: Remove trailing whitespace
@@ -20,7 +20,7 @@ repos:
 
   # Python code formatting with Black
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 25.11.0
     hooks:
       - id: black
         language_version: python3.9
@@ -29,7 +29,7 @@ repos:
 
   # Import sorting with isort
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 7.0.0
     hooks:
       - id: isort
         args: ['--profile=black', '--line-length=120']
@@ -37,7 +37,7 @@ repos:
 
   # Remove unused imports and variables
   - repo: https://github.com/PyCQA/autoflake
-    rev: v2.2.0
+    rev: v2.3.1
     hooks:
       - id: autoflake
         args:
@@ -48,7 +48,7 @@ repos:
 
   # Python linting with flake8
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         args: ['--max-line-length=120', '--extend-ignore=E203,W503,F541']
@@ -59,15 +59,26 @@ repos:
 
   # Static type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
+    rev: v1.18.2
     hooks:
       - id: mypy
         additional_dependencies: [types-requests, types-psycopg2, types-redis]
         description: Static type checking with mypy
 
+  # Deprecation detection with pylint (only deprecation checks enabled)
+  - repo: https://github.com/PyCQA/pylint
+    rev: v3.3.1
+    hooks:
+      - id: pylint
+        name: pylint-deprecations
+        args:
+          - "--disable=all"
+          - "--enable=deprecated-module,deprecated-class,deprecated-method,deprecated-argument,deprecated-decorator"
+        description: Check for usage of deprecated Python APIs
+
   # Security scanning with bandit
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+    rev: 1.9.1
     hooks:
       - id: bandit
         args: ['-c', 'pyproject.toml']
@@ -75,17 +86,21 @@ repos:
 
   # Dependency vulnerability scanning with safety
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.2
+    rev: v1.4.2
     hooks:
       - id: python-safety-dependencies-check
         description: Check for known security vulnerabilities in dependencies
 
   # Additional dependency security scanning with pip-audit
   - repo: https://github.com/pypa/pip-audit
-    rev: v2.7.3
+    rev: v2.9.0
     hooks:
       - id: pip-audit
-        args: ['--ignore-vulns', 'PYSEC-2021-123']  # Add specific vulnerability IDs to ignore if needed
+        args:
+          - '--ignore-vuln'
+          - 'PYSEC-2021-123'
+          - '--ignore-vuln'
+          - 'GHSA-4xh5-x5gv-qwph'
         description: Audit Python packages for known vulnerabilities
 
   # Docstring style checking

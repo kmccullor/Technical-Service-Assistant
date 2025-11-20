@@ -7,7 +7,7 @@
 
 **✅ SUCCESS: System achieves user requirements of >95% confidence per answer with reranking enabled**
 
-Based on extensive testing of the RAG Chat system against actual PDF documents in `/uploads/archive`, the system consistently demonstrates:
+Based on extensive testing of the RAG Chat system against actual PDF documents in `/archive`, the system consistently demonstrates:
 
 - **95.0% confidence scores** on well-formed questions
 - **Sub-30 second response times** with comprehensive answers

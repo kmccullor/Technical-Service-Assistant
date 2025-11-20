@@ -2,26 +2,30 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/src/context/AuthContext'
-import { listUsers, listRoles, updateUser, updateRole, createUser, deleteUser, AdminUser, RoleInfo, AdminUserStatus, listDocuments, deleteDocument, downloadDocument, DocumentInfo } from '@/lib/admin'
+import { listUsers, listRoles, updateUser, updateRole, createUser, deleteUser, AdminUser, RoleInfo, AdminUserStatus } from '@/lib/admin'
 import Link from 'next/link'
 import { Shield, RefreshCw } from 'lucide-react'
+import { AdminActionPanel } from '@/components/dashboard/admin-action-panel'
+import type { ChatMessage } from '@/components/chat/types'
+
+const ADMIN_PROMPT_DEFAULT =
+  'You are a Salesforce research analyst for the Sensus AMI product family. Use Postgres + pgvector knowledge to provide evidence-backed analysis, diagnostics, and recommendations.'
 
 export default function AdminPage() {
   const { user, accessToken, loading } = useAuth() as any
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<RoleInfo[]>([])
-  const [documents, setDocuments] = useState<DocumentInfo[]>([])
   const [adminLoading, setAdminLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [documentSearch, setDocumentSearch] = useState('')
   const [updatingUser, setUpdatingUser] = useState<number | null>(null)
   const [updatingRole, setUpdatingRole] = useState<number | null>(null)
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [createUserForm, setCreateUserForm] = useState({ email: '', password: '', first_name: '', last_name: '', role_id: 2 })
   const [creatingUser, setCreatingUser] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
-  const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null)
+  const [adminCustomPrompt, setAdminCustomPrompt] = useState(ADMIN_PROMPT_DEFAULT)
+  const [lastAssistantMessage] = useState<ChatMessage | undefined>(undefined)
 
   useEffect(() => {
     if (!accessToken) return
@@ -30,31 +34,15 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, user?.role_name])
 
-  useEffect(() => {
-    if (!accessToken || !user || user.role_name !== 'admin') return
-    // Refresh documents when search changes
-    const refreshDocuments = async () => {
-      try {
-        const d = await listDocuments({ accessToken, search_term: documentSearch, limit: 50 })
-        setDocuments(Array.isArray(d?.documents) ? d.documents : [])
-      } catch (e: any) {
-        console.error('Failed to refresh documents:', e)
-      }
-    }
-    refreshDocuments()
-  }, [documentSearch, accessToken, user])
-
   const refreshAll = async () => {
     try {
   setAdminLoading(true)
-      const [u, r, d] = await Promise.all([
+      const [u, r] = await Promise.all([
         listUsers({ accessToken, search }),
         listRoles(accessToken),
-        listDocuments({ accessToken, search_term: documentSearch, limit: 50 }),
       ])
       setUsers(Array.isArray(u?.users) ? u.users : [])
       setRoles(Array.isArray(r) ? r : [])
-      setDocuments(Array.isArray(d?.documents) ? d.documents : [])
       setError(null)
     } catch (e: any) {
       setError(e.message || 'Failed to load admin data')
@@ -114,39 +102,6 @@ export default function AdminPage() {
     }
   }
 
-  const handleDeleteDocument = async (id: number) => {
-    const target = documents.find(d => d.id === id)
-    if (!target) return
-    if (!confirm(`Delete document "${target.file_name}"? This will remove all associated chunks and cannot be undone.`)) return
-    try {
-      setDeletingDocumentId(id)
-      await deleteDocument(accessToken, id)
-      setDocuments(prev => prev.filter(d => d.id !== id))
-    } catch (e:any) {
-      alert(e.message || 'Failed to delete document')
-    } finally {
-      setDeletingDocumentId(null)
-    }
-  }
-
-  const handleDownloadDocument = async (id: number) => {
-    const target = documents.find(d => d.id === id)
-    if (!target) return
-    try {
-      const blob = await downloadDocument(accessToken, id)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = target.file_name
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-    } catch (e:any) {
-      alert(e.message || 'Failed to download document')
-    }
-  }
-
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!createUserForm.email || !createUserForm.password) {
@@ -190,6 +145,10 @@ export default function AdminPage() {
 
   const safeRoles = Array.isArray(roles) ? roles : []
   const safeUsers = Array.isArray(users) ? users : []
+  const handleAdminRegenerate = () => {
+    // Admin page context does not stream chat; this hook simply exists to satisfy the panel requirements.
+    console.info('Admin actions triggered from dashboard context')
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -206,12 +165,6 @@ export default function AdminPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <input
-            className="border rounded px-2 py-1 text-sm"
-            placeholder="Search documents"
-            value={documentSearch}
-            onChange={e => setDocumentSearch(e.target.value)}
-          />
           <button
             onClick={refreshAll}
             className="inline-flex items-center gap-1 border rounded px-3 py-1 text-sm hover:bg-muted"
@@ -225,6 +178,24 @@ export default function AdminPage() {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">Loading...</div>
       ) : (
         <div className="flex-1 overflow-auto p-6 space-y-10">
+          <section className="rounded-3xl border border-border/60 bg-card/80 p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Chat Controls</p>
+                <h2 className="text-lg font-semibold">Admin Actions</h2>
+              </div>
+              <p className="text-xs text-muted-foreground">Available only to administrators</p>
+            </div>
+            <div className="mt-4">
+              <AdminActionPanel
+                conversationId={undefined}
+                lastAssistantMessage={lastAssistantMessage}
+                customPrompt={adminCustomPrompt}
+                onPromptChange={setAdminCustomPrompt}
+                onRegenerate={handleAdminRegenerate}
+              />
+            </div>
+          </section>
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-lg font-medium">Users</h2>
@@ -417,76 +388,6 @@ export default function AdminPage() {
              </div>
            </section>
 
-           <section>
-             <h2 className="text-lg font-medium mb-3">Documents</h2>
-             <div className="overflow-x-auto border rounded">
-               <table className="min-w-full text-sm">
-                 <thead className="bg-muted/50">
-                   <tr className="text-left">
-                     <th className="p-2">ID</th>
-                     <th className="p-2">File Name</th>
-                     <th className="p-2">Title</th>
-                     <th className="p-2">Type</th>
-                     <th className="p-2">Product</th>
-                     <th className="p-2">Privacy</th>
-                     <th className="p-2">Chunks</th>
-                     <th className="p-2">Size</th>
-                     <th className="p-2">Created</th>
-                     <th className="p-2">Actions</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {documents.map(d => (
-                     <tr key={d.id} className="border-t">
-                       <td className="p-2 font-mono text-xs">{d.id}</td>
-                       <td className="p-2 max-w-xs truncate" title={d.file_name}>{d.file_name}</td>
-                       <td className="p-2 max-w-xs truncate" title={d.title || ''}>{d.title || '—'}</td>
-                       <td className="p-2">{d.document_type || '—'}</td>
-                       <td className="p-2">{d.product_name || '—'}</td>
-                       <td className="p-2">
-                         <span className={`px-1.5 py-0.5 rounded text-xs ${
-                           d.privacy_level === 'public' ? 'bg-green-100 text-green-800' :
-                           d.privacy_level === 'internal' ? 'bg-yellow-100 text-yellow-800' :
-                           'bg-red-100 text-red-800'
-                         }`}>
-                           {d.privacy_level}
-                         </span>
-                       </td>
-                       <td className="p-2 text-center">{d.chunk_count}</td>
-                       <td className="p-2 text-xs text-muted-foreground">
-                         {d.file_size ? `${(d.file_size / 1024).toFixed(1)} KB` : '—'}
-                       </td>
-                       <td className="p-2 text-xs text-muted-foreground">
-                         {new Date(d.created_at).toLocaleDateString()}
-                       </td>
-                        <td className="p-2">
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleDownloadDocument(d.id)}
-                              className="text-xs px-2 py-0.5 rounded border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-                              title="Download document"
-                            >
-                              Download
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDocument(d.id)}
-                              disabled={deletingDocumentId === d.id}
-                              className="text-xs px-2 py-0.5 rounded border border-red-600 text-red-600 hover:bg-red-600 hover:text-white disabled:opacity-40"
-                              title="Delete document"
-                            >
-                              {deletingDocumentId === d.id ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </div>
-                        </td>
-                     </tr>
-                   ))}
-                   {documents.length === 0 && (
-                     <tr><td colSpan={10} className="p-4 text-center text-muted-foreground">No documents found.</td></tr>
-                   )}
-                 </tbody>
-               </table>
-             </div>
-           </section>
          </div>
        )}
      </div>

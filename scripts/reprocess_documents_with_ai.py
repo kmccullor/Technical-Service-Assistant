@@ -14,14 +14,17 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 # Add project root to path
 sys.path.append("/app")
-sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
+sys.path.append(str(PROJECT_ROOT))
 
 from config import get_settings
 from pdf_processor.pdf_utils import classify_document_with_ai, detect_confidentiality, extract_text, get_db_connection
@@ -62,26 +65,23 @@ def get_documents_needing_reprocessing(limit=None):
     return documents
 
 
+LEGACY_ARCHIVE_SEGMENT = os.path.join("uploads", "archive")
+
+
 def find_pdf_file(file_name):
     """Find the PDF file in archive or uploads directory."""
-    # Check archive first
-    archive_path = Path(settings.uploads_dir) / "archive" / file_name
-    if archive_path.exists():
-        return str(archive_path)
-
-    # Check uploads directory
-    uploads_path = Path(settings.uploads_dir) / file_name
-    if uploads_path.exists():
-        return str(uploads_path)
-
-    # Try alternative locations
-    alt_paths = [
-        f"/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive/{file_name}",
+    candidates = [
+        Path(settings.archive_dir) / file_name,
+        Path(settings.uploads_dir) / file_name,
+        Path(settings.uploads_dir) / "archive" / file_name,  # legacy location
+        PROJECT_ROOT / "archive" / file_name,
     ]
 
-    for path in alt_paths:
-        if Path(path).exists():
-            return path
+    for candidate in candidates:
+        if candidate.exists():
+            if LEGACY_ARCHIVE_SEGMENT in str(candidate):
+                logger.warning("Legacy %s path detected for %s. Consider migrating files.", LEGACY_ARCHIVE_SEGMENT, file_name)
+            return str(candidate)
 
     return None
 

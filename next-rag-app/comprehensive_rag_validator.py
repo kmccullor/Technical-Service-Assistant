@@ -13,6 +13,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ARCHIVE_DIR = os.getenv("ARCHIVE_DIR") or str(PROJECT_ROOT / "archive")
 
 
 @dataclass
@@ -161,9 +165,8 @@ class ComprehensiveRAGTester:
         }
 
         # Get actual documents from archive
-        archive_path = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
-        if os.path.exists(archive_path):
-            documents = [f for f in os.listdir(archive_path) if f.endswith(".pdf")]
+        if os.path.exists(ARCHIVE_DIR):
+            documents = [f for f in os.listdir(ARCHIVE_DIR) if f.endswith(".pdf")]
         else:
             # Fallback to known documents
             documents = [

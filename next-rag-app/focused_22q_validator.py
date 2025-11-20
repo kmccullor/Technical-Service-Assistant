@@ -11,8 +11,12 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 import requests
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ARCHIVE_DIR = os.getenv("ARCHIVE_DIR") or str(PROJECT_ROOT / "archive")
 
 
 @dataclass
@@ -77,9 +81,8 @@ class FocusedRAGValidator:
 
     def get_available_documents(self) -> List[str]:
         """Get list of available documents, prioritizing target documents"""
-        archive_path = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
         try:
-            all_docs = [f for f in os.listdir(archive_path) if f.endswith(".pdf")]
+            all_docs = [f for f in os.listdir(ARCHIVE_DIR) if f.endswith(".pdf")]
 
             # Prioritize target documents that exist
             available_targets = [doc for doc in self.target_documents if doc in all_docs]
@@ -92,7 +95,7 @@ class FocusedRAGValidator:
             return available_targets[:5]  # Limit to 5 for focused testing
 
         except Exception as e:
-            print(f"❌ Error reading archive: {e}")
+            print(f"❌ Error reading archive ({ARCHIVE_DIR}): {e}")
             return []
 
     def test_single_question(self, document: str, question: str, question_num: int) -> TestResult:

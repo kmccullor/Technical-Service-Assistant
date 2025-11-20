@@ -6,15 +6,17 @@ Test script for AI-powered document categorization functionality.
 import json
 import os
 import sys
+from pathlib import Path
 
-sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(PROJECT_ROOT))
 
 # Set environment variables to avoid app directory issues
-os.environ["UPLOADS_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads"
-os.environ["ARCHIVE_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
+os.environ["UPLOADS_DIR"] = str(PROJECT_ROOT / "uploads")
+os.environ["ARCHIVE_DIR"] = str(PROJECT_ROOT / "archive")
 
 # Create logs directory if it doesn't exist
-logs_dir = "/home/kmccullor/Projects/Technical-Service-Assistant/logs"
+logs_dir = PROJECT_ROOT / "logs"
 os.makedirs(logs_dir, exist_ok=True)
 
 from pdf_processor.pdf_utils import classify_document_with_ai, get_db_connection, insert_document_with_categorization

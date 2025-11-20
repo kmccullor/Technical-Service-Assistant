@@ -8,7 +8,7 @@ Simple bash script to move all archived PDFs back to uploads for reprocessing.
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-ARCHIVE_DIR="$PROJECT_ROOT/uploads/archive"
+ARCHIVE_DIR="$PROJECT_ROOT/archive"
 UPLOADS_DIR="$PROJECT_ROOT/uploads"
 
 # Colors for output

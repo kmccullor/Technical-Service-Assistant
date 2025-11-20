@@ -12,8 +12,12 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
 
 import requests
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ARCHIVE_DIR = os.getenv("ARCHIVE_DIR") or str(PROJECT_ROOT / "archive")
 
 
 @dataclass
@@ -152,12 +156,11 @@ class ComprehensiveRAGValidator:
 
     def get_document_list(self) -> List[str]:
         """Get list of all PDF documents in the archive"""
-        archive_path = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
         try:
-            documents = [f for f in os.listdir(archive_path) if f.endswith(".pdf")]
+            documents = [f for f in os.listdir(ARCHIVE_DIR) if f.endswith(".pdf")]
             return sorted(documents)
         except Exception as e:
-            print(f"❌ Error reading archive: {e}")
+            print(f"❌ Error reading archive ({ARCHIVE_DIR}): {e}")
             return []
 
     def extract_product_info(self, filename: str) -> Tuple[str, str, str]:

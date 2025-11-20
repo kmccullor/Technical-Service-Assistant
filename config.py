@@ -14,6 +14,7 @@ from pathlib import Path
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 # Load .env file early if present (local development convenience)
 try:  # pragma: no cover - simple optional side-effect
@@ -208,10 +209,11 @@ def get_settings() -> Settings:
     s.chunk_strategy = os.getenv("CHUNK_STRATEGY", "sent_overlap")
 
     # Logging / Paths
-    s.log_dir = os.getenv("LOG_DIR", "/app/logs")
+    default_log_dir = os.getenv("LOG_DIR", str(PROJECT_ROOT / "logs"))
+    s.log_dir = default_log_dir
     s.log_level = os.getenv("LOG_LEVEL", "INFO")
-    s.uploads_dir = os.getenv("UPLOADS_DIR", "/app/uploads")
-    s.archive_dir = os.getenv("ARCHIVE_DIR", os.path.join(s.uploads_dir, "archive"))
+    s.uploads_dir = os.getenv("UPLOADS_DIR", str(PROJECT_ROOT / "uploads"))
+    s.archive_dir = os.getenv("ARCHIVE_DIR", str(PROJECT_ROOT / "archive"))
     s.redis_url = os.getenv("REDIS_URL")
 
     # Performance & Reasoning

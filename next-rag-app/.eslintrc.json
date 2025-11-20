@@ -2,5 +2,18 @@
   "extends": [
     "next",
     "next/core-web-vitals"
+  ],
+  "plugins": ["deprecation"],
+  "rules": {
+    "deprecation/deprecation": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": "./tsconfig.json"
+      }
+    }
   ]
 }

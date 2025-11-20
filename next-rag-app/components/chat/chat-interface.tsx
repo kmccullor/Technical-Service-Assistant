@@ -3,12 +3,14 @@
 import React from 'react'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '@/src/context/AuthContext'
 import { Copy } from 'lucide-react'
 import * as Toast from '@radix-ui/react-toast'
 import { MessageRenderer } from './message-renderer'
+import { ChatMessage, Citation, UploadedFile } from './types'
 // Helper to format message for copying (plain text + optional metadata)
-function formatMessageForCopy(message: Message): string {
+function formatMessageForCopy(message: ChatMessage): string {
   let text = message.content
   if (message.citations && message.citations.length > 0) {
     text += '\n\nSources:'
@@ -21,55 +23,29 @@ function formatMessageForCopy(message: Message): string {
 }
 // Copy to clipboard with fallback
 async function copyToClipboard(text: string) {
-  if (navigator.clipboard) {
+  if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text)
-  } else {
-    // Fallback for older browsers
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    document.body.appendChild(textarea)
-    textarea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textarea)
+    return
   }
+  throw new Error('Clipboard API not available')
 }
 import { Send, Loader2, FileText, Search, Globe, Paperclip, X, Upload, CheckCircle, AlertCircle, Maximize2, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-
-interface Citation {
-  id: string
-  title: string
-  content: string
-  source: string
-  score?: number
-  page?: number
-}
-
-interface UploadedFile {
-  sessionId: string
-  fileName: string
-  fileSize: number
-  uploadTime: string
-}
-
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  citations?: Citation[]
-  searchType?: 'documents' | 'web' | 'hybrid' | 'temp-doc'
-  uploadedFile?: UploadedFile
-  timestamp: Date
-}
 
 interface ChatInterfaceProps {
   conversationId?: number
   onConversationCreated?: (conversationId: number) => void
   onConversationActivity?: (conversationId: number) => void
+  onMessagesChange?: (messages: ChatMessage[]) => void
+  tone?: string
+  persona?: string
+  customPrompt?: string
+  composerPortalId?: string
 }
 
 const ALLOWED_EXTENSIONS = [
@@ -80,9 +56,18 @@ const ALLOWED_EXTENSIONS = [
 ]
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-export function ChatInterface({ conversationId, onConversationCreated, onConversationActivity }: ChatInterfaceProps) {
+export function ChatInterface({
+  conversationId,
+  onConversationCreated,
+  onConversationActivity,
+  onMessagesChange,
+  tone,
+  persona,
+  customPrompt,
+  composerPortalId,
+}: ChatInterfaceProps) {
   const { accessToken } = useAuth()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
@@ -94,6 +79,12 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isInitialScrollRef = useRef(true)
+
+  useEffect(() => {
+    if (onMessagesChange) {
+      onMessagesChange(messages)
+    }
+  }, [messages, onMessagesChange])
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     const el = messagesContainerRef.current
@@ -138,7 +129,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
         }
         const data = await response.json()
         if (cancelled) return
-        const mapped: Message[] = Array.isArray(data?.messages)
+        const mapped: ChatMessage[] = Array.isArray(data?.messages)
           ? data.messages.map((msg: any) => ({
               id: String(msg.id),
               role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -231,7 +222,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       setUploadedFile(uploadedFile)
 
       // Add a system message about the upload
-      const systemMessage: Message = {
+      const systemMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
         content: `✅ **File uploaded successfully:** ${file.name} (${formatFileSize(file.size)})\n\nYou can now ask questions about this document. I'll analyze its content to provide specific insights and troubleshooting assistance.`,
@@ -368,7 +359,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       }
     }
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: displayContent,
@@ -384,17 +375,22 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
     try {
       // If there's an uploaded file, analyze it using temp-analyze endpoint
       if (uploadedFile) {
+        const payload: Record<string, unknown> = {
+          sessionId: uploadedFile.sessionId,
+          query: currentInput,
+          maxResults: 5,
+        }
+        if (tone) payload.tone = tone
+        if (persona) payload.persona = persona
+        if (customPrompt) payload.custom_prompt = customPrompt
+
         const response = await fetch('/api/temp-analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
           },
-          body: JSON.stringify({
-            sessionId: uploadedFile.sessionId,
-            query: currentInput,
-            maxResults: 5
-          }),
+          body: JSON.stringify(payload),
         })
 
         if (!response.ok) {
@@ -403,7 +399,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
 
         const result = await response.json()
 
-        const assistantMessage: Message = {
+        const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: result.response,
@@ -423,20 +419,25 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       }
 
       // Regular chat without uploaded file - use streaming RAG endpoint
+      const payload: Record<string, unknown> = {
+        query: currentInput,
+        use_context: true,
+        max_context_chunks: 5,
+        stream: true,
+        temperature: 0.2,
+        max_tokens: 500,
+      }
+      if (tone) payload.tone = tone
+      if (persona) payload.persona = persona
+      if (customPrompt) payload.custom_prompt = customPrompt
+
       const response = await fetch('/api/rag-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({
-          query: currentInput,
-          use_context: true,
-          max_context_chunks: 5,
-          stream: true,
-          temperature: 0.2,
-          max_tokens: 500,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -446,7 +447,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No response body')
 
-      let assistantMessage: Message = {
+      let assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
@@ -508,7 +509,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       }
     } catch (error) {
       console.error('Chat error:', error)
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
@@ -539,6 +540,144 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
       default: return 'Search'
     }
   }
+
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+  const [composerPortalReady, setComposerPortalReady] = useState(false)
+
+  useEffect(() => {
+    if (composerPortalId) {
+      const el = document.getElementById(composerPortalId)
+      if (el) {
+        setPortalTarget(el)
+        setComposerPortalReady(true)
+      }
+    }
+  }, [composerPortalId])
+
+  const composer = (
+    <div className="sticky bottom-0 z-10 border-t bg-background p-4">
+      {/* File Upload Area */}
+      {uploadedFile && (
+        <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <div>
+              <span className="font-medium text-green-900">{uploadedFile.fileName}</span>
+              <span className="text-sm text-green-600 ml-2">({formatFileSize(uploadedFile.fileSize)})</span>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearUploadedFile}
+            className="text-green-700 hover:text-green-800"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+          <div>
+            <div className="font-medium text-red-900">Upload Error</div>
+            <div className="text-sm text-red-600">{uploadError}</div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setUploadError(null)}
+            className="text-red-700 hover:text-red-800 ml-auto"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Press Enter to send, Shift+Enter for a new line.</span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setInputExpanded(prev => !prev)}
+              className="text-muted-foreground hover:text-foreground"
+              title={inputExpanded ? 'Collapse input' : 'Expand input'}
+            >
+              {inputExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative">
+          <Textarea
+            value={input}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+            placeholder={uploadedFile ?
+              (uploadedFile.fileName.match(/\.(png|jpg|jpeg|gif|bmp|tiff|webp)$/i) ?
+                "Describe what you see in the image or ask questions about it..." :
+                "Ask questions about the uploaded document...") :
+              "Ask a question about your documents..."}
+            className={`w-full pr-12 resize-y ${inputExpanded ? 'min-h-[180px]' : 'min-h-[80px]'} max-h-[320px]`}
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSubmit(e as any)
+              }
+            }}
+          />
+          <div className="absolute right-3 bottom-3 flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept={ALLOWED_EXTENSIONS.join(',')}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="h-7 w-7"
+              title="Upload document for analysis"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {!uploadedFile && '💡 Tip: Click the clip icon or drag & drop files to upload logs, configs, images, or other documents.'}
+          </div>
+          <Button type="submit" disabled={!input.trim() || isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" /> Send</>}
+          </Button>
+        </div>
+      </form>
+
+      {!uploadedFile && (
+        <div className="mt-2 text-xs text-muted-foreground">
+          Need to describe a longer issue? Expand the input or attach files for deeper analysis.
+        </div>
+      )}
+    </div>
+  )
+
+  const composerContent = composerPortalReady && portalTarget
+    ? createPortal(composer, portalTarget)
+    : composerPortalId
+      ? null
+      : composer
 
   return (
     <div
@@ -662,123 +801,7 @@ export function ChatInterface({ conversationId, onConversationCreated, onConvers
         )}
       </div>
 
-      {/* Input */}
-      <div className="sticky bottom-0 z-10 border-t bg-background p-4">
-        {/* File Upload Area */}
-        {uploadedFile && (
-          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <div>
-                <span className="font-medium text-green-900">{uploadedFile.fileName}</span>
-                <span className="text-sm text-green-600 ml-2">({formatFileSize(uploadedFile.fileSize)})</span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearUploadedFile}
-              className="text-green-700 hover:text-green-800"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {uploadError && (
-          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-            <div>
-              <div className="font-medium text-red-900">Upload Error</div>
-              <div className="text-sm text-red-600">{uploadError}</div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setUploadError(null)}
-              className="text-red-700 hover:text-red-800 ml-auto"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Press Enter to send, Shift+Enter for a new line.</span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setInputExpanded(prev => !prev)}
-                className="text-muted-foreground hover:text-foreground"
-                title={inputExpanded ? 'Collapse input' : 'Expand input'}
-              >
-                {inputExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <Textarea
-              value={input}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-              placeholder={uploadedFile ?
-                (uploadedFile.fileName.match(/\.(png|jpg|jpeg|gif|bmp|tiff|webp)$/i) ?
-                  "Describe what you see in the image or ask questions about it..." :
-                  "Ask questions about the uploaded document...") :
-                "Ask a question about your documents..."}
-              className={`w-full pr-12 resize-y ${inputExpanded ? 'min-h-[180px]' : 'min-h-[80px]'} max-h-[320px]`}
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit(e as any)
-                }
-              }}
-            />
-            <div className="absolute right-3 bottom-3 flex items-center gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept={ALLOWED_EXTENSIONS.join(',')}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="h-7 w-7"
-                title="Upload document for analysis"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Paperclip className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
-              {!uploadedFile && '💡 Tip: Click the clip icon or drag & drop files to upload logs, configs, images, or other documents.'}
-            </div>
-            <Button type="submit" disabled={!input.trim() || isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-1" /> Send</>}
-            </Button>
-          </div>
-        </form>
-
-        {!uploadedFile && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            Need to describe a longer issue? Expand the input or attach files for deeper analysis.
-          </div>
-        )}
-      </div>
+      {composerContent}
       {/* Toast notification for copy feedback */}
       <Toast.Provider swipeDirection="right">
         <Toast.Root open={toastOpen} onOpenChange={setToastOpen} duration={2000} className="bg-black text-white px-4 py-2 rounded shadow-lg">

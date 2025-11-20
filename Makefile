@@ -84,7 +84,7 @@ health-check: ## 🏥 Quick health check of core services
 	@curl -f -s http://localhost:11435/api/tags > /dev/null && echo "✅ Ollama-2 OK" || echo "❌ Ollama-2 FAIL"
 	@curl -f -s http://localhost:11436/api/tags > /dev/null && echo "✅ Ollama-3 OK" || echo "❌ Ollama-3 FAIL"
 	@curl -f -s http://localhost:11437/api/tags > /dev/null && echo "✅ Ollama-4 OK" || echo "❌ Ollama-4 FAIL"
-	@curl -f -s http://localhost:8080 > /dev/null && echo "✅ Frontend OK" || echo "❌ Frontend FAIL"
+	@curl -k -f -s https://localhost > /dev/null && echo "✅ Frontend OK" || echo "❌ Frontend FAIL"
 	@if python -c "import socket; socket.create_connection(('localhost', 6379), timeout=2).close()" >/dev/null 2>&1; then \
 		echo "✅ Redis OK"; \
 	else \
@@ -93,6 +93,15 @@ health-check: ## 🏥 Quick health check of core services
 	@echo "\n=== System Resources ==="
 	@df -h . | tail -1
 	@free -h | head -2
+	@echo "\n=== Dependency Drift Checks ==="
+	@echo "-- npm (frontend) outdated packages --"
+	@cd next-rag-app && npm outdated || true
+	@echo "\n-- pip (.venv) outdated packages --"
+	@if [ -x ".venv/bin/pip" ]; then \
+		.venv/bin/pip list --outdated || true; \
+	else \
+		echo "Skipping Python dependency check (.venv/bin/pip not found)"; \
+	fi
 
 smoke-test: ## 🚨 Run automated service smoke test
 	$(PYTHON) scripts/service_smoke_test.py
@@ -226,3 +235,7 @@ force-seed-rbac: ## Force re-run of RBAC seeding (permissions upsert, roles & ad
 	@echo "✅ RBAC force seed finished"
 
 .PHONY: help venv install up down logs eval-sample lint-docs test recreate-db cleanup advanced-health end-of-day quality-track quality-analyze quality-report quality-check-regressions quality-full security-audit
+
+full-build: ## Run npm build for frontend and rebuild Docker stack
+	cd next-rag-app && npm run build
+	docker compose up -d --build

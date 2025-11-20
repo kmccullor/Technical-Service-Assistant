@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-interface UserInfo {
+export interface UserInfo {
   id: number;
   email: string;
   first_name?: string | null;

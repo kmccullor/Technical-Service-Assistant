@@ -28,7 +28,7 @@ import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from config import get_settings
 
@@ -76,10 +76,7 @@ class DecompositionResult(BaseModel):
         default=1.0, ge=0.0, le=1.0, description="Confidence in decomposition quality"
     )
 
-    class Config:
-        """Pydantic config."""
-
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def to_dict(self) -> dict:
         """Serialize to dictionary for caching."""

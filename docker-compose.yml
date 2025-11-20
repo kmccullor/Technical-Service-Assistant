@@ -212,6 +212,7 @@ services:
       - "8050:8050"
     volumes:
       - ./uploads:/app/uploads
+      - ./archive:/app/archive
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}

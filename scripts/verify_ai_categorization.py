@@ -5,12 +5,14 @@ Verification script for AI categorization database schema and functionality.
 
 import os
 import sys
+from pathlib import Path
 
-sys.path.append("/home/kmccullor/Projects/Technical-Service-Assistant")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT))
 
 # Set environment variables to avoid app directory issues
-os.environ["UPLOADS_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads"
-os.environ["ARCHIVE_DIR"] = "/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
+os.environ["UPLOADS_DIR"] = str(PROJECT_ROOT / "uploads")
+os.environ["ARCHIVE_DIR"] = str(PROJECT_ROOT / "archive")
 
 import psycopg2
 

@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
@@ -96,11 +97,54 @@ except ImportError as e:
 
     auth_router = APIRouter()
 
+# Initialize RAG service
+rag_service = RAGChatService()
+app_settings = get_settings()
+STREAM_CHUNK_WORDS = max(1, getattr(app_settings, "chat_stream_chunk_words", 40))
+STREAM_DELAY_SECONDS = max(0.0, getattr(app_settings, "chat_stream_delay_seconds", 0.0))
+
+a2a_service = None
+a2a_mount_app = None
+if ENABLE_A2A_AGENT:
+    if not _HAS_PYDANTIC_AGENT:
+        logger.warning(
+            "ENABLE_A2A_AGENT is set but the Pydantic AI agent is disabled; skipping A2A server init"
+        )
+    else:
+        try:
+            from pydantic_agent_a2a import create_a2a_service
+
+            a2a_service = create_a2a_service(rag_service)
+            if a2a_service.app:
+                a2a_mount_app = a2a_service.app
+        except Exception as exc:  # pragma: no cover
+            logger.exception("Failed to initialize Agent2Agent endpoint: %s", exc)
+            a2a_service = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    if _HAS_PYDANTIC_AGENT:
+        initialize_pydantic_agent(rag_service)
+    if a2a_service is not None:
+        await a2a_service.startup()
+    try:
+        yield
+    finally:
+        if a2a_service is not None:
+            await a2a_service.shutdown()
+
+
 app = FastAPI(
     title="Technical Service Assistant API",
     description="API for RAG system with basic chat endpoints",
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+if a2a_mount_app is not None:
+    app.mount("/a2a", a2a_mount_app)
+    logger.info("Mounted Agent2Agent endpoint at /a2a")
 
 
 async def _token_stream_chunks(text: str) -> AsyncIterator[str]:
@@ -123,28 +167,6 @@ def test_question_stats():
     return {"message": "Question stats endpoint works"}
 
 
-# Initialize RAG service
-rag_service = RAGChatService()
-app_settings = get_settings()
-STREAM_CHUNK_WORDS = max(1, getattr(app_settings, "chat_stream_chunk_words", 40))
-STREAM_DELAY_SECONDS = max(0.0, getattr(app_settings, "chat_stream_delay_seconds", 0.0))
-
-a2a_service = None
-if ENABLE_A2A_AGENT:
-    if not _HAS_PYDANTIC_AGENT:
-        logger.warning("ENABLE_A2A_AGENT is set but the Pydantic AI agent is disabled; skipping A2A server init")
-    else:
-        try:
-            from pydantic_agent_a2a import create_a2a_service
-
-            a2a_service = create_a2a_service(rag_service)
-            if a2a_service.app:
-                app.mount("/a2a", a2a_service.app)
-                logger.info("Mounted Agent2Agent endpoint at /a2a")
-        except Exception as exc:  # pragma: no cover
-            logger.exception("Failed to initialize Agent2Agent endpoint: %s", exc)
-            a2a_service = None
-
 # Include RAG endpoints
 add_rag_endpoints(app)
 
@@ -154,20 +176,6 @@ if _HAS_TIER2_AUTH:
 
 # Include RBAC endpoints (fallback if Tier 2 not available)
 app.include_router(rbac_router)
-
-
-@app.on_event("startup")
-async def bootstrap_agents() -> None:
-    if _HAS_PYDANTIC_AGENT:
-        initialize_pydantic_agent(rag_service)
-    if a2a_service is not None:
-        await a2a_service.startup()
-
-
-@app.on_event("shutdown")
-async def shutdown_agents() -> None:
-    if a2a_service is not None:
-        await a2a_service.shutdown()
 
 
 # Add intelligent routing endpoints
@@ -470,7 +478,7 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
                 role_name="admin" if user_row.get("role_id") == 1 else "employee",
                 status=user_row.get("status", "active"),
                 verified=user_row.get("verified", True),
-                 last_login=_serialize_timestamp(user_row.get("last_login")),
+                last_login=_serialize_timestamp(user_row.get("last_login")),
                 is_active=True,
                 is_locked=False,
                 password_change_required=user_row.get("password_change_required", False),

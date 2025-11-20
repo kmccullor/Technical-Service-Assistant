@@ -1,9 +1,10 @@
 #!/bin/bash
-# Automated RAG Chat validation for PDF documents in /uploads/archive
+# Automated RAG Chat validation for PDF documents in /archive
 # For each PDF, ask a unique question and log the parsed answer
 
 API_URL="http://localhost:3010/api/chat"
-ARCHIVE_DIR="/home/kmccullor/Projects/Technical-Service-Assistant/uploads/archive"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ARCHIVE_DIR="${ARCHIVE_DIR:-$REPO_ROOT/archive}"
 LOG_FILE="rag_chat_validation_results.log"
 
 # Sample questions for a subset of documents (expand as needed)

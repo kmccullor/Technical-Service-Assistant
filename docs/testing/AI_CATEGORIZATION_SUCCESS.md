@@ -178,7 +178,7 @@ def detect_privacy_level(content, filename):
 ### **End-to-End Test Validation**
 ```bash
 # Test execution
-cp "uploads/archive/RNI 4.16 ESM User Guide.pdf" uploads/test_ai_categorization.pdf
+cp "archive/RNI 4.16 ESM User Guide.pdf" uploads/test_ai_categorization.pdf
 
 # Results observed in logs:
 2025-09-19 23:05:14.678 | pdf_utils | pdf_processor_utils | INFO | Inserted 226 chunks with AI categorization

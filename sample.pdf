@@ -168,7 +168,7 @@ python hybrid_search.py
 python semantic_chunking.py
 
 # Test AI categorization system
-cp "uploads/archive/example.pdf" uploads/test_categorization.pdf
+cp "archive/example.pdf" uploads/test_categorization.pdf
 docker logs -f pdf_processor  # Watch AI classification in action
 
 # Enable enhanced retrieval in production
@@ -307,7 +307,7 @@ High level pipeline:
 5. Storage: chunk content + embedding + metadata inserted into Postgres (PGVector) table (see `init.sql` & migrations).
 6. Retrieval: query embeddings vs stored vectors; optional reranker service (`reranker/`) refines top-k.
 7. Q&A / analysis: higher level scripts call generation models with retrieved context.
-8. Archive: processed PDFs optionally moved into `uploads/archive/` (N8N workflow or custom script step).
+8. Archive: processed PDFs optionally moved into `archive/` (N8N workflow or custom script step).
 
 Containers (from `docker-compose.yml`):
 - `pgvector`: PostgreSQL 16 + pgvector 0.8.1 (official image) with optimized vector operations.
@@ -419,7 +419,7 @@ python -m venv .venv && source .venv/bin/activate  # (Windows PowerShell: .venv\
 pip install -r requirements.txt
 docker compose up -d --build
 python test_connectivity.py
-mkdir -p uploads/archive
+mkdir -p archive
 cp /path/to/example.pdf uploads/
 ```
 Check logs of `pdf_processor` container to confirm ingestion.
