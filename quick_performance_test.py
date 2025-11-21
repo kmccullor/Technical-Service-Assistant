@@ -10,13 +10,21 @@ from typing import Any, Dict
 
 import requests
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
+
+
+def _auth_headers() -> dict:
+    token = resolve_bearer_token(
+        TokenOptions(email="admin@example.com", role="admin", env_var="QUICK_PERF_BEARER_TOKEN")
+    )
+    return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
 
 def test_routing_performance(num_tests: int = 10) -> Dict[str, Any]:
     """Test intelligent routing performance."""
     print(f"Testing routing performance with {num_tests} requests...")
 
     url = "http://localhost:8008/api/intelligent-route"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
+    headers = _auth_headers()
 
     test_questions = [
         "What is RNI?",
@@ -79,7 +87,7 @@ def test_chat_simple_performance(num_tests: int = 5) -> Dict[str, Any]:
     print(f"Testing chat performance with {num_tests} requests...")
 
     url = "http://localhost:8008/api/chat"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
+    headers = _auth_headers()
 
     results = []
     start_time = time.time()

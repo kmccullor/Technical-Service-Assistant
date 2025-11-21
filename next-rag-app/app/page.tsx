@@ -11,7 +11,8 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog-client'
-import { PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Key, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
 
 const SYSTEM_PROMPTS = [
   'Stay focused on Salesforce case research for Sensus AMI products and infrastructure.',
@@ -23,7 +24,7 @@ export default function HomePage() {
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>()
   const [conversationRefreshKey, setConversationRefreshKey] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
-  const { user, loading } = useAuth()
+  const { user, loading, logout } = useAuth()
   const router = useRouter()
   const passwordChangeRequired = user?.password_change_required
 
@@ -230,12 +231,32 @@ export default function HomePage() {
                 >
                   <PanelLeftClose className="h-4 w-4" />
                 </button>
-                <div className="rounded-[32px] border border-slate-200 bg-white/80 p-4 shadow-inner">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">User Info</p>
-                  <p className="text-lg font-semibold text-slate-900">{user.full_name}</p>
-                  <p className="text-xs text-slate-500">{user.email}</p>
-                  <p className="text-xs text-slate-500">Role: {user.role_name || 'Guest'}</p>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full rounded-[32px] border border-slate-200 bg-white/80 p-4 text-left shadow-inner transition hover:border-primary/50"
+                    >
+                      <p className="text-xs uppercase tracking-wide text-slate-500">User Info</p>
+                      <p className="text-lg font-semibold text-slate-900">{user.full_name}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-xs text-slate-500">Role: {user.role_name || 'Guest'}</p>
+                      <p className="mt-2 text-[11px] text-primary underline">Account menu</p>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <Link href="/change-password" className="flex items-center cursor-pointer">
+                        <Key className="mr-2 h-4 w-4" />
+                        <span>Change password</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout} className="flex items-center cursor-pointer text-red-600 focus:text-red-700">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="space-y-3">
                   {navigationCards.map((card) => {
                     if (card.disabled || !card.href) {

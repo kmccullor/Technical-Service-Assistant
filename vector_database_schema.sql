@@ -153,7 +153,7 @@ CREATE TABLE document_keywords (
 CREATE TABLE search_sessions (
     id BIGSERIAL PRIMARY KEY,
     query TEXT NOT NULL,
-    query_embedding vector(768),
+    query_embedding vector(3072),
     search_type TEXT, -- vector, hybrid, keyword
     result_count INTEGER,
     max_distance FLOAT,

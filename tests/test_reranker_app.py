@@ -12,6 +12,7 @@ Following Ring 2 proven patterns for mocking and isolation.
 
 import types
 from datetime import datetime, timezone
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -40,6 +41,7 @@ stub_settings = types.SimpleNamespace(
     db_name="test_db",
     db_user="tester",
     db_password="tester",
+    jwt_secret="test-secret",
     web_cache_enabled=False,
     web_cache_ttl_seconds=0,
     web_cache_max_rows=0,
@@ -72,7 +74,38 @@ with patch.dict(
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    from reranker.app import _deterministic_user_id, app
+    from reranker.app import UserResponse, _deterministic_user_id, app
+    from reranker.jwt_auth import JWTAuthenticator
+
+
+def make_test_user(email: str, role_id: int = 2, user_id: Optional[int] = None) -> UserResponse:
+    """Create a test user payload."""
+    resolved_user_id = user_id if user_id is not None else _deterministic_user_id(email)
+    role_name = "admin" if role_id == 1 else "employee"
+    return UserResponse(
+        id=resolved_user_id,
+        email=email,
+        first_name=email.split("@")[0].title(),
+        last_name="User",
+        full_name=email,
+        role_id=role_id,
+        role_name=role_name,
+        status="active",
+        verified=True,
+        last_login=None,
+        is_active=True,
+        is_locked=False,
+        password_change_required=False,
+        created_at="2024-01-01T00:00:00Z",
+        updated_at="2024-01-01T00:00:00Z",
+    )
+
+
+def make_auth_header(email: str, role: str, user_id: Optional[int] = None) -> dict:
+    """Generate a real JWT-backed auth header for tests."""
+    resolved_user_id = user_id if user_id is not None else _deterministic_user_id(email)
+    token = JWTAuthenticator.generate_token(user_id=resolved_user_id, email=email, role=role)
+    return {"Authorization": f"Bearer {token}"}
 
 
 class StubCursor:
@@ -159,12 +192,15 @@ class TestRerankerAppEndpoints:
 
     def test_health_details_with_auth(self, client, mock_db_connection):
         """Test detailed health endpoint with authentication."""
-        headers = {"Authorization": "Bearer test-token"}
+        user = make_test_user(email="admin@example.com", role_id=1, user_id=1)
+        headers = make_auth_header(email=user.email, role="admin", user_id=user.id)
 
         # Mock successful database check
         mock_db_connection.execute.return_value = None
 
-        with patch("reranker.app.require_api_key", return_value=None):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.require_api_key", return_value=None
+        ):
             response = client.get("/health/details", headers=headers)
             assert response.status_code == 200
             data = response.json()
@@ -451,8 +487,9 @@ class TestConversationAuthorization:
 
     def test_list_conversations_scoped_to_user(self, client):
         """Conversations endpoint filters by user_id."""
-        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
         expected_user_id = _deterministic_user_id("user@example.com")
+        auth_header = make_auth_header(email="user@example.com", role="user", user_id=expected_user_id)
+        user = make_test_user(email="user@example.com", role_id=2, user_id=expected_user_id)
 
         timestamp = datetime.now(timezone.utc)
         cursor = StubCursor(
@@ -470,7 +507,9 @@ class TestConversationAuthorization:
         )
         conn = StubConnection(cursor)
 
-        with patch("reranker.app.get_db_connection", return_value=conn):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.get_db_connection", return_value=conn
+        ):
             response = client.get("/api/conversations", headers=auth_header)
 
         assert response.status_code == 200
@@ -484,13 +523,16 @@ class TestConversationAuthorization:
 
     def test_get_conversation_rejects_unowned_id(self, client):
         """Fetching conversation fails when user does not own it."""
-        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
         expected_user_id = _deterministic_user_id("user@example.com")
+        auth_header = make_auth_header(email="user@example.com", role="user", user_id=expected_user_id)
+        user = make_test_user(email="user@example.com", role_id=2, user_id=expected_user_id)
 
         cursor = StubCursor(fetchone_results=[None])
         conn = StubConnection(cursor)
 
-        with patch("reranker.app.get_db_connection", return_value=conn):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.get_db_connection", return_value=conn
+        ):
             response = client.get("/api/conversations/123", headers=auth_header)
 
         assert response.status_code == 404
@@ -498,13 +540,16 @@ class TestConversationAuthorization:
 
     def test_delete_conversation_scoped_to_owner(self, client):
         """Delete only removes conversations owned by the user."""
-        auth_header = {"Authorization": "Bearer mock_access_token_user@example.com"}
         expected_user_id = _deterministic_user_id("user@example.com")
+        auth_header = make_auth_header(email="user@example.com", role="user", user_id=expected_user_id)
+        user = make_test_user(email="user@example.com", role_id=2, user_id=expected_user_id)
 
         cursor = StubCursor(rowcount=1)
         conn = StubConnection(cursor)
 
-        with patch("reranker.app.get_db_connection", return_value=conn):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.get_db_connection", return_value=conn
+        ):
             response = client.delete("/api/conversations/77", headers=auth_header)
 
         assert response.status_code == 200
@@ -526,28 +571,37 @@ class TestAuthenticationAndSecurity:
 
     def test_protected_endpoint_with_auth(self, client):
         """Test protected endpoints with authentication."""
-        headers = {"Authorization": "Bearer test-token"}
+        user = make_test_user(email="admin@example.com", role_id=1, user_id=1)
+        headers = make_auth_header(email=user.email, role="admin", user_id=user.id)
         request_data = {"query": "test query", "documents": ["doc1", "doc2"]}
 
-        with patch("reranker.app.require_api_key", return_value=None):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.require_api_key", return_value=None
+        ):
             response = client.post("/rerank", json=request_data, headers=headers)
             assert response.status_code in [200, 422, 500]
 
     def test_search_endpoint_auth(self, client):
         """Test search endpoint authentication."""
-        headers = {"Authorization": "Bearer test-token"}
+        user = make_test_user(email="admin@example.com", role_id=1, user_id=1)
+        headers = make_auth_header(email=user.email, role="admin", user_id=user.id)
         request_data = {"query": "test search", "top_k": 5}
 
-        with patch("reranker.app.require_api_key", return_value=None):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.require_api_key", return_value=None
+        ):
             response = client.post("/search", json=request_data, headers=headers)
             assert response.status_code in [200, 422, 500]
 
     def test_chat_endpoint_auth(self, client):
         """Test chat endpoint authentication."""
-        headers = {"Authorization": "Bearer test-token"}
+        user = make_test_user(email="admin@example.com", role_id=1, user_id=1)
+        headers = make_auth_header(email=user.email, role="admin", user_id=user.id)
         request_data = {"message": "Hello", "temperature": 0.7}
 
-        with patch("reranker.app.require_api_key", return_value=None):
+        with patch("reranker.app._user_from_authorization", return_value=user), patch(
+            "reranker.app.require_api_key", return_value=None
+        ):
             response = client.post("/chat", json=request_data, headers=headers)
             assert response.status_code in [200, 422, 500]
 

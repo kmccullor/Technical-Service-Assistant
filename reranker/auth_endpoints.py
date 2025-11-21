@@ -13,6 +13,11 @@ logger = setup_logging(
 Authentication endpoints for JWT token management and user authentication.
 """
 
+try:
+    import bcrypt
+except ImportError as exc:
+    raise RuntimeError("bcrypt dependency is required for authentication") from exc
+
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
@@ -107,13 +112,7 @@ def verify_password(password: str, password_hash: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    try:
-        import bcrypt
-
-        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
-    except ImportError:
-        # Fallback for demo
-        return password == password_hash
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 def get_user_from_db(email: str) -> Optional[dict]:
     """Get user from database by email.

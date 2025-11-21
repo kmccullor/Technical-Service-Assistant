@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional, Sequence
 import requests
 from dotenv import load_dotenv
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
+
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env", override=False)
 
@@ -462,7 +464,7 @@ def main() -> int:
     parser.add_argument(
         "--mock-auth-email",
         default=os.getenv("LOAD_TEST_MOCK_EMAIL", ""),
-        help="Optional email used to generate mock_access_token_<email> bearer tokens (avoids JWT expiry during long tests).",
+        help="Optional email used to mint a real JWT for load tests when no bearer token is provided.",
     )
     parser.add_argument(
         "--scenario-file",
@@ -497,7 +499,7 @@ def main() -> int:
 
     bearer_token = args.bearer_token or os.getenv("LOAD_TEST_BEARER_TOKEN")
     if not bearer_token and mock_email:
-        bearer_token = f"mock_access_token_{mock_email}"
+        bearer_token = resolve_bearer_token(TokenOptions(email=mock_email, role="admin", env_var="LOAD_TEST_BEARER_TOKEN"))
     if not bearer_token:
         username = os.getenv("LOAD_TEST_USERNAME") or prompt("LOAD_TEST_USERNAME (email): ")
         password = os.getenv("LOAD_TEST_PASSWORD") or (

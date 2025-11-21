@@ -76,7 +76,7 @@ CREATE INDEX idx_pdf_documents_privacy_level ON pdf_documents(privacy_level);
 ```sql
 -- Updated search function with privacy filtering
 CREATE OR REPLACE FUNCTION match_document_chunks (
-  query_embedding vector(768),
+  query_embedding vector(3072),
   match_threshold float,
   match_count int,
   privacy_filter text DEFAULT 'public'  -- NEW PARAMETER

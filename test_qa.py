@@ -9,6 +9,8 @@ from typing import Dict, Tuple
 
 import requests
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
+
 # Test Q&A pairs based on RNI documentation in archive/
 QA_PAIRS = [
     {
@@ -49,7 +51,8 @@ QA_PAIRS = [
 def send_question(question: str) -> Tuple[str, float]:
     """Send a question to the API and return response and timing."""
     url = "http://localhost:8008/api/chat"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
+    token = resolve_bearer_token(TokenOptions(email="admin@example.com", role="admin", env_var="QA_BEARER_TOKEN"))
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     payload = {"message": question}
 
     start_time = time.time()

@@ -29,6 +29,7 @@ from typing import Optional
 
 import httpx
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
 # ============================================================================
 # Knowledge Base Q&A Dataset (Complexity-Tiered)
 # ============================================================================
@@ -293,8 +294,11 @@ def print_metrics_summary(metrics: LoadTestMetrics):
 async def run(duration: int, rps: float, concurrency: int, complexity_mix: str):
     """Run the comprehensive load test."""
     url = "http://127.0.0.1:8008/api/chat"
+    token = resolve_bearer_token(
+        TokenOptions(email="admin@example.com", role="admin", env_var="QA_LOAD_TEST_BEARER_TOKEN")
+    )
     headers = {
-        "Authorization": "Bearer mock_access_token_admin@example.com",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 

@@ -1,6 +1,6 @@
 # docling_processor
 
-Docling-based processor for multi-format document ingestion, chunking, and database integration. Provides structured extraction with Prometheus metrics for operational visibility.
+Docling-based processor for multi-format document ingestion, chunking, and database integration. Provides structured extraction with Prometheus metrics for operational visibility. Set `JWT_SECRET` (or `JWT_SECRET_KEY` for legacy environments) as part of the container/task env; the processor will refuse to start without it.
 
 ## Overview
 - Uses Docling for AI-powered extraction and chunking of PDF, DOCX, PPTX, XLSX, HTML, images, and audio files.

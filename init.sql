@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
   content text NOT NULL,
   content_hash text NOT NULL,
   content_length integer,
-  embedding vector(768),
+  embedding vector(3072),
   -- Added in Oct 2025 for language-aware retrieval / filtering
   language text DEFAULT 'en',
   -- Approximate token count (for budgeting / context window management)
@@ -54,8 +54,7 @@ CREATE INDEX IF NOT EXISTS document_chunks_document_id_idx ON document_chunks(do
 CREATE INDEX IF NOT EXISTS document_chunks_page_number_idx ON document_chunks(page_number);
 CREATE INDEX IF NOT EXISTS document_chunks_chunk_type_idx ON document_chunks(chunk_type);
 CREATE INDEX IF NOT EXISTS document_chunks_content_hash_idx ON document_chunks(content_hash);
--- HNSW vector index (cosine) for semantic similarity
-CREATE INDEX IF NOT EXISTS document_chunks_embedding_hnsw_idx ON document_chunks USING hnsw (embedding vector_cosine_ops) WITH (m=16, ef_construction=64);
+-- Index omitted: pgvector index types currently cap dimensions at 2000; using 3072-dim embeddings requires full-scan fallback
 -- Full text search index
 CREATE INDEX IF NOT EXISTS document_chunks_content_tsvector_gin_idx ON document_chunks USING gin(content_tsvector);
 

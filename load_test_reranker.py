@@ -16,6 +16,7 @@ from statistics import mean
 
 import httpx
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
 QUERIES = [
     "What is FlexNet?",
     "Compare FlexNet and LTE in terms of latency, range, and cost.",
@@ -87,7 +88,8 @@ async def monitor_ollama_health(interval, stop_at):
 
 async def run(duration, rps, concurrency):
     url = "http://127.0.0.1:8008/api/chat"
-    headers = {"Authorization": "Bearer mock_access_token_admin@example.com", "Content-Type": "application/json"}
+    token = resolve_bearer_token(TokenOptions(email="admin@example.com", role="admin", env_var="LOAD_TEST_BEARER_TOKEN"))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     metrics = Metrics()
     stop_at = time.time() + duration

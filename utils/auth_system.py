@@ -175,7 +175,8 @@ class AuthManager:
             return payload
         except jwt.ExpiredSignatureError:
             raise AuthenticationError("Token has expired")
-        except jwt.JWTError as e:
+        except jwt.PyJWTError as e:
+            # Catch all PyJWT validation issues (signature, decode errors)
             raise AuthenticationError(f"Invalid token: {str(e)}")
 
     # Health Check
@@ -1485,11 +1486,8 @@ async def get_auth_manager() -> AuthManager:
                     f"postgresql://{settings.db_user}:{settings.db_password}"
                     f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
                 )
-                jwt_secret = getattr(
-                    settings,
-                    "JWT_SECRET_KEY",
-                    os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production"),
-                )
+                # Use the configured JWT secret (allows JWT_SECRET to override JWT_SECRET_KEY)
+                jwt_secret = getattr(settings, "jwt_secret", os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production"))
                 _auth_manager_instance = AuthManager(db_url, jwt_secret)
     return _auth_manager_instance
 

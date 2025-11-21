@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS chunks (
 CREATE TABLE IF NOT EXISTS embeddings (
     chunk_id BIGINT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
     model_id BIGINT NOT NULL REFERENCES models(id) ON DELETE CASCADE,
-    embedding vector(768),             -- Adjust dimensions per model
+    embedding vector(3072),            -- Adjust dimensions per model
     created_at TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY(chunk_id, model_id)
 );
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     page_number integer NOT NULL,
     chunk_type text NOT NULL,          -- 'text', 'table', 'image'
     content text,                      -- Content or file path
-    embedding vector(768),             -- Single embedding column
+    embedding vector(3072),            -- Single embedding column
     created_at timestamp with time zone DEFAULT now()
 );
 ```

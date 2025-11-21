@@ -7,6 +7,7 @@ COPY config.py /app/config.py
 COPY utils/ /app/utils/
 COPY scripts/ /app/scripts/
 ENV PYTHONPATH=/app:/app/reranker
+ENV JWT_SECRET=${JWT_SECRET:-dev-local-secret}
 RUN chmod +x /app/reranker/healthcheck.sh
 RUN apt-get update && apt-get install -y curl \
     unixodbc unixodbc-dev tesseract-ocr && rm -rf /var/lib/apt/lists/*

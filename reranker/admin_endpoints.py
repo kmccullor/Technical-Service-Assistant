@@ -41,6 +41,7 @@ class UserListItem(BaseModel):
     verified: bool
     created_at: str
     updated_at: str
+    last_login: Optional[str] = None
 
 
 class UserListResponse(BaseModel):
@@ -129,7 +130,7 @@ async def list_users(
         cur.execute(
             f"""
             SELECT u.id, u.email, u.first_name, u.last_name, u.role_id, r.name as role_name,
-                   u.status, u.verified, u.created_at, u.updated_at
+                   u.status, u.verified, u.created_at, u.updated_at, u.last_login
             FROM users u
             JOIN roles r ON u.role_id = r.id
             {where_clause}
@@ -147,6 +148,8 @@ async def list_users(
                 row_dict["created_at"] = row_dict["created_at"].isoformat()
             if row_dict.get("updated_at"):
                 row_dict["updated_at"] = row_dict["updated_at"].isoformat()
+            if row_dict.get("last_login"):
+                row_dict["last_login"] = row_dict["last_login"].isoformat()
             items.append(UserListItem(**row_dict))
         return UserListResponse(total=total, limit=limit, offset=offset, items=items)
     finally:
@@ -188,7 +191,7 @@ async def update_user(
         cur.execute(
             """
             SELECT u.id, u.email, u.first_name, u.last_name, u.role_id, r.name as role_name,
-                   u.status, u.verified, u.created_at, u.updated_at
+                   u.status, u.verified, u.created_at, u.updated_at, u.last_login
             FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id=%s
             """,
             (user_id,),
@@ -202,6 +205,8 @@ async def update_user(
             row_dict["created_at"] = row_dict["created_at"].isoformat()
         if row_dict.get("updated_at"):
             row_dict["updated_at"] = row_dict["updated_at"].isoformat()
+        if row_dict.get("last_login"):
+            row_dict["last_login"] = row_dict["last_login"].isoformat()
         return UserListItem(**row_dict)
     finally:
         cur.close()

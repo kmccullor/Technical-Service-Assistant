@@ -12,7 +12,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
-import jwt
 import uvicorn
 
 # Add /app to Python path for imports
@@ -37,6 +36,7 @@ logger = logging.getLogger(__name__)
 logger.info("Starting app.py execution")
 
 from reranker.cache import get_db_connection
+from reranker.jwt_auth import JWTAuthenticator
 from reranker.question_decomposer import QuestionDecomposer
 from reranker.rag_chat import (
     BatchRAGChatRequest,
@@ -368,158 +368,49 @@ def _user_from_authorization(authorization: Optional[str]) -> UserResponse:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     token = authorization.replace("Bearer ", "")
+    payload = JWTAuthenticator.validate_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    # Try to decode JWT
-    jwt_secret = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+    user_id = payload.get("user_id")
+    email = payload.get("email")
+    if not user_id or not email:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+
     try:
-        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-        user_id = payload.get("user_id")
-        email = payload.get("email")
-        if user_id and email:
-            # Look up user from database
-            try:
-                conn = get_db_connection()
-                cursor = conn.cursor(cursor_factory=RealDictCursor)
-                cursor.execute("SELECT * FROM users WHERE id = %s", [user_id])
-                user_row = cursor.fetchone()
-                cursor.close()
-                conn.close()
-
-                if user_row:
-                    created_at_value = user_row.get("created_at")
-                    updated_at_value = user_row.get("updated_at")
-                    return UserResponse(
-                        id=user_row["id"],
-                        email=user_row["email"],
-                        first_name=user_row.get("first_name"),
-                        last_name=user_row.get("last_name"),
-                        full_name=f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}",
-                        role_id=user_row.get("role_id", 2),
-                        role_name="admin" if user_row.get("role_id") == 1 else "employee",
-                        status=user_row.get("status", "active"),
-                        verified=user_row.get("verified", True),
-                        last_login=_serialize_timestamp(user_row.get("last_login")),
-                        is_active=True,
-                        is_locked=False,
-                        password_change_required=user_row.get("password_change_required", False),
-                        created_at=_serialize_timestamp(created_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
-                        updated_at=_serialize_timestamp(updated_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
-                    )
-            except Exception as e:
-                logger.error(f"Error looking up user {user_id}: {e}")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.DecodeError:
-        pass  # Fall back to old logic
-
-    # Fallback for mock tokens or old logic
-    email = "admin@employee.com"
-    if authorization and authorization.startswith("Bearer mock_access_token_"):
-        token = authorization.replace("Bearer mock_access_token_", "")
-        if "@" in token:
-            email = token
-
-    # Look up user from database, create if doesn't exist
-    try:
-        # Extract name parts for user creation
-        email_parts = email.split("@")
-        username = email_parts[0] if email_parts else "user"
-        name_parts = username.replace(".", " ").replace("_", " ").split()
-        first_name = name_parts[0].capitalize() if name_parts else "User"
-        last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
-
-        logger.info(f"Looking up user with email: {email}")
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM users WHERE email = %s", [email])
+        cursor.execute("SELECT * FROM users WHERE id = %s AND email = %s", [user_id, email])
         user_row = cursor.fetchone()
-        logger.info(f"User lookup result: {user_row is not None}")
-
-        if not user_row:
-            # User doesn't exist, create them
-            user_id = _deterministic_user_id(email)
-            role_id = 2
-
-            logger.info(
-                f"Creating new user: id={user_id}, email={email}, first_name={first_name}, last_name={last_name}, role_id={role_id}"
-            )
-            cursor.execute(
-                """
-                INSERT INTO users (id, email, name, first_name, last_name, role_id, status, verified, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 'active', true, NOW(), NOW())
-                ON CONFLICT (id) DO UPDATE SET
-                    email = EXCLUDED.email,
-                    name = EXCLUDED.name,
-                    first_name = EXCLUDED.first_name,
-                    last_name = EXCLUDED.last_name,
-                    role_id = EXCLUDED.role_id,
-                    updated_at = NOW()
-                RETURNING *
-            """,
-                [user_id, email, f"{first_name} {last_name}", first_name, last_name, role_id],
-            )
-            user_row = cursor.fetchone()
-            conn.commit()
-            logger.info(f"User creation result: {user_row}")
-
         cursor.close()
         conn.close()
+    except Exception as exc:  # pragma: no cover - database connection failures handled upstream
+        logger.error("Error looking up user %s: %s", user_id, exc)
+        raise HTTPException(status_code=500, detail="Authentication lookup failed")
 
-        if user_row:
-            return UserResponse(
-                id=user_row["id"],
-                email=user_row["email"],
-                first_name=user_row.get("first_name"),
-                last_name=user_row.get("last_name"),
-                full_name=user_row.get(
-                    "name", f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}"
-                ),
-                role_id=user_row.get("role_id", 2),
-                role_name="admin" if user_row.get("role_id") == 1 else "employee",
-                status=user_row.get("status", "active"),
-                verified=user_row.get("verified", True),
-                last_login=_serialize_timestamp(user_row.get("last_login")),
-                is_active=True,
-                is_locked=False,
-                password_change_required=user_row.get("password_change_required", False),
-                created_at=user_row["created_at"].isoformat() if user_row["created_at"] else "2024-01-01T00:00:00Z",
-                updated_at=user_row["updated_at"].isoformat() if user_row["updated_at"] else "2024-01-01T00:00:00Z",
-            )
-    except Exception as e:
-        logger.error(f"Error looking up/creating user {email}: {e}")
+    if not user_row or user_row.get("status") != "active" or not user_row.get("verified", False):
+        raise HTTPException(status_code=401, detail="User account is not active")
 
-    # Fallback to mock user (should not reach here after database lookup/creation)
-    email_parts = email.split("@")
-    username = email_parts[0] if email_parts else "user"
-    name_parts = username.replace(".", " ").replace("_", " ").split()
-    first_name = name_parts[0].capitalize() if name_parts else "User"
-    last_name = name_parts[1].capitalize() if len(name_parts) > 1 else "Test"
-
-    if email in ["kevin.mccullor@xylem.com", "admin@employee.com"] or "admin" in email.lower():
-        role_id = 1
-        role_name = "admin"
-    else:
-        role_id = 2
-        role_name = "employee"
-
-    user_id = 7 if email == "kevin.mccullor@xylem.com" else _deterministic_user_id(email)
-
+    created_at_value = user_row.get("created_at")
+    updated_at_value = user_row.get("updated_at")
     return UserResponse(
-        id=user_id,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        full_name=f"{first_name} {last_name}",
-        role_id=role_id,
-        role_name=role_name,
-        status="active",
-        verified=True,
-        last_login=None,
+        id=user_row["id"],
+        email=user_row["email"],
+        first_name=user_row.get("first_name"),
+        last_name=user_row.get("last_name"),
+        full_name=user_row.get(
+            "name", f"{user_row.get('first_name', 'User')} {user_row.get('last_name', 'Test')}"
+        ),
+        role_id=user_row.get("role_id", 2),
+        role_name="admin" if user_row.get("role_id") == 1 else "employee",
+        status=user_row.get("status", "active"),
+        verified=user_row.get("verified", True),
+        last_login=_serialize_timestamp(user_row.get("last_login")),
         is_active=True,
         is_locked=False,
-        password_change_required=False,
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-01T00:00:00Z",
+        password_change_required=user_row.get("password_change_required", False),
+        created_at=_serialize_timestamp(created_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
+        updated_at=_serialize_timestamp(updated_at_value, "2024-01-01T00:00:00Z") or "2024-01-01T00:00:00Z",
     )
 
 
@@ -1941,6 +1832,44 @@ def debug_documents_endpoint():
         return {"documents": docs}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.delete("/api/documents/{document_id}", status_code=204)
+def delete_document(document_id: int, authorization: Optional[str] = Header(None)):
+    """Delete a document and its files (admin only)."""
+    user = _user_from_authorization(authorization)
+    if not user or (getattr(user, "role_name", "") or "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    conn = get_db_connection()
+    archive_dir = config.get_settings().archive_dir
+    uploads_dir = config.get_settings().uploads_dir
+
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT file_name FROM documents WHERE id = %s", (document_id,))
+            doc = cursor.fetchone()
+            if not doc:
+                raise HTTPException(status_code=404, detail="Document not found")
+
+            file_name = doc["file_name"]
+
+            cursor.execute("DELETE FROM documents WHERE id = %s", (document_id,))
+            conn.commit()
+
+            # Best-effort file cleanup in archive and uploads
+            for base in filter(None, [archive_dir, uploads_dir]):
+                file_path = os.path.join(base, file_name)
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        logger.info("Deleted file %s", file_path)
+                    except Exception as exc:  # pragma: no cover - best effort
+                        logger.warning("Failed to delete file %s: %s", file_path, exc)
+    finally:
+        conn.close()
+
+    return Response(status_code=204)
 
 
 # Question analytics endpoints

@@ -17,7 +17,7 @@ except (ImportError, AttributeError):
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
-from config import get_settings
+import config
 from utils.logging_config import setup_logging
 
 # Suppress PyTorch warnings for CPU-only usage
@@ -32,7 +32,7 @@ try:
 except ImportError:
     import acronym_extractor
 
-settings = get_settings()
+settings = config.get_settings()
 UPLOADS_DIR = settings.uploads_dir
 ARCHIVE_DIR = settings.archive_dir
 

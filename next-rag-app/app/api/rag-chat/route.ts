@@ -20,13 +20,17 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     })
 
-    if (!response.ok) {
-      console.error('[RAG PROXY] reranker response status:', response.status)
-      throw new Error(`Reranker error: ${response.status}`)
-    }
-
     // For streaming responses, return the stream directly
     if (body.stream) {
+      if (!response.ok) {
+        // Surface upstream error codes directly to the client to avoid masking as 500s
+        return new Response(response.body, {
+          status: response.status,
+          headers: {
+            'Content-Type': response.headers.get('Content-Type') || 'text/plain',
+          },
+        })
+      }
       return new Response(response.body, {
         headers: {
           'Content-Type': response.headers.get('Content-Type') || 'application/json',
@@ -36,11 +40,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // For non-streaming, return the JSON
-    const data = await response.json()
-    return new Response(JSON.stringify(data), {
+    // For non-streaming, return the JSON or upstream error body/status
+    const text = await response.text()
+    return new Response(text, {
+      status: response.status,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': response.headers.get('Content-Type') || 'application/json',
       },
     })
 

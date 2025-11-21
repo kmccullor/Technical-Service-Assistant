@@ -26,6 +26,8 @@ export default function AdminPage() {
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null)
   const [adminCustomPrompt, setAdminCustomPrompt] = useState(ADMIN_PROMPT_DEFAULT)
   const [lastAssistantMessage] = useState<ChatMessage | undefined>(undefined)
+  const [sortBy, setSortBy] = useState<'id' | 'email' | 'name' | 'role' | 'status' | 'verified' | 'last_login'>('last_login')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     if (!accessToken) return
@@ -145,6 +147,49 @@ export default function AdminPage() {
 
   const safeRoles = Array.isArray(roles) ? roles : []
   const safeUsers = Array.isArray(users) ? users : []
+  const sortedUsers = React.useMemo(() => {
+    const dir = sortDirection === 'asc' ? 1 : -1
+    return [...safeUsers].sort((a, b) => {
+      const val = (key: typeof sortBy) => {
+        switch (key) {
+          case 'id':
+            return a.id - b.id
+          case 'email':
+            return a.email.localeCompare(b.email)
+          case 'name':
+            return (a.full_name || '').localeCompare(b.full_name || '')
+          case 'role':
+            return (a.role_name || '').localeCompare(b.role_name || '')
+          case 'status':
+            return (a.status || '').localeCompare(b.status || '')
+          case 'verified':
+            return Number(a.verified) - Number(b.verified)
+          case 'last_login': {
+            const aDate = a.last_login ? new Date(a.last_login).getTime() : 0
+            const bDate = b.last_login ? new Date(b.last_login).getTime() : 0
+            return aDate - bDate
+          }
+          default:
+            return 0
+        }
+      }
+      return dir * val(sortBy)
+    })
+  }, [safeUsers, sortBy, sortDirection])
+
+  const handleSort = (column: typeof sortBy) => {
+    if (sortBy === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(column)
+      setSortDirection('asc')
+    }
+  }
+
+  const renderSort = (column: typeof sortBy) => {
+    if (sortBy !== column) return ''
+    return sortDirection === 'asc' ? ' ▲' : ' ▼'
+  }
   const handleAdminRegenerate = () => {
     // Admin page context does not stream chat; this hook simply exists to satisfy the panel requirements.
     console.info('Admin actions triggered from dashboard context')
@@ -278,18 +323,18 @@ export default function AdminPage() {
               <table className="min-w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr className="text-left">
-                    <th className="p-2">ID</th>
-                    <th className="p-2">Email</th>
-                    <th className="p-2">Name</th>
-                    <th className="p-2">Role</th>
-                    <th className="p-2">Status</th>
-                    <th className="p-2">Verified</th>
-                    <th className="p-2">Updated</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('id')}>ID{renderSort('id')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('email')}>Email{renderSort('email')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('name')}>Name{renderSort('name')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('role')}>Role{renderSort('role')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('status')}>Status{renderSort('status')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('verified')}>Verified{renderSort('verified')}</th>
+                    <th className="p-2 cursor-pointer select-none" onClick={() => handleSort('last_login')}>Last Login{renderSort('last_login')}</th>
                     <th className="p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {safeUsers.map(u => (
+                  {sortedUsers.map(u => (
                     <tr key={u.id} className="border-t">
                       <td className="p-2 font-mono text-xs">{u.id}</td>
                       <td className="p-2">{u.email}</td>
@@ -319,7 +364,9 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td className="p-2 text-center">{u.verified ? '✅' : '❌'}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{u.updated_at?.replace('T', ' ').substring(0,16)}</td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {u.last_login ? u.last_login.replace('T', ' ').substring(0,16) : '—'}
+                      </td>
                       <td className="p-2">
                         <button
                           onClick={() => handleDeleteUser(u.id)}

@@ -464,8 +464,14 @@ export function ChatInterface({
         const chunk = new TextDecoder().decode(value)
         const lines = chunk.split('\n')
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
+        for (const rawLine of lines) {
+          if (!rawLine || typeof rawLine !== 'string') {
+            continue
+          }
+          const line = rawLine.trim()
+          if (!line.startsWith('data: ')) {
+            continue
+          }
             try {
               const data = JSON.parse(line.slice(6))
 

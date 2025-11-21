@@ -7,13 +7,21 @@ import json
 
 import requests
 
+from utils.token_provider import TokenOptions, resolve_bearer_token
+
+
+def _auth_headers() -> dict:
+    token = resolve_bearer_token(
+        TokenOptions(email="admin@example.com", role="admin", env_var="IMPROVEMENTS_BEARER_TOKEN")
+    )
+    return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
 
 def test_routing():
     """Test intelligent routing functionality."""
     print("Testing intelligent routing...")
 
     url = "http://localhost:8008/api/intelligent-route"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
+    headers = _auth_headers()
 
     # Test different question types
     test_questions = [
@@ -44,7 +52,7 @@ def test_chat_simple():
     print("\nTesting simple chat interaction...")
 
     url = "http://localhost:8008/api/chat"
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer mock_access_token_admin@example.com"}
+    headers = _auth_headers()
 
     payload = {"message": "What is RNI?"}
 

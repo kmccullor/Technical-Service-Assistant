@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
+from config import get_settings
 try:
     import jwt
 except ImportError:
@@ -39,10 +40,18 @@ except ImportError:
     redis = None  # type: ignore
 
 # Configuration
-JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
+_settings = get_settings()
+
+JWT_SECRET = _settings.jwt_secret
 JWT_ALGORITHM = "HS256"
 TOKEN_EXPIRY_HOURS = int(os.getenv("JWT_TOKEN_EXPIRY_HOURS", "24"))
 REFRESH_TOKEN_EXPIRY_DAYS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRY_DAYS", "7"))
+
+
+def _require_jwt_secret() -> str:
+    if not JWT_SECRET or JWT_SECRET.strip() == "":
+        raise RuntimeError("JWT_SECRET is not configured")
+    return JWT_SECRET
 
 # Rate limiting configuration (requests per minute)
 RATE_LIMITS = {
@@ -145,7 +154,8 @@ class JWTAuthenticator:
             "type": "access",
         }
 
-        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        secret = _require_jwt_secret()
+        token = jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
         logger.info(f"Generated token for user {email} (role: {role})")
         return token
 
@@ -175,7 +185,8 @@ class JWTAuthenticator:
             "type": "refresh",
         }
 
-        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        secret = _require_jwt_secret()
+        token = jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
         return token
 
     @staticmethod
@@ -194,9 +205,10 @@ class JWTAuthenticator:
 
         try:
             # Add 5 second leeway for clock skew
+            secret = _require_jwt_secret()
             payload = jwt.decode(
                 token,
-                JWT_SECRET,
+                secret,
                 algorithms=[JWT_ALGORITHM],
                 options={"verify_iat": False, "leeway": 10},
             )

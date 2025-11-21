@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 ENV PYTHONPATH=/app
+ENV JWT_SECRET=${JWT_SECRET:-dev-local-secret}
 
 # Copy necessary application modules
 COPY config.py /app/config.py

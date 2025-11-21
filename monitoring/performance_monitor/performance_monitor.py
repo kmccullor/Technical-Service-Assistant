@@ -109,7 +109,16 @@ def _db_connect(settings):
 
 
 def _collect_db_metrics() -> Dict[str, float]:
-    settings = get_settings()
+    settings = _get_settings_safe()
+    if settings is None:
+        return {
+            "documents_total": 0,
+            "chunks_total": 0,
+            "last_ingestion_ts": 0.0,
+            "docs_today": 0,
+            "avg_proc_today": 0.0,
+            "chunks_today": 0,
+        }
     out: Dict[str, float] = {
         "documents_total": 0,
         "chunks_total": 0,
@@ -167,8 +176,12 @@ def _collect_service_status() -> Dict[str, int]:
     status["reranker"] = 1 if _check_http("http://reranker:8008/health") else 0
     for i in range(1, 5):
         status[f"ollama_server_{i}"] = 1 if _check_http(f"http://ollama-server-{i}:11434/api/tags") else 0
+    settings = _get_settings_safe()
+    if settings is None:
+        status["database"] = 0
+        return status
     try:
-        with _db_connect(get_settings()):  # type: ignore[arg-type]
+        with _db_connect(settings):  # type: ignore[arg-type]
             status["database"] = 1
     except Exception:  # noqa: BLE001
         status["database"] = 0
@@ -192,6 +205,14 @@ def refresh_metrics() -> bool:
 
         G_LAST_REFRESH_TS.set(time.time())
     return ok
+
+
+def _get_settings_safe():
+    try:
+        return get_settings()
+    except Exception as exc:  # noqa: BLE001
+        LOG.error("settings_unavailable error=%s", exc)
+        return None
 
 
 def run_exporter(interval: int = 30) -> None:

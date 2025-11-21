@@ -256,6 +256,7 @@ services:
       - DB_NAME=vector_db
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - JWT_SECRET=${JWT_SECRET}
       - UPLOADS_DIR=/app/uploads
       - ARCHIVE_DIR=/app/archive
       - LOG_DIR=/app/logs
@@ -553,6 +554,7 @@ services:
       - EXPORTER=1
       - EXPORTER_PORT=9109
       - POLL_INTERVAL=60
+      - JWT_SECRET=${JWT_SECRET}
       - DB_HOST=pgvector
       - DB_PORT=5432
       - DB_NAME=vector_db

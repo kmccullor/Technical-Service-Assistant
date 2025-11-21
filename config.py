@@ -61,6 +61,16 @@ def _get_float(name: str, default: float) -> float:
         return default
 
 
+def _get_required_str(name: str, fallback_env: str | None = None) -> str:
+    value = os.getenv(name)
+    if (value is None or value.strip() == "") and fallback_env:
+        value = os.getenv(fallback_env, "")
+    if value is None or value.strip() == "":
+        fallback_display = f" or {fallback_env}" if fallback_env else ""
+        raise RuntimeError(f"{name}{fallback_display} must be set")
+    return value.strip()
+
+
 class Settings:
     # Database
     db_host: str
@@ -110,6 +120,7 @@ class Settings:
     api_host: str
     api_port: int
     api_key: str | None
+    jwt_secret: str
 
     # Email / SMTP
     smtp_host: str
@@ -232,6 +243,7 @@ def get_settings() -> Settings:
     s.api_host = os.getenv("API_HOST", "0.0.0.0")
     s.api_port = _get_int("API_PORT", 8008)
     s.api_key = os.getenv("API_KEY")
+    s.jwt_secret = _get_required_str("JWT_SECRET", fallback_env="JWT_SECRET_KEY")
 
     # Email / SMTP
     s.smtp_host = os.getenv("SMTP_HOST", "localhost")
