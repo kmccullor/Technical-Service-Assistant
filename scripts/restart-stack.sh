@@ -3,6 +3,8 @@ set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 COMPOSE_CMD="docker compose -f ${COMPOSE_FILE}"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+FRONTEND_CACHE_DIR="${FRONTEND_CACHE_DIR:-${REPO_ROOT}/next-rag-app/.next}"
 
 log() { printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
@@ -23,8 +25,14 @@ health_check() {
   fi
 }
 
+log "Clearing Next.js build cache (${FRONTEND_CACHE_DIR})…"
+rm -rf "${FRONTEND_CACHE_DIR}" 2>/dev/null || true
+
 log "Bringing stack down (remove orphans)…"
 ${COMPOSE_CMD} down --remove-orphans
+
+log "Rebuilding images…"
+${COMPOSE_CMD} build
 
 log "Starting stack…"
 ${COMPOSE_CMD} up -d

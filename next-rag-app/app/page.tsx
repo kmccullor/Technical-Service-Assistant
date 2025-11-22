@@ -65,23 +65,50 @@ export default function HomePage() {
   }, [canvasMessages])
 
   const sources = useMemo(() => {
-    const entries: Record<string, { title: string; summary: string; source: string; url?: string }> = {}
-    canvasMessages.forEach((message) => {
-      message.citations?.forEach((citation) => {
-        if (!entries[citation.id]) {
-          entries[citation.id] = {
-            title: citation.title,
-            summary: citation.content.length > 160 ? `${citation.content.slice(0, 160)}…` : citation.content,
-            source: citation.source,
-            url: citation.source.startsWith('http') ? citation.source : undefined,
-          }
+    try {
+      const entries: Record<string, { title: string; summary: string; source: string; url?: string }> = {}
+      const isHttp = (value: unknown): value is string =>
+        typeof value === 'string' && value.startsWith('http')
+
+      canvasMessages.forEach((message) => {
+        if (!Array.isArray(message.citations)) {
+          return
         }
+
+        message.citations.forEach((citation, idx) => {
+          if (!citation || typeof citation !== 'object') {
+            return
+          }
+
+          const id = typeof (citation as any).id === 'string' && (citation as any).id
+            ? (citation as any).id
+            : `${message.id}-${idx}`
+          const title = typeof (citation as any).title === 'string' && (citation as any).title
+            ? (citation as any).title
+            : 'Untitled source'
+          const rawContent = typeof (citation as any).content === 'string' ? (citation as any).content : ''
+          const summary = rawContent.length > 160 ? `${rawContent.slice(0, 160)}…` : rawContent || 'No excerpt available'
+          const source = typeof (citation as any).source === 'string' ? (citation as any).source : ''
+          const url = isHttp(source) ? source : undefined
+
+          if (!entries[id]) {
+            entries[id] = {
+              title,
+              summary,
+              source: source || 'Unknown source',
+              url,
+            }
+          }
+        })
       })
-    })
-    return Object.entries(entries).slice(0, 6).map(([id, entry]) => ({
-      id,
-      ...entry,
-    }))
+      return Object.entries(entries).slice(0, 6).map(([id, entry]) => ({
+        id,
+        ...entry,
+      }))
+    } catch (err) {
+      console.error('Failed to build sources:', err)
+      return []
+    }
   }, [canvasMessages])
 
   const insightPreview = lastAssistantMessage?.content || 'Create a Salesforce case question to kick off the research canvas.'

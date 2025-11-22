@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
     if (!useLocalModels && (!openaiKey || openaiKey === 'sk-your-openai-api-key-here')) {
       console.log('Neither local models nor OpenAI API key configured, returning test response')
 
+      // Provide a deterministic conversation id so the client can continue gracefully
+      const placeholderConversationId = Date.now()
+
       // Create a simple test response without RAG
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
           // Send conversation ID first
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'conversation_id',
-            conversationId: convId
+            conversationId: placeholderConversationId
           })}\n\n`))
 
           // Send sources

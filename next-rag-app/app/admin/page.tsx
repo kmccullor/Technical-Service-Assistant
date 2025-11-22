@@ -29,6 +29,38 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'id' | 'email' | 'name' | 'role' | 'status' | 'verified' | 'last_login'>('last_login')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
+  const safeRoles = Array.isArray(roles) ? roles : []
+  const safeUsers = Array.isArray(users) ? users : []
+  const sortedUsers = React.useMemo(() => {
+    const dir = sortDirection === 'asc' ? 1 : -1
+    return [...safeUsers].sort((a, b) => {
+      const val = (key: typeof sortBy) => {
+        switch (key) {
+          case 'id':
+            return a.id - b.id
+          case 'email':
+            return a.email.localeCompare(b.email)
+          case 'name':
+            return (a.full_name || '').localeCompare(b.full_name || '')
+          case 'role':
+            return (a.role_name || '').localeCompare(b.role_name || '')
+          case 'status':
+            return (a.status || '').localeCompare(b.status || '')
+          case 'verified':
+            return Number(a.verified) - Number(b.verified)
+          case 'last_login': {
+            const aDate = a.last_login ? new Date(a.last_login).getTime() : 0
+            const bDate = b.last_login ? new Date(b.last_login).getTime() : 0
+            return aDate - bDate
+          }
+          default:
+            return 0
+        }
+      }
+      return dir * val(sortBy)
+    })
+  }, [safeUsers, sortBy, sortDirection])
+
   useEffect(() => {
     if (!accessToken) return
     if (!user || user.role_name !== 'admin') return
@@ -144,38 +176,6 @@ export default function AdminPage() {
       <Link href="/" className="underline">Return Home</Link>
     </div>
   }
-
-  const safeRoles = Array.isArray(roles) ? roles : []
-  const safeUsers = Array.isArray(users) ? users : []
-  const sortedUsers = React.useMemo(() => {
-    const dir = sortDirection === 'asc' ? 1 : -1
-    return [...safeUsers].sort((a, b) => {
-      const val = (key: typeof sortBy) => {
-        switch (key) {
-          case 'id':
-            return a.id - b.id
-          case 'email':
-            return a.email.localeCompare(b.email)
-          case 'name':
-            return (a.full_name || '').localeCompare(b.full_name || '')
-          case 'role':
-            return (a.role_name || '').localeCompare(b.role_name || '')
-          case 'status':
-            return (a.status || '').localeCompare(b.status || '')
-          case 'verified':
-            return Number(a.verified) - Number(b.verified)
-          case 'last_login': {
-            const aDate = a.last_login ? new Date(a.last_login).getTime() : 0
-            const bDate = b.last_login ? new Date(b.last_login).getTime() : 0
-            return aDate - bDate
-          }
-          default:
-            return 0
-        }
-      }
-      return dir * val(sortBy)
-    })
-  }, [safeUsers, sortBy, sortDirection])
 
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {

@@ -472,40 +472,39 @@ export function ChatInterface({
           if (!line.startsWith('data: ')) {
             continue
           }
-            try {
-              const data = JSON.parse(line.slice(6))
+          try {
+            const data = JSON.parse(line.slice(6))
 
-              if (data.type === 'token') {
-                // Handle streaming tokens from the backend
-                setMessages(prev => prev.map(m =>
-                  m.id === assistantMessage.id
-                    ? { ...m, content: m.content + data.token }
-                    : m
-                ))
-              } else if (data.type === 'sources') {
-                // Handle sources/citations
-                setMessages(prev => prev.map(m =>
-                  m.id === assistantMessage.id
-                    ? { ...m, citations: data.sources, searchType: data.method }
-                    : m
-                ))
-              } else if (data.type === 'conversation_id') {
-                if (typeof data.conversationId === 'number') {
-                  resolvedConversationId = data.conversationId
-                  if (conversationId === undefined) {
-                    onConversationCreated?.(data.conversationId)
-                  }
+            if (data.type === 'token') {
+              // Handle streaming tokens from the backend
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMessage.id
+                  ? { ...m, content: m.content + data.token }
+                  : m
+              ))
+            } else if (data.type === 'sources') {
+              // Handle sources/citations
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMessage.id
+                  ? { ...m, citations: data.sources, searchType: data.method }
+                  : m
+              ))
+            } else if (data.type === 'conversation_id') {
+              if (typeof data.conversationId === 'number') {
+                resolvedConversationId = data.conversationId
+                if (conversationId === undefined) {
+                  onConversationCreated?.(data.conversationId)
                 }
-              } else if (data.type === 'done') {
-                // Streaming completed
-                console.log('Streaming completed')
-              } else if (data.type === 'error') {
-                console.error('Streaming error:', data.error)
               }
-            } catch (e) {
-              // Ignore malformed JSON
-              console.warn('Failed to parse streaming data:', line)
+            } else if (data.type === 'done') {
+              // Streaming completed
+              console.log('Streaming completed')
+            } else if (data.type === 'error') {
+              console.error('Streaming error:', data.error)
             }
+          } catch (e) {
+            // Ignore malformed JSON
+            console.warn('Failed to parse streaming data:', line)
           }
         }
       }
